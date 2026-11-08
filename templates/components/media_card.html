@@ -29,7 +29,10 @@
   {% set uploader_name = (prof_dict.get('full_name') if prof_dict is mapping else None) or (prof_val if prof_val is string else None) or file.get('uploader_name') or file.get('author') or 'Student Contributor' %}
   {% set initial = (uploader_name[:1] or 'S')|upper %}
 
-  <a href="{{ furl }}" class="arch-apple-card {% if is_pyq %}type-pyq{% elif is_practical %}type-practical{% else %}type-notes{% endif %}">
+  <a href="{{ furl }}" class="arch-apple-card note-card {% if is_pyq %}type-pyq{% elif is_practical %}type-practical{% else %}type-notes{% endif %}"
+     data-title="{{ file_title|lower }}"
+     data-subject="{{ display_subject }}"
+     data-category="{{ cat }}">
     <!-- Visual Hero Plate -->
     <div class="arch-card-plate">
       <div class="arch-plate-top">

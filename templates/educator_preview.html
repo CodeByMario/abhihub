@@ -1,0 +1,1965 @@
+{% extends 'p_struct.html' %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/apple-card.css') }}">
+
+
+<style>
+  .channel-container {
+    max-width: 1100px;
+    margin: 1.5rem auto 5rem;
+    padding: 0 1rem;
+    font-family: inherit;
+  }
+  
+  /* Lead Selector Switcher Toolbar */
+  .preview-control-bar {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 0.85rem 1.25rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    overflow-x: auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  }
+  .preview-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #4f46e5;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .lead-chip {
+    padding: 0.4rem 0.85rem;
+    border-radius: 9999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #475569;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+  }
+  .lead-chip:hover {
+    background: #eef2ff;
+    color: #4f46e5;
+    border-color: #c7d2fe;
+  }
+  .lead-chip.active {
+    background: #4f46e5;
+    color: #ffffff;
+    border-color: #4f46e5;
+  }
+
+  /* Exact /c/study_with_wasu Styles */
+  .channel-banner {
+    height: 180px;
+    width: 100%;
+    border-radius: 20px 20px 0 0;
+    background: linear-gradient(135deg, #4f46e5, #06b6d4 50%, #3b82f6);
+    background-size: cover;
+    background-position: center;
+    position: relative;
+  }
+  .channel-header-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0 0 20px 20px;
+    padding: 1.5rem 2rem 1.8rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+    position: relative;
+  }
+  .channel-avatar-wrapper {
+    position: absolute;
+    top: -55px;
+    left: 2rem;
+  }
+  .channel-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 4px solid #ffffff;
+    background: #e0e7ff;
+    object-fit: cover;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #4338ca;
+  }
+  .channel-meta-area {
+    margin-top: 50px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .channel-title-group h1 {
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .channel-handle {
+    color: #64748b;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+  .channel-bio {
+    color: #334155;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    max-width: 650px;
+    margin-bottom: 1rem;
+    white-space: pre-line;
+  }
+  .channel-stats-row {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.9rem;
+    color: #475569;
+  }
+  .channel-stats-row strong {
+    color: #0f172a;
+  }
+  .social-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: center;
+  }
+  .social-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.9rem;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+  .social-pill-yt { background: #fee2e2; color: #dc2626; }
+  .social-pill-yt:hover { background: #fecaca; }
+  .social-pill-tg { background: #e0f2fe; color: #0284c7; }
+  .social-pill-tg:hover { background: #bae6fd; }
+  .social-pill-ig { background: #fce7f3; color: #db2777; }
+  .social-pill-ig:hover { background: #fbcfe8; }
+  .social-pill-live { background: #dcfce7; color: #15803d; }
+
+  /* Creator Upload Action Banner & Multi-Step Wizard */
+  .upload-trigger-card {
+    background: linear-gradient(135deg, #eef2ff 0%, #f0fdf4 100%);
+    border: 1px solid #c7d2fe;
+    border-radius: 16px;
+    padding: 1.25rem 1.75rem;
+    margin-bottom: 2.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    box-shadow: 0 4px 15px rgba(79, 70, 229, 0.06);
+  }
+  .upload-trigger-badge {
+    display: inline-block;
+    background: #4f46e5;
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    margin-bottom: 0.4rem;
+  }
+  .upload-trigger-title {
+    font-size: 1.12rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 0.2rem;
+  }
+  .upload-trigger-sub {
+    font-size: 0.85rem;
+    color: #475569;
+    margin: 0;
+  }
+  .creator-upload-cta {
+    background: #4f46e5;
+    color: #ffffff;
+    border: none;
+    padding: 0.75rem 1.4rem;
+    border-radius: 12px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.28);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .creator-upload-cta:hover {
+    background: #4338ca;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.38);
+  }
+  .social-pill-upload {
+    background: #4f46e5;
+    color: #ffffff;
+    cursor: pointer;
+    border: none;
+  }
+  .social-pill-upload:hover {
+    background: #4338ca;
+    color: #ffffff;
+  }
+
+  /* Wizard Modal Styles */
+  .wizard-card {
+    background: #ffffff;
+    border-radius: 20px;
+    max-width: 540px;
+    width: 100%;
+    padding: 2rem;
+    box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.35);
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .wizard-steps-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    position: relative;
+  }
+  .wizard-step-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    position: relative;
+    z-index: 2;
+  }
+  .node-bubble {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    border: 2px solid #cbd5e1;
+    color: #64748b;
+    font-size: 0.85rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .wizard-step-node.active .node-bubble {
+    background: #4f46e5;
+    border-color: #4f46e5;
+    color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+  }
+  .wizard-step-node.completed .node-bubble {
+    background: #10b981;
+    border-color: #10b981;
+    color: #ffffff;
+  }
+  .node-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #64748b;
+  }
+  .wizard-step-node.active .node-title { color: #4f46e5; }
+  .wizard-dropzone {
+    border: 2px dashed #818cf8;
+    background: #f8fafc;
+    border-radius: 14px;
+    padding: 2rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .wizard-dropzone:hover {
+    border-color: #4f46e5;
+    background: #eef2ff;
+  }
+  .wizard-input-label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 0.35rem;
+  }
+  .wizard-input-field {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    border-radius: 10px;
+    border: 1px solid #cbd5e1;
+    font-size: 0.9rem;
+    outline: none;
+    box-sizing: border-box;
+    margin-bottom: 1rem;
+  }
+  .wizard-input-field:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+  }
+  .pricing-chips-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .pricing-chip-btn {
+    flex: 1;
+    padding: 0.55rem;
+    border-radius: 10px;
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #334155;
+    cursor: pointer;
+  }
+  .pricing-chip-btn.selected {
+    background: #4f46e5;
+    color: #ffffff;
+    border-color: #4f46e5;
+  }
+  .wizard-nav-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+  }
+  @media (max-width: 768px) {
+    .upload-trigger-card {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .creator-upload-cta {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  /* Section Title */
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+  }
+  .section-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+  }
+
+  /* Search & Controls Toolbar */
+  .channel-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+  .search-wrapper {
+    position: relative;
+    flex: 1;
+    min-width: 240px;
+    max-width: 450px;
+  }
+  .search-input {
+    width: 100%;
+    padding: 0.65rem 1rem 0.65rem 2.4rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+  }
+  .search-input:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+  }
+  .search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    color: #94a3b8;
+    pointer-events: none;
+  }
+  .group-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .group-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #64748b;
+  }
+  .group-btn {
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    color: #475569;
+    padding: 0.45rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .group-btn:hover {
+    background: #f8fafc;
+    color: #0f172a;
+  }
+  .group-btn.active {
+    background: #4f46e5;
+    color: #ffffff;
+    border-color: #4f46e5;
+  }
+
+  /* Notes Grid & Cards (Exact match to study_with_wasu) */
+  .notes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 3rem;
+  }
+  .note-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .note-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  }
+  .note-badge-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+  .tag-pill {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    background: #f1f5f9;
+    color: #475569;
+  }
+  .subject-pill {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    background: #eef2ff;
+    color: #4338ca;
+  }
+  .price-tag {
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+  }
+  .price-free { background: #dcfce7; color: #15803d; }
+  .price-paid { background: #fef08a; color: #854d0e; }
+  
+  .note-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 0.5rem;
+    line-height: 1.35;
+  }
+  .note-info {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-bottom: 1.2rem;
+    display: flex;
+    gap: 1rem;
+  }
+  .note-action-row {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr;
+    gap: 0.5rem;
+  }
+  .note-btn {
+    display: block;
+    text-align: center;
+    background: #4f46e5;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.88rem;
+    padding: 0.55rem 0.8rem;
+    border-radius: 10px;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .note-btn:hover {
+    background: #4338ca;
+    color: #ffffff;
+  }
+  .note-btn-secondary {
+    background: #f1f5f9;
+    color: #334155;
+  }
+  .note-btn-secondary:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+
+  /* Powered By Badge (Exact match to study_with_wasu) */
+  .powered-by-card {
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 16px;
+    padding: 1.75rem 1.5rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .powered-by-title {
+    font-size: 0.95rem;
+    color: #475569;
+    margin: 0;
+  }
+  .powered-by-title strong {
+    color: #4f46e5;
+  }
+  .start-channel-btn {
+    display: inline-block;
+    margin-top: 0.5rem;
+    background: #0f172a;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 0.55rem 1.4rem;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+  .start-channel-btn:hover {
+    background: #334155;
+    color: #ffffff;
+  }
+
+  /* Interactive Modal */
+  .preview-modal-bg {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  .preview-modal-card {
+    background: #ffffff;
+    border-radius: 18px;
+    max-width: 480px;
+    width: 100%;
+    padding: 1.5rem;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+    position: relative;
+  }
+  .modal-close-x {
+    position: absolute;
+    top: 1rem;
+    right: 1.25rem;
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    cursor: pointer;
+    color: #94a3b8;
+  }
+
+  @media (max-width: 768px) {
+    .channel-header-card {
+      padding: 1.25rem 1rem;
+    }
+    .channel-avatar-wrapper {
+      left: 1rem;
+    }
+    .channel-meta-area {
+      flex-direction: column;
+    }
+    
+  }
+  /* Role Switcher Toolbar Styles */
+  .role-switcher-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .role-switcher-label {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .role-toggle-group {
+    display: inline-flex;
+    background: #f1f5f9;
+    padding: 3px;
+    border-radius: 9999px;
+    border: 1px solid #cbd5e1;
+  }
+  .role-toggle-btn {
+    padding: 0.35rem 0.85rem;
+    border-radius: 9999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    border: none;
+    background: transparent;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .role-toggle-btn.active {
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+  .role-toggle-btn.active.role-owner {
+    color: #4f46e5;
+  }
+
+  /* Creator Owner Dashboard Bar */
+  .owner-analytics-bar {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 16px;
+    padding: 1.15rem 1.5rem;
+    margin-bottom: 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.04);
+  }
+  .owner-metric-col {
+    display: flex;
+    flex-direction: column;
+  }
+  .owner-metric-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+  }
+  .owner-metric-val {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-top: 2px;
+  }
+  .owner-metric-val.money {
+    color: #059669;
+  }
+  .owner-action-btns {
+    display: flex;
+    gap: 0.6rem;
+  }
+  .btn-withdraw {
+    background: #059669;
+    color: #ffffff;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-withdraw:hover {
+    background: #047857;
+  }
+  .student-trust-banner {
+    background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%);
+    border: 1px solid #bfdbfe;
+    border-radius: 14px;
+    padding: 0.85rem 1.25rem;
+    margin-bottom: 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: #1e40af;
+  }
+
+  /* Full-Experience Interactive Tour Bar & Reader Styles */
+  .tour-bar {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.65rem 1rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  }
+  .tour-title {
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: #4f46e5;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .tour-pills {
+    display: flex;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+  }
+  .tour-btn {
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.35rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #334155;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .tour-btn:hover {
+    background: #eef2ff;
+    color: #4f46e5;
+    border-color: #818cf8;
+  }
+
+  /* Watermarked Reader Canvas */
+  .reader-viewport {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    margin: 1rem 0;
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 1.5rem;
+    user-select: none;
+  }
+  .reader-watermark {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: rotate(-25deg);
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: rgba(148, 163, 184, 0.28);
+    pointer-events: none;
+    text-align: center;
+    line-height: 1.6;
+    letter-spacing: 2px;
+  }
+  .reader-page-content {
+    position: relative;
+    z-index: 2;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+  .reader-nav-row {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #64748b;
+  }
+
+  /* Live Notification Toast */
+  .toast-container {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    pointer-events: none;
+  }
+  .toast-card {
+    background: #0f172a;
+    color: #ffffff;
+    border-radius: 12px;
+    padding: 0.85rem 1.25rem;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    animation: slideInToast 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  @keyframes slideInToast {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+</style>
+
+<div class="channel-container">
+
+  <!-- Interactive Lead Switcher -->
+  <div class="preview-control-bar">
+    <div style="display: flex; align-items: center; gap: 0.75rem; overflow-x: auto;">
+      <div class="preview-label">
+        <svg width="15" height="15" fill="currentColor" viewBox="0 0 20 20"><path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z"/></svg>
+        Lead:
+      </div>
+      <div id="leadButtonsList" style="display: flex; gap: 0.5rem; flex-wrap: nowrap;"></div>
+    </div>
+
+    <!-- Live Persona Switcher (Student vs Owner) -->
+    <div class="role-switcher-wrap">
+      <span class="role-switcher-label">View Mode:</span>
+      <div class="role-toggle-group">
+        <button type="button" class="role-toggle-btn active" id="btnRoleStudent" onclick="switchRole('student')">
+          🎓 Student
+        </button>
+        <button type="button" class="role-toggle-btn role-owner" id="btnRoleOwner" onclick="switchRole('owner')">
+          👑 Owner (Educator)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Banner (Matched with study_with_wasu style) -->
+    <!-- Educator Interactive Test-Drive Tour Bar -->
+  <div class="tour-bar">
+    <div class="tour-title">
+      <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/></svg>
+      Interactive Test-Drive:
+    </div>
+    <div class="tour-pills">
+      <button type="button" class="tour-btn" onclick="triggerTestDrive('preview')">👁 1. Test Watermarked Sample</button>
+      <button type="button" class="tour-btn" onclick="triggerTestDrive('buy')">💳 2. Test 1-Click UPI Buy</button>
+      <button type="button" class="tour-btn" onclick="openUploadWizard()">⚡ 3. Test 30-Sec Upload</button>
+      <button type="button" class="tour-btn" onclick="triggerTestDrive('withdraw')">💰 4. Test Wallet Payout</button>
+      <button type="button" class="tour-btn" onclick="switchRole(currentRole === 'student' ? 'owner' : 'student')">⇄ Toggle Student/Owner</button>
+    </div>
+  </div>
+
+  <div class="channel-banner" id="bannerElement"></div>
+
+  <!-- Header Card (Exact study_with_wasu structure) -->
+  <div class="channel-header-card">
+    <div class="channel-avatar-wrapper">
+      <div id="avatarContainer"></div>
+    </div>
+
+    <div class="channel-meta-area">
+      <div class="channel-title-group">
+        <h1>
+          <span id="channelTitle">Study With Wasudha</span>
+          <svg style="width: 20px; height: 20px; color: #4f46e5;" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+          </svg>
+        </h1>
+        <div class="channel-handle" id="channelHandle">@study_with_wasu</div>
+        <div class="channel-bio" id="channelBio">Learn Smart, Score Better.</div>
+        <div class="channel-stats-row">
+          <div><strong id="statNotesCount">6</strong> Notes</div>
+          <div><strong id="statViewsCount">10,240</strong> Channel Views</div>
+          <div><strong id="statRating">4.9 ★</strong> Rating</div>
+        </div>
+      </div>
+
+      <!-- Social Links & Action -->
+      <div class="social-pills" id="socialPills">
+        <a href="https://youtube.com" target="_blank" class="social-pill social-pill-yt">▶ YouTube</a>
+        <a href="https://t.me" target="_blank" class="social-pill social-pill-tg">✈ Telegram</a>
+        <a href="https://instagram.com" target="_blank" class="social-pill social-pill-ig">📷 Instagram</a>
+        <span class="social-pill social-pill-live">● Verified Creator</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Creator Instant Upload Trigger Banner -->
+    <!-- Owner / Creator Real-Time Control & Analytics Bar (Visible in Owner View) -->
+  <div class="owner-analytics-bar" id="ownerDashboardBar" style="display: none;">
+    <div style="display: flex; gap: 2rem; align-items: center; flex-wrap: wrap;">
+      <div class="owner-metric-col">
+        <span class="owner-metric-label">Creator Wallet Balance</span>
+        <span class="owner-metric-val money">₹4,890.00</span>
+      </div>
+      <div class="owner-metric-col">
+        <span class="owner-metric-label">30-Day Student Unlocks</span>
+        <span class="owner-metric-val">58 Purchases</span>
+      </div>
+      <div class="owner-metric-col">
+        <span class="owner-metric-label">Total Channel Views</span>
+        <span class="owner-metric-val" id="ownerMetricViews">12,480</span>
+      </div>
+      <div class="owner-metric-col">
+        <span class="owner-metric-label">Payout Status</span>
+        <span style="color: #059669; font-size: 0.82rem; font-weight: 700; margin-top: 5px;">● T+1 Auto-Settled</span>
+      </div>
+    </div>
+
+    <div class="owner-action-btns">
+      <button type="button" class="btn-withdraw" onclick="openWithdrawModal()">Withdraw to UPI / Bank</button>
+      <button type="button" class="creator-upload-cta" style="padding: 0.5rem 1rem; font-size: 0.85rem;" onclick="openUploadWizard()">+ Upload Notes</button>
+    </div>
+  </div>
+
+  <!-- Student Trust Bar (Visible in Student View) -->
+  <div class="student-trust-banner" id="studentTrustBanner">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <svg width="18" height="18" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+      <span><b>Verified Educator Channel</b> · All handwritten notes and question banks unlock instantly upon 1-click UPI checkout.</span>
+    </div>
+    <span style="font-weight: 700; white-space: nowrap;">🔒 Anti-Piracy Watermarked Reader</span>
+  </div>
+
+  <div class="upload-trigger-card">
+    <div class="upload-trigger-content">
+      <div class="upload-trigger-badge">⚡ Experience 30-Second Upload</div>
+      <h3 class="upload-trigger-title">Want to see how fast listing your notes is?</h3>
+      <p class="upload-trigger-sub">Test the creator upload flow — drag a PDF, set pricing & preview pages, and get an instant shareable link in under a minute.</p>
+    </div>
+    <button type="button" class="creator-upload-cta" onclick="openUploadWizard()">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+      <span>+ Upload Notes (Demo)</span>
+    </button>
+  </div>
+
+<!-- Interactive Upload Wizard Modal (Dummy Flow) -->
+<div class="preview-modal-bg" id="uploadWizardModal">
+  <div class="wizard-card">
+    <button class="modal-close-x" onclick="closeUploadWizard()">&times;</button>
+    
+    <!-- Steps Navigation Header -->
+    <div class="wizard-steps-nav">
+      <div class="wizard-step-node active" id="nodeStep1">
+        <div class="node-bubble" id="bubble1">1</div>
+        <span class="node-title">File Intake</span>
+      </div>
+      <div style="flex: 1; height: 2px; background: #e2e8f0; margin: 0 8px -12px;"></div>
+      <div class="wizard-step-node" id="nodeStep2">
+        <div class="node-bubble" id="bubble2">2</div>
+        <span class="node-title">Price & Preview</span>
+      </div>
+      <div style="flex: 1; height: 2px; background: #e2e8f0; margin: 0 8px -12px;"></div>
+      <div class="wizard-step-node" id="nodeStep3">
+        <div class="node-bubble" id="bubble3">3</div>
+        <span class="node-title">Live Channel Link</span>
+      </div>
+    </div>
+
+    <!-- Step 1 Content: File Drop & Basic Info -->
+    <div id="stepContent1">
+      <div class="wizard-dropzone" onclick="simulateSelectFile()">
+        <div style="font-size: 2.2rem; margin-bottom: 0.5rem;" id="dropIcon">📁</div>
+        <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem;" id="dropTitle">Drop your PDF or Handwritten Notes here</div>
+        <div style="font-size: 0.78rem; color: #64748b; margin-top: 0.25rem;" id="dropSub">Click anywhere to simulate instant file intake (Max 50MB)</div>
+      </div>
+
+      <div style="margin-top: 1.25rem;">
+        <label class="wizard-input-label">Document Title</label>
+        <input type="text" id="wizDocTitle" class="wizard-input-field" value="Operating Systems Complete Unit-Wise Handwritten Notes (2026)">
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div>
+            <label class="wizard-input-label">Subject</label>
+            <input type="text" id="wizSubject" class="wizard-input-field" value="Operating Systems (UCSL301)">
+          </div>
+          <div>
+            <label class="wizard-input-label">Category</label>
+            <select id="wizCategory" class="wizard-input-field">
+              <option value="Notes" selected>Handwritten Notes</option>
+              <option value="PYQ">Question Bank / PYQ</option>
+              <option value="Lab">Practical Manual</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="wizard-nav-actions" style="justify-content: flex-end;">
+        <button type="button" class="creator-upload-cta" onclick="goToStep(2)">
+          <span>Next: Set Price & Sample Pages →</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 2 Content: Price & Free Preview Selection -->
+    <div id="stepContent2" style="display: none;">
+      <h3 style="font-size: 1.05rem; font-weight: 800; color: #0f172a; margin-bottom: 0.35rem;">Set Pricing & Watermarked Sample</h3>
+      <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 1.25rem;">Choose whether this note is paid or free, and pick preview pages for students.</p>
+
+      <label class="wizard-input-label">Choose Price</label>
+      <div class="pricing-chips-row">
+        <button type="button" class="pricing-chip-btn" onclick="selectDemoPrice(0, this)">Free</button>
+        <button type="button" class="pricing-chip-btn selected" onclick="selectDemoPrice(49, this)">₹49</button>
+        <button type="button" class="pricing-chip-btn" onclick="selectDemoPrice(99, this)">₹99</button>
+        <button type="button" class="pricing-chip-btn" onclick="selectDemoPrice(149, this)">₹149</button>
+      </div>
+
+      <!-- Live Earnings Calculator Card -->
+      <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 0.85rem 1rem; margin-bottom: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; font-size: 0.88rem; font-weight: 700; color: #166534;">
+          <span>Your Instant Credit per purchase:</span>
+          <span id="wizPayoutPreview" style="font-size: 1rem;">₹44</span>
+        </div>
+        <div style="font-size: 0.75rem; color: #15803d; margin-top: 0.25rem;">
+          ✓ 0% listing fee · Credited directly to your wallet · Daily T+1 settlement
+        </div>
+      </div>
+
+      <!-- Sample Pages Selection -->
+      <label class="wizard-input-label">Free Preview Pages (Anti-Piracy Shielded)</label>
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 0.85rem 1rem; margin-bottom: 1rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <span style="font-size: 0.85rem; font-weight: 600; color: #1e293b;">Allow preview of first 3 pages:</span>
+          <input type="checkbox" checked id="wizPreviewCheckbox" style="width: 18px; height: 18px; accent-color: #4f46e5;">
+        </div>
+        <p style="font-size: 0.74rem; color: #64748b; margin: 0.35rem 0 0;">
+          All preview pages render with real-time student ID watermarks to stop unauthorized Telegram distribution.
+        </p>
+      </div>
+
+      <div class="wizard-nav-actions">
+        <button type="button" class="note-btn note-btn-secondary" onclick="goToStep(1)">← Back</button>
+        <button type="button" class="creator-upload-cta" onclick="goToStep(3)">
+          <span>Publish Notes Now 🚀</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 3 Content: Instant Published Confirmation & Channel Link -->
+    <div id="stepContent3" style="display: none; text-align: center;">
+      <div style="width: 56px; height: 56px; background: #dcfce7; border-radius: 50%; color: #15803d; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 0.75rem;">
+        ✓
+      </div>
+      <h3 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 0.25rem;">Published in 0.8 Seconds!</h3>
+      <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 1.25rem;">
+        Your document is now live on your dedicated channel with 1-click UPI checkout.
+      </p>
+
+      <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 1rem; margin-bottom: 1.25rem; text-align: left;">
+        <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #4f46e5;">Your Dedicated Channel URL:</span>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 0.4rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.5rem 0.75rem;">
+          <code style="font-size: 0.85rem; font-weight: 700; color: #0f172a;" id="wizGeneratedLink">abhihub.com/c/yourchannel/os-notes</code>
+          <button type="button" class="lead-chip" style="padding: 3px 10px; font-size: 0.75rem;" onclick="copyWizLink(this)">Copy Link</button>
+        </div>
+        <p style="font-size: 0.74rem; color: #64748b; margin: 0.5rem 0 0;">
+          Drop this short link in your YouTube video description or Telegram broadcast.
+        </p>
+      </div>
+
+      <button type="button" class="creator-upload-cta" style="width: 100%; justify-content: center;" onclick="finishUploadDemo()">
+        <span>See It Live On Channel Grid 👁</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Interactive Simulation Modal (Student Reader & UPI Checkout) -->
+<div class="preview-modal-bg" id="simModal">
+  <div class="wizard-card" style="max-width: 500px;">
+    <button class="modal-close-x" onclick="closeSimModal()">&times;</button>
+    <div id="modalDynamicBody"></div>
+  </div>
+</div>
+
+<!-- Withdrawal Simulation Modal (Owner View) -->
+<div class="preview-modal-bg" id="withdrawModal">
+  <div class="wizard-card" style="max-width: 440px;">
+    <button class="modal-close-x" onclick="closeWithdrawModal()">&times;</button>
+    <div style="font-size: 0.75rem; color: #059669; font-weight: 800; text-transform: uppercase; margin-bottom: 0.4rem;">Creator Payout Settlement</div>
+    <h3 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 0.35rem;">Withdraw Available Funds</h3>
+    <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 1.25rem;">Funds are transferred directly without holding fees.</p>
+
+    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 1.15rem; margin-bottom: 1.25rem; text-align: center;">
+      <div style="font-size: 0.8rem; color: #15803d; font-weight: 700;">Available for Instant Payout</div>
+      <div style="font-size: 2rem; font-weight: 800; color: #166534; margin: 0.2rem 0;" id="withdrawModalBalance">₹4,890.00</div>
+      <div style="font-size: 0.74rem; color: #15803d;">Minimum withdrawal: ₹100 · 0% transaction fee</div>
+    </div>
+
+    <label class="wizard-input-label">Select Payout Destination</label>
+    <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 0.75rem; margin-bottom: 0.6rem; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <div style="font-weight: 700; font-size: 0.88rem; color: #0f172a;">UPI ID: educator@okaxis</div>
+        <div style="font-size: 0.72rem; color: #64748b;">Instant settlement via UPI AutoPay</div>
+      </div>
+      <input type="radio" name="payoutDest" checked style="accent-color: #059669;">
+    </div>
+    <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 0.75rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <div style="font-weight: 700; font-size: 0.88rem; color: #0f172a;">HDFC Bank (A/C: ****4053)</div>
+        <div style="font-size: 0.72rem; color: #64748b;">Direct IMPS / NEFT transfer</div>
+      </div>
+      <input type="radio" name="payoutDest" style="accent-color: #059669;">
+    </div>
+
+    <button type="button" class="btn-withdraw" style="width: 100%; padding: 0.75rem; font-size: 0.95rem;" onclick="simulateWithdrawSuccess()">
+      Confirm Withdrawal (<span id="withdrawBtnAmount">₹4,890.00</span>)
+    </button>
+  </div>
+</div>
+
+<script>
+  const SERVER_REAL_NOTES = {{ real_notes|tojson|safe if real_notes else "[]" }};
+  // Complete lead directory including study_with_wasu and 6 acquisition leads
+  const ALL_LEADS = {
+    'study_with_wasu': {
+      title: 'Study With Wasudha',
+      handle: 'study_with_wasu',
+      bio: 'Learn Smart, Score Better. Comprehensive notes, simplified concepts and exam solutions.',
+      avatarUrl: 'https://i.pinimg.com/originals/d4/01/a5/d401a575ef44c8c10cc25a2b1ea11b6d.jpg',
+      bannerUrl: 'https://i.pinimg.com/736x/3c/34/59/3c34599fb214dbdc022d3db5c165d143.jpg',
+      views: '12,480',
+      rating: '4.9 ★',
+      yt: 'https://youtube.com',
+      tg: 'https://t.me',
+      ig: 'https://instagram.com/_abhihub_',
+      notes: [
+        { title: 'Database Management Systems (DBMS) Unit 1-4', subject: 'DBMS', category: 'Notes', price: 49, views: 320 },
+        { title: 'Computer Networks Full Semester Revision Pack', subject: 'CN', category: 'Notes', price: 99, views: 245 },
+        { title: 'Object Oriented Programming with C++ Complete Guide', subject: 'OOP', category: 'Notes', price: 79, views: 180 }
+      ]
+    },
+    'cs-engineering-gyan': {
+      title: 'CS Engineering Gyan',
+      handle: 'csengineeringgyan',
+      bio: '13+ years teaching. Premium handwritten notes for B.Tech, BCA, MCA & GATE students.',
+      avatarUrl: '',
+      bannerUrl: '',
+      views: '10,500+',
+      rating: '4.9 ★',
+      yt: 'https://www.youtube.com/@CSEngineeringGyan',
+      tg: 'https://csegyan.com',
+      ig: '',
+      notes: [
+        { title: 'Data Structures & Algorithms Handwritten Revision', subject: 'DSA', category: 'Core CSE', price: 49, views: 820 },
+        { title: 'Operating Systems Complete Exam Pack', subject: 'OS', category: 'Semester', price: 99, views: 640 },
+        { title: 'Computer Networks Quick Revision Blueprint', subject: 'Networks', category: 'GATE CSE', price: 149, views: 510 }
+      ]
+    },
+    'ak-engineering-academy': {
+      title: 'AK Engineering Academy',
+      handle: 'akacademy',
+      bio: 'Baner, Pune. Specialized handwritten resources for GATE, ESE, and MPSC Civil & Mechanical.',
+      avatarUrl: '',
+      bannerUrl: '',
+      views: '8,900+',
+      rating: '4.8 ★',
+      yt: 'https://www.akacademy.info',
+      tg: 'https://t.me',
+      ig: '',
+      notes: [
+        { title: 'Strength of Materials — Handwritten Master Notes', subject: 'Civil', category: 'GATE / ESE', price: 149, views: 430 },
+        { title: 'Thermodynamics & Machinery Concept Pack', subject: 'Mechanical', category: 'ESE', price: 199, views: 380 },
+        { title: 'MPSC Civil Engineering Quick Reference Kit', subject: 'Civil', category: 'MPSC', price: 99, views: 560 }
+      ]
+    },
+    'poriyaan': {
+      title: 'Poriyaan.in',
+      handle: 'poriyaan',
+      bio: 'Dr. R. Krishnamurthy Iyer · Anna University study materials, question banks & semester notes.',
+      avatarUrl: '',
+      bannerUrl: '',
+      views: '26,000+',
+      rating: '4.9 ★',
+      yt: '',
+      tg: '',
+      ig: 'https://www.poriyaan.in',
+      notes: [
+        { title: 'Anna Univ Engineering Mathematics Solved Q-Bank', subject: 'Mathematics', category: 'Question Bank', price: 99, views: 1200 },
+        { title: 'Signals and Systems Lecture Notes & Derivations', subject: 'ECE / EEE', category: 'Lecture Notes', price: 149, views: 890 },
+        { title: 'Strength of Materials Anna Univ Study Pack', subject: 'Civil / Mech', category: 'Study Pack', price: 179, views: 650 }
+      ]
+    },
+    'online-engineering': {
+      title: 'Online Engineering',
+      handle: 'onlineengineering',
+      bio: 'Vishal Bhatt · 15+ years teaching. Focused PDF companions for GATE, ESE & State AE/JE.',
+      avatarUrl: '',
+      bannerUrl: '',
+      views: '19,500+',
+      rating: '4.9 ★',
+      yt: 'https://www.onlineengineering.in',
+      tg: 'https://t.me',
+      ig: '',
+      notes: [
+        { title: 'Structural Analysis Quick Revision Notes', subject: 'Civil', category: 'GATE / ESE', price: 199, views: 710 },
+        { title: 'Fluid Mechanics Formula & Concept Guide', subject: 'Mechanical', category: 'Formula Book', price: 149, views: 540 },
+        { title: 'State AE / JE High-Yield Practice Capsule', subject: 'Civil / Mech', category: 'AE / JE', price: 99, views: 980 }
+      ]
+    },
+    'one-night-engineer': {
+      title: 'One Night Engineer',
+      handle: 'onenightengineer',
+      bio: 'Darshan · Lonavala / SPPU. Handwritten notes and question packs for the night before.',
+      avatarUrl: '',
+      bannerUrl: '',
+      views: '14,000+',
+      rating: '4.8 ★',
+      yt: 'https://onenightengineer.godaddysites.com',
+      tg: 'https://t.me',
+      ig: '',
+      notes: [
+        { title: 'SPPU FE Engineering Math Unit-wise Notes', subject: 'Mathematics', category: 'SPPU FE', price: 49, views: 1420 },
+        { title: 'Data Structures SPPU Exam Pack with Dry Runs', subject: 'Computer', category: 'SPPU SE', price: 149, views: 980 },
+        { title: 'Basic Thermodynamics Handwritten Notes', subject: 'Mechanical', category: 'SPPU FE', price: 99, views: 760 }
+      ]
+    },
+    'sandeep-jyani': {
+      title: 'Sandeep Jyani',
+      handle: 'sandeepjyani',
+      bio: 'India’s top civil engineering educator. High-yield resources for GATE, IES, and SSC JE.',
+      avatarUrl: '',
+      bannerUrl: '',
+      views: '89,300+',
+      rating: '4.9 ★',
+      yt: 'https://t.me/ssrjyani',
+      tg: 'https://t.me/ssrjyani',
+      ig: '',
+      notes: [
+        { title: 'Geotechnical Engineering Comprehensive Revision Notes', subject: 'Geotech', category: 'GATE Civil', price: 149, views: 3200 },
+        { title: 'Structural Engineering Formula & Short-trick Guide', subject: 'Structures', category: 'IES Civil', price: 99, views: 2800 },
+        { title: 'SSC JE Civil Complete Practice & Notes Pack', subject: 'Civil', category: 'SSC JE', price: 199, views: 4100 }
+      ]
+    }
+  };
+
+  function detectLeadSlug() {
+    // 1. URL search params: ?c= or ?channel= or ?slug= or ?name=
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('c') || params.get('channel') || params.get('slug') || params.get('name');
+    if (q) return matchOrGenerateLead(q);
+
+    // 2. URL Path: /preview/<slug>
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    const last = parts[parts.length - 1];
+    if (last && last !== 'preview' && !last.endsWith('.html')) {
+      return matchOrGenerateLead(last);
+    }
+
+    return 'study_with_wasu';
+  }
+
+  function matchOrGenerateLead(raw) {
+    const clean = raw.toLowerCase().replace(/[-_]/g, '');
+    for (const key of Object.keys(ALL_LEADS)) {
+      const kClean = key.toLowerCase().replace(/[-_]/g, '');
+      if (clean === kClean || clean.includes(kClean) || kClean.includes(clean)) {
+        return key;
+      }
+    }
+    // Dynamic generation if unknown
+    const title = decodeURIComponent(raw).replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    const handle = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
+    ALL_LEADS[raw] = {
+      title: title,
+      handle: handle,
+      bio: `Official AbhiHub Channel for ${title}. Verified notes, curriculum packs, and exam revisions.`,
+      avatarUrl: '',
+      bannerUrl: '',
+      views: '5,000+',
+      rating: '4.9 ★',
+      yt: 'https://youtube.com',
+      tg: 'https://t.me',
+      ig: '',
+      notes: [
+        { title: `${title} — Core Fundamentals Revision`, subject: 'General', category: 'Notes', price: 49, views: 150 },
+        { title: `${title} — Exam Question Bank & Solutions`, subject: 'Exam Prep', category: 'Q-Bank', price: 99, views: 280 }
+      ]
+    };
+    return raw;
+  }
+
+  let activeLeadKey = detectLeadSlug();
+
+  function renderChannel(leadKey) {
+    activeLeadKey = leadKey;
+    const lead = ALL_LEADS[leadKey] || ALL_LEADS['study_with_wasu'];
+    if (SERVER_REAL_NOTES && SERVER_REAL_NOTES.length > 0) {
+      lead.notes = SERVER_REAL_NOTES;
+    }
+
+    // Render Lead Chips
+    const chipsContainer = document.getElementById('leadButtonsList');
+    chipsContainer.innerHTML = Object.keys(ALL_LEADS).map(k => {
+      const item = ALL_LEADS[k];
+      return `<button class="lead-chip ${k === leadKey ? 'active' : ''}" onclick="selectLead('${k}')">${item.title}</button>`;
+    }).join('');
+
+    // Banner
+    const bannerEl = document.getElementById('bannerElement');
+    if (lead.bannerUrl) {
+      bannerEl.style.backgroundImage = `url('${lead.bannerUrl}')`;
+    } else {
+      bannerEl.style.backgroundImage = 'none';
+      bannerEl.style.background = 'linear-gradient(135deg, #4f46e5, #06b6d4 50%, #3b82f6)';
+    }
+
+    // Avatar
+    const avatarContainer = document.getElementById('avatarContainer');
+    if (lead.avatarUrl) {
+      avatarContainer.innerHTML = `<img src="${lead.avatarUrl}" alt="${lead.title}" class="channel-avatar">`;
+    } else {
+      const initial = (lead.title || 'C').charAt(0).toUpperCase();
+      avatarContainer.innerHTML = `<div class="channel-avatar">${initial}</div>`;
+    }
+
+    // Meta Text
+    document.getElementById('channelTitle').textContent = lead.title;
+    document.getElementById('channelHandle').textContent = `@${lead.handle}`;
+    document.getElementById('channelBio').textContent = lead.bio;
+    document.getElementById('statNotesCount').textContent = lead.notes.length;
+    document.getElementById('statViewsCount').textContent = lead.views;
+    document.getElementById('statRating').textContent = lead.rating;
+    document.getElementById('notes-counter').textContent = `${lead.notes.length} notes`;
+    document.title = `${lead.title} (@${lead.handle}) · AbhiHub`;
+
+    // Social Links
+    let socialHtml = '';
+    if (lead.yt) socialHtml += `<a href="${lead.yt}" target="_blank" class="social-pill social-pill-yt">▶ YouTube</a>`;
+    if (lead.tg) socialHtml += `<a href="${lead.tg}" target="_blank" class="social-pill social-pill-tg">✈ Telegram</a>`;
+    if (lead.ig) socialHtml += `<a href="${lead.ig}" target="_blank" class="social-pill social-pill-ig">📷 Instagram</a>`;
+    socialHtml += `<span class="social-pill social-pill-live">● Verified Creator</span>`;
+    document.getElementById('socialPills').innerHTML = socialHtml;
+
+    // Filter controls
+    const subjects = ['All', ...new Set(lead.notes.map(n => n.subject))];
+    document.getElementById('tagGroupControls').innerHTML = `
+      <span class="group-label">Filter:</span>
+      ${subjects.map((s, idx) => `
+        <button type="button" class="group-btn ${idx === 0 ? 'active' : ''}" onclick="filterNotesBySubject('${s}', this)">${s}</button>
+      `).join('')}
+    `;
+
+    renderNotesGrid(lead.notes);
+  }
+
+  function renderNotesGrid(notesList) {
+    const grid = document.getElementById('notesGridContainer');
+    const activeLead = ALL_LEADS[activeLeadKey] || {};
+
+    grid.innerHTML = notesList.map((note) => {
+      const cat = (note.category || 'Notes').toLowerCase();
+      const isPyq = cat.includes('pyq') || cat.includes('paper');
+      const isPractical = cat.includes('practical') || cat.includes('lab');
+      const typeClass = isPyq ? 'type-pyq' : (isPractical ? 'type-practical' : 'type-notes');
+      const typeLabel = isPyq ? 'PYQ' : (isPractical ? 'Lab' : (note.category || 'Notes'));
+
+      const isPaid = Boolean(note.is_paid && note.price > 0);
+      const priceVal = isPaid ? Math.round(note.price) : 0;
+      const priceTag = isPaid 
+        ? `<span class="arch-price-tag paid">₹${priceVal}</span>` 
+        : `<span class="arch-price-tag">Free</span>`;
+
+      const resourceUrl = note.id ? `/resource/${note.id}` : '#';
+      const fileTitle = note.title || 'Untitled Document';
+      const rawSubject = note.display_subject || note.subject;
+      const displaySubject = (rawSubject && rawSubject !== 'General Engineering' && rawSubject !== 'General') ? rawSubject : fileTitle;
+      const subjCode = note.subject_code || 'ENG';
+      const collegeAbbr = note.college_abbr || 'GHRCE';
+      const uploaderName = note.uploader_name || activeLead.title || 'Student Contributor';
+      const initial = (uploaderName.charAt(0) || 'S').toUpperCase();
+      const viewsCount = note.views || 0;
+
+      let docSvg = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>`;
+      if (isPyq) {
+        docSvg = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>`;
+      } else if (isPractical) {
+        docSvg = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31"></path><path d="M14 9.3V2"></path><path d="M8.5 2h7"></path><path d="M14 9.3a6.5 6.5 0 1 1-4 0"></path></svg>`;
+      }
+
+      let descHtml = '';
+      if (fileTitle && fileTitle !== displaySubject) {
+        descHtml = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg><span>${fileTitle}</span>`;
+      } else {
+        descHtml = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg><span>Verified Semester Resource</span>`;
+      }
+
+      return `
+      <div class="arch-apple-card ${typeClass}" style="cursor: pointer;" onclick="handleCardClick(event, '${resourceUrl}', '${encodeURIComponent(displaySubject)}', ${priceVal}, '${note.id || ''}')">
+        <!-- Visual Hero Plate -->
+        <div class="arch-card-plate">
+          <div class="arch-plate-top">
+            <div class="arch-doc-icon-wrap" aria-hidden="true">
+              ${docSvg}
+            </div>
+            <div class="arch-badge-group">
+              <span class="arch-type-pill">${typeLabel}</span>
+              ${priceTag}
+            </div>
+          </div>
+          <!-- Subject Code & Curriculum Sub-line -->
+          <div class="arch-plate-bottom">
+            <span class="arch-code-capsule">${subjCode}</span>
+            <span>•</span>
+            <span>${collegeAbbr} Curriculum</span>
+          </div>
+        </div>
+
+        <!-- Card Body Content -->
+        <div class="arch-card-body">
+          <h3 class="arch-card-title">${displaySubject}</h3>
+          
+          <div class="arch-card-desc">
+            ${descHtml}
+          </div>
+
+          <!-- Card Footer -->
+          <div class="arch-card-footer">
+            <span class="arch-uploader-info" title="${uploaderName}">
+              <span class="arch-avatar" aria-hidden="true">${initial}</span>
+              <span>${uploaderName}</span>
+              <svg class="arch-verified-icon" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-label="Verified Contributor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            </span>
+
+            <div class="arch-footer-right">
+              <span class="arch-views-count" title="Total Views">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                <span>${viewsCount}</span>
+              </span>
+              <div class="arch-action-cta">
+                <span>${isPaid ? 'Unlock' : 'View'}</span>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      `;
+    }).join('');
+  }
+
+  function handleCardClick(e, resourceUrl, titleDecoded, price, noteId) {
+    if (price > 0) {
+      openSimPurchase(titleDecoded, price);
+    } else if (noteId) {
+      window.open(resourceUrl, '_blank');
+    } else {
+      openSimPreview(titleDecoded, noteId);
+    }
+  }
+
+  function selectLead(key) {
+    history.pushState(null, '', `?c=${key}`);
+    renderChannel(key);
+  }
+
+  function filterNotesBySubject(subject, btn) {
+    document.querySelectorAll('.group-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const lead = ALL_LEADS[activeLeadKey];
+    if (subject === 'All') {
+      renderNotesGrid(lead.notes);
+    } else {
+      const filtered = lead.notes.filter(n => n.subject === subject);
+      renderNotesGrid(filtered);
+    }
+  }
+
+  // Search filter
+  document.getElementById('channel-search-input').addEventListener('input', function(e) {
+    const q = e.target.value.trim().toLowerCase();
+    const lead = ALL_LEADS[activeLeadKey];
+    const filtered = lead.notes.filter(n => 
+      n.title.toLowerCase().includes(q) ||
+      n.subject.toLowerCase().includes(q) ||
+      n.category.toLowerCase().includes(q)
+    );
+    const noResults = document.getElementById('no-search-results');
+    const counter = document.getElementById('notes-counter');
+    counter.textContent = `${filtered.length} notes`;
+
+    if (filtered.length === 0) {
+      document.getElementById('notesGridContainer').innerHTML = '';
+      noResults.style.display = 'block';
+      document.getElementById('search-query-display').textContent = e.target.value;
+    } else {
+      noResults.style.display = 'none';
+      renderNotesGrid(filtered);
+    }
+  });
+
+  // Modal handlers
+  // Interactions
+
+  let liveWalletBalance = 4890.00;
+  let livePurchaseCount = 58;
+  let currentSamplePage = 1;
+
+  function showToast(title, msg) {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = 'toast-card';
+    toast.innerHTML = `
+      <div style="font-size: 1.3rem;">🔔</div>
+      <div>
+        <div style="font-weight: 800; font-size: 0.88rem; color: #38bdf8;">${title}</div>
+        <div style="font-size: 0.78rem; color: #cbd5e1; margin-top: 1px;">${msg}</div>
+      </div>
+    `;
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(10px)';
+      toast.style.transition = 'all 0.3s';
+      setTimeout(() => toast.remove(), 300);
+    }, 4500);
+  }
+
+  function openSimPreview(title, noteId) {
+    const dec = decodeURIComponent(title);
+    currentSamplePage = 1;
+    const activeLead = ALL_LEADS[activeLeadKey] || {};
+
+    document.getElementById('modalDynamicBody').innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.25rem;">
+        <span style="font-size: 0.75rem; color: #4f46e5; font-weight: 800; text-transform: uppercase;">Watermarked Student Reader</span>
+        <span style="font-size: 0.75rem; color: #10b981; font-weight: 700;">● IP Anti-Leak Protected</span>
+      </div>
+      <h3 style="font-size: 1.1rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem;">${dec}</h3>
+      
+      <!-- Realistic Watermarked Document Viewport -->
+      <div class="reader-viewport">
+        <div class="reader-watermark">
+          STUDENT ID: 2026-ENG-4053<br>
+          ABHIHUB REAL-TIME WATERMARK<br>
+          UNAUTHORIZED REDISTRIBUTION PROHIBITED
+        </div>
+
+        <div class="reader-page-content" id="readerPageBody">
+          <div style="font-size: 0.72rem; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 0.4rem;">
+            Unit 1: Fundamentals & Essential Exam Proofs
+          </div>
+          <div style="font-size: 0.88rem; font-weight: 700; color: #0f172a; margin-bottom: 0.5rem;" id="readerSectionHeader">
+            1.1 Overview & System Architecture (Sample Page 1)
+          </div>
+          <p style="font-size: 0.8rem; color: #334155; line-height: 1.5; margin-bottom: 0.6rem;">
+            • Core definition: A structured set of processes designed to optimize resource allocation, thread scheduling, and CPU utilization.<br>
+            • Important exam derivation: Deriving maximum throughput with minimal context-switch latency.<br>
+            • Solved problem: Given arrival times [0, 2, 4] with burst cycles [3, 5, 2], compute average waiting time using shortest-job-first scheduling.
+          </p>
+          <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.75rem; color: #475569;">
+            ✎ <i>Handwritten margin hint: Frequently repeated 7-mark question in 2023, 2024 & 2025 university end-sem.</i>
+          </div>
+        </div>
+
+        <div class="reader-nav-row">
+          <button type="button" class="group-btn" style="padding: 3px 10px;" onclick="prevSamplePage('${encodeURIComponent(dec)}')">← Prev Page</button>
+          <span id="samplePageCounter">Page 1 of 3 (Free Sample Preview)</span>
+          <button type="button" class="group-btn" style="padding: 3px 10px;" onclick="nextSamplePage('${encodeURIComponent(dec)}')">Next Page →</button>
+        </div>
+      </div>
+
+      <!-- Action Footer -->
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 0.75rem 1rem; margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between;">
+        <div>
+          <div style="font-size: 0.82rem; font-weight: 800; color: #0f172a;">Remaining 25 Pages Locked</div>
+          <div style="font-size: 0.74rem; color: #64748b;">Instant unlock via 1-click UPI payment</div>
+        </div>
+        <button type="button" class="creator-upload-cta" style="padding: 0.45rem 0.9rem; font-size: 0.82rem;" onclick="closeSimModal(); openSimPurchase('${encodeURIComponent(dec)}', 49);">
+          Unlock Now (₹49)
+        </button>
+      </div>
+
+      ${noteId ? `<a href="/resource/${noteId}" target="_blank" class="note-btn note-btn-secondary" style="width: 100%; text-align: center; text-decoration: none; font-size: 0.82rem; margin-bottom: 0.4rem;">Open Live Document on AbhiHub ↗</a>` : ''}
+      <button class="note-btn note-btn-secondary" style="width: 100%;" onclick="closeSimModal()">Close Reader</button>
+    `;
+    document.getElementById('simModal').style.display = 'flex';
+  }
+
+  function nextSamplePage(title) {
+    if (currentSamplePage < 3) {
+      currentSamplePage++;
+      updateSamplePageView();
+    } else {
+      alert('You reached the end of the free sample pages (3 of 3). Students click "Unlock" to read the complete 28-page pack.');
+    }
+  }
+
+  function prevSamplePage(title) {
+    if (currentSamplePage > 1) {
+      currentSamplePage--;
+      updateSamplePageView();
+    }
+  }
+
+  function updateSamplePageView() {
+    const counter = document.getElementById('samplePageCounter');
+    const header = document.getElementById('readerSectionHeader');
+    if (counter) counter.textContent = `Page ${currentSamplePage} of 3 (Free Sample Preview)`;
+    if (header) {
+      if (currentSamplePage === 2) {
+        header.textContent = '1.2 Memory Hierarchy & Page Replacement Algorithms (Sample Page 2)';
+      } else if (currentSamplePage === 3) {
+        header.textContent = '1.3 Deadlock Avoidance: Banker\'s Algorithm Practice (Sample Page 3)';
+      } else {
+        header.textContent = '1.1 Overview & System Architecture (Sample Page 1)';
+      }
+    }
+  }
+
+  function openSimPurchase(title, price) {
+    const dec = decodeURIComponent(title);
+    const creatorEarnings = (price * 0.9).toFixed(1);
+
+    document.getElementById('modalDynamicBody').innerHTML = `
+      <div style="font-size: 0.75rem; color: #10b981; font-weight: 800; text-transform: uppercase; margin-bottom: 0.25rem;">Instant Student Checkout Simulation</div>
+      <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin-bottom: 0.35rem;">Unlock Complete Notes</h3>
+      <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 1rem;">${dec}</p>
+
+      <!-- Simulated UPI QR & Apps Selector -->
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1.15rem; margin-bottom: 1rem; text-align: center;">
+        <div style="font-size: 0.78rem; font-weight: 700; color: #475569; margin-bottom: 0.5rem;">Scan QR with Any UPI App or Click Below</div>
+        
+        <div style="width: 110px; height: 110px; background: #ffffff; border: 2px solid #0f172a; border-radius: 10px; margin: 0 auto 0.75rem; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; box-shadow: 0 4px 10px rgba(0,0,0,0.06);">
+          📱
+        </div>
+
+        <!-- Price breakdown -->
+        <div style="display: flex; justify-content: space-between; font-size: 0.88rem; font-weight: 700; border-top: 1px dashed #cbd5e1; padding-top: 0.6rem; margin-top: 0.5rem;">
+          <span style="color: #475569;">Student Pays:</span>
+          <span style="color: #0f172a; font-size: 1rem;">₹${price}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #059669; font-weight: 700; margin-top: 2px;">
+          <span>Creator Instant Wallet Credit:</span>
+          <span>+₹${creatorEarnings}</span>
+        </div>
+      </div>
+
+      <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 1rem; line-height: 1.45;">
+        ⚡ Instant unlock: No manual WhatsApp chats or payment screenshots. Once paid, the student is redirected directly to the secured reader, and your creator wallet is credited immediately.
+      </div>
+
+      <div id="simPayActionArea">
+        <button type="button" class="creator-upload-cta" style="width: 100%; justify-content: center; padding: 0.75rem; font-size: 0.95rem;" onclick="processSimulatedPayment(${price}, ${creatorEarnings}, '${encodeURIComponent(dec)}')">
+          <span>Simulate UPI Payment (₹${price})</span>
+        </button>
+      </div>
+    `;
+    document.getElementById('simModal').style.display = 'flex';
+  }
+
+  function processSimulatedPayment(price, earnings, encodedTitle) {
+    const area = document.getElementById('simPayActionArea');
+    area.innerHTML = `
+      <div style="background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 10px; padding: 0.85rem; text-align: center; font-size: 0.85rem; font-weight: 700; color: #4338ca;">
+        ⏳ Connecting to UPI Gateway & Verifying Payment...
+      </div>
+    `;
+
+    setTimeout(() => {
+      // Update wallet in real time!
+      liveWalletBalance += parseFloat(earnings);
+      livePurchaseCount += 1;
+
+      // Update UI elements
+      const walletEl = document.querySelector('.owner-metric-val.money');
+      if (walletEl) walletEl.textContent = `₹${liveWalletBalance.toFixed(2)}`;
+      
+      const unlocksEl = document.querySelectorAll('.owner-metric-val');
+      if (unlocksEl && unlocksEl[1]) unlocksEl[1].textContent = `${livePurchaseCount} Purchases`;
+
+      area.innerHTML = `
+        <div style="background: #dcfce7; border: 1px solid #86efac; border-radius: 10px; padding: 0.85rem; text-align: center; font-size: 0.85rem; font-weight: 700; color: #15803d; margin-bottom: 0.75rem;">
+          🎉 Payment Verified! Notes Unlocked in Student Account.
+        </div>
+        <button type="button" class="creator-upload-cta" style="width: 100%; justify-content: center;" onclick="closeSimModal()">
+          Done · Return to Channel
+        </button>
+      `;
+
+      showToast('🎉 Creator Wallet Credited!', `+₹${earnings} credited to your wallet from new note purchase.`);
+    }, 1200);
+  }
+
+  function triggerTestDrive(flow) {
+    const activeLead = ALL_LEADS[activeLeadKey] || {};
+    const sampleNote = (activeLead.notes && activeLead.notes[0]) || { title: 'Exam Revision Notes', price: 49 };
+
+    if (flow === 'preview') {
+      openSimPreview(encodeURIComponent(sampleNote.title), sampleNote.id || '');
+    } else if (flow === 'buy') {
+      openSimPurchase(encodeURIComponent(sampleNote.title), sampleNote.price || 49);
+    } else if (flow === 'withdraw') {
+      openWithdrawModal();
+    }
+  }
+
+  function _old_openSimPreview(title, noteId) {
+    const dec = decodeURIComponent(title);
+    const viewDirectLink = noteId ? `<a href="/resource/${noteId}" target="_blank" class="note-btn" style="width: 100%; margin-bottom: 0.5rem; text-align: center; text-decoration: none;">Open Real PDF in AbhiHub Reader ↗</a>` : '';
+    document.getElementById('modalDynamicBody').innerHTML = `
+      <div style="font-size: 0.75rem; color: #4f46e5; font-weight: 700; text-transform: uppercase; margin-bottom: 0.4rem;">Protected Note Viewer</div>
+      <h3 style="font-size: 1.15rem; font-weight: 700; color: #0f172a; margin-bottom: 0.5rem;">${dec}</h3>
+      <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 1.5rem 1rem; text-align: center; margin: 1rem 0;">
+        <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">📄</div>
+        <p style="font-size: 0.9rem; font-weight: 700; color: #1e293b; margin-bottom: 0.25rem;">Sample Preview Pages (1–3)</p>
+        <p style="font-size: 0.78rem; color: #64748b; line-height: 1.4;">Protected with live student watermark and anti-leak shield.</p>
+      </div>
+      ${viewDirectLink}
+      <button class="note-btn note-btn-secondary" style="width: 100%;" onclick="closeSimModal()">Close</button>
+    `;
+    document.getElementById('simModal').style.display = 'flex';
+  }
+
+  function openSimPurchase(title, price) {
+    const dec = decodeURIComponent(title);
+    const creatorEarnings = (price * 0.9).toFixed(0);
+    document.getElementById('modalDynamicBody').innerHTML = `
+      <div style="font-size: 0.75rem; color: #10b981; font-weight: 700; text-transform: uppercase; margin-bottom: 0.4rem;">Instant UPI / QR Checkout Simulation</div>
+      <h3 style="font-size: 1.15rem; font-weight: 700; color: #0f172a; margin-bottom: 0.35rem;">Unlock Complete Notes</h3>
+      <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1rem;">${dec}</p>
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
+        <div style="display: flex; justify-content: space-between; font-size: 0.95rem; margin-bottom: 0.5rem;">
+          <span>Student Price:</span>
+          <b>₹${price}</b>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #475569;">
+          <span>Creator Instant Credit:</span>
+          <b style="color: #10b981;">₹${creatorEarnings}</b>
+        </div>
+      </div>
+      <p style="font-size: 0.78rem; color: #64748b; margin-bottom: 1.25rem; line-height: 1.45;">
+        Students pay instantly using Google Pay, PhonePe, or Paytm. Access unlocks instantly without WhatsApp screenshots. Funds are credited directly to your AbhiHub Creator Wallet and can be withdrawn daily to your UPI or Bank Account.
+      </p>
+      <button class="note-btn" style="width: 100%;" onclick="alert('Demo: Payment completed! Notes unlocked for student, and ₹${creatorEarnings} credited to Creator Wallet.'); closeSimModal();">
+        Simulate Pay via UPI (₹${price})
+      </button>
+    `;
+    document.getElementById('simModal').style.display = 'flex';
+  }
+
+  function closeSimModal() {
+    document.getElementById('simModal').style.display = 'none';
+  }
+
+  // Initialize
+  
+  let wizSelectedPrice = 49;
+
+  function openUploadWizard() {
+    goToStep(1);
+    document.getElementById('uploadWizardModal').style.display = 'flex';
+  }
+
+  function closeUploadWizard() {
+    document.getElementById('uploadWizardModal').style.display = 'none';
+  }
+
+  function simulateSelectFile() {
+    document.getElementById('dropIcon').textContent = '📄';
+    document.getElementById('dropTitle').textContent = 'Operating_Systems_Revision_Pack_2026.pdf (4.8 MB)';
+    document.getElementById('dropSub').textContent = '✓ 28 Pages auto-extracted & verified.';
+    document.getElementById('dropSub').style.color = '#10b981';
+  }
+
+  function goToStep(step) {
+    document.getElementById('stepContent1').style.display = step === 1 ? 'block' : 'none';
+    document.getElementById('stepContent2').style.display = step === 2 ? 'block' : 'none';
+    document.getElementById('stepContent3').style.display = step === 3 ? 'block' : 'none';
+
+    // Update Bubbles
+    const b1 = document.getElementById('bubble1');
+    const b2 = document.getElementById('bubble2');
+    const b3 = document.getElementById('bubble3');
+
+    document.getElementById('nodeStep1').className = 'wizard-step-node ' + (step === 1 ? 'active' : 'completed');
+    document.getElementById('nodeStep2').className = 'wizard-step-node ' + (step === 2 ? 'active' : (step > 2 ? 'completed' : ''));
+    document.getElementById('nodeStep3').className = 'wizard-step-node ' + (step === 3 ? 'active' : '');
+
+    if (step === 3) {
+      const activeLead = ALL_LEADS[activeLeadKey] || {};
+      const handle = activeLead.handle || 'creator';
+      document.getElementById('wizGeneratedLink').textContent = `abhihub.com/c/${handle}/os-notes`;
+    }
+  }
+
+  function selectDemoPrice(price, btn) {
+    wizSelectedPrice = price;
+    document.querySelectorAll('.pricing-chip-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    const payout = price > 0 ? `₹${Math.round(price * 0.9)}` : 'Free Resource';
+    document.getElementById('wizPayoutPreview').textContent = payout;
+  }
+
+  function copyWizLink(btn) {
+    const link = document.getElementById('wizGeneratedLink').textContent;
+    navigator.clipboard.writeText('https://' + link);
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy Link'; }, 2000);
+  }
+
+  function finishUploadDemo() {
+    closeUploadWizard();
+    const docTitle = document.getElementById('wizDocTitle').value || 'Operating Systems Complete Unit-Wise Handwritten Notes';
+    const activeLead = ALL_LEADS[activeLeadKey] || {};
+
+    const newNote = {
+      id: 'demo-' + Date.now(),
+      title: docTitle,
+      display_subject: 'Operating Systems',
+      category: document.getElementById('wizCategory').value || 'Notes',
+      subject: 'Operating Systems',
+      subject_code: 'UCSL301',
+      college_abbr: 'GHRCE',
+      uploader_name: activeLead.title || 'Verified Educator',
+      file_type: 'PDF',
+      status: 'approved',
+      views: 1,
+      is_paid: wizSelectedPrice > 0,
+      price: wizSelectedPrice,
+      file_url: '#'
+    };
+
+    if (activeLead.notes) {
+      activeLead.notes.unshift(newNote);
+    }
+    renderNotesGrid(activeLead.notes || [newNote]);
+    const counter = document.getElementById('notes-counter');
+    if (counter) counter.textContent = `${activeLead.notes.length} notes`;
+
+    // Smooth scroll to top of notes
+    document.getElementById('notesGridContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  
+  let currentRole = (new URLSearchParams(window.location.search)).get('role') || 'student';
+
+  function switchRole(role) {
+    currentRole = role;
+    const btnStudent = document.getElementById('btnRoleStudent');
+    const btnOwner = document.getElementById('btnRoleOwner');
+    const ownerDashboard = document.getElementById('ownerDashboardBar');
+    const studentTrust = document.getElementById('studentTrustBanner');
+    const uploadTriggerCard = document.querySelector('.upload-trigger-card');
+
+    if (role === 'owner') {
+      btnOwner.classList.add('active');
+      btnStudent.classList.remove('active');
+      if (ownerDashboard) ownerDashboard.style.display = 'flex';
+      if (studentTrust) studentTrust.style.display = 'none';
+      if (uploadTriggerCard) uploadTriggerCard.style.display = 'flex';
+      
+      // Update social pills to include Owner Management badge
+      const activeLead = ALL_LEADS[activeLeadKey] || {};
+      const ownerPill = `<button type="button" class="social-pill social-pill-upload" onclick="openUploadWizard()">+ Upload New Note</button>
+                         <a href="/channel/studio" class="social-pill" style="background: #f1f5f9; color: #0f172a;">⚙ Creator Studio</a>`;
+      const pillsContainer = document.getElementById('socialPills');
+      if (pillsContainer && !pillsContainer.innerHTML.includes('Creator Studio')) {
+        pillsContainer.innerHTML = ownerPill + pillsContainer.innerHTML;
+      }
+    } else {
+      btnStudent.classList.add('active');
+      btnOwner.classList.remove('active');
+      if (ownerDashboard) ownerDashboard.style.display = 'none';
+      if (studentTrust) studentTrust.style.display = 'flex';
+      if (uploadTriggerCard) uploadTriggerCard.style.display = 'none';
+
+      // Re-render student pills
+      const activeLead = ALL_LEADS[activeLeadKey] || {};
+      let socialHtml = '';
+      if (activeLead.yt) socialHtml += `<a href="${activeLead.yt}" target="_blank" class="social-pill social-pill-yt">▶ YouTube</a>`;
+      if (activeLead.tg) socialHtml += `<a href="${activeLead.tg}" target="_blank" class="social-pill social-pill-tg">✈ Telegram</a>`;
+      if (activeLead.ig) socialHtml += `<a href="${activeLead.ig}" target="_blank" class="social-pill social-pill-ig">📷 Instagram</a>`;
+      socialHtml += `<span class="social-pill social-pill-live">● Verified Creator</span>`;
+      document.getElementById('socialPills').innerHTML = socialHtml;
+    }
+  }
+
+  function openWithdrawModal() {
+    const m = document.getElementById('withdrawModal');
+    if (m) {
+      const balEl = document.getElementById('withdrawModalBalance');
+      const btnEl = document.getElementById('withdrawBtnAmount');
+      if (balEl) balEl.textContent = `₹${liveWalletBalance.toFixed(2)}`;
+      if (btnEl) btnEl.textContent = `₹${liveWalletBalance.toFixed(2)}`;
+      m.style.display = 'flex';
+    }
+  }
+
+  function closeWithdrawModal() {
+    const m = document.getElementById('withdrawModal');
+    if (m) m.style.display = 'none';
+  }
+
+  function simulateWithdrawSuccess() {
+    closeWithdrawModal();
+    const amt = liveWalletBalance;
+    liveWalletBalance = 0.00;
+    const walletEl = document.querySelector('.owner-metric-val.money');
+    if (walletEl) walletEl.textContent = '₹0.00';
+    showToast('💸 Payout Transferred!', `₹${amt.toFixed(2)} transferred via IMPS/UPI (UTR: 260811984210) to verified bank account.`);
+  }
+
+  renderChannel(activeLeadKey);
+  switchRole(currentRole);
+</script>
+
+{% endblock %}

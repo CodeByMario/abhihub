@@ -209,8 +209,12 @@
         <h3 style="font-size: 0.95rem; font-weight: 700; color: #1e293b; margin: 1.25rem 0 0.75rem;">Social Media Links</h3>
 
         <div class="form-group">
-          <label class="form-label">YouTube Channel Link</label>
-          <input type="url" id="youtube" class="form-input" placeholder="https://youtube.com/@channel" value="{{ channel.social_links.get('youtube', '') if channel and channel.social_links else '' }}">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+            <label class="form-label" style="margin-bottom: 0;">YouTube Channel Link</label>
+            <button type="button" id="btn-fetch-yt" class="btn-sub" style="font-size: 0.75rem; padding: 0.2rem 0.6rem; background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; border-radius: 6px; cursor: pointer; font-weight: 600;" onclick="autoFetchFromYouTube()">⚡ Auto-Fetch Branding</button>
+          </div>
+          <input type="url" id="youtube" class="form-input" placeholder="https://youtube.com/@channel" value="{{ channel.social_links.get('youtube', '') if channel and channel.social_links else '' }}" onblur="checkAutoFetchYT(this)">
+          <div id="yt-fetch-status" style="display: none; font-size: 0.8rem; margin-top: 0.35rem;"></div>
         </div>
 
         <div class="form-group">
@@ -349,6 +353,98 @@
       btn.innerText = 'Save Changes';
     }
   });
+
+  async function autoFetchFromYouTube() {
+    const ytInput = document.getElementById('youtube');
+    const ytUrl = (ytInput ? ytInput.value : '').trim();
+    const statusEl = document.getElementById('yt-fetch-status');
+    const fetchBtn = document.getElementById('btn-fetch-yt');
+
+    if (!ytUrl) {
+      if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.style.color = '#dc2626';
+        statusEl.innerText = 'Please paste your YouTube channel URL or @handle first.';
+      }
+      return;
+    }
+
+    if (fetchBtn) {
+      fetchBtn.disabled = true;
+      fetchBtn.innerText = 'Fetching...';
+    }
+    if (statusEl) {
+      statusEl.style.display = 'block';
+      statusEl.style.color = '#2563eb';
+      statusEl.innerText = 'Scanning YouTube channel for branding...';
+    }
+
+    try {
+      const res = await fetch('/api/channel/fetch-youtube-meta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ youtube_url: ytUrl })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        if (data.avatar_url) {
+          const avatarInput = document.getElementById('avatar_url');
+          if (avatarInput) avatarInput.value = data.avatar_url;
+          const avatarPreview = document.querySelector('.channel-avatar');
+          if (avatarPreview) {
+            avatarPreview.innerHTML = `<img src="${data.avatar_url}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+          }
+        }
+        if (data.banner_url) {
+          const bannerInput = document.getElementById('banner_url');
+          if (bannerInput) bannerInput.value = data.banner_url;
+          const bannerPreview = document.querySelector('.channel-banner');
+          if (bannerPreview) {
+            bannerPreview.style.backgroundImage = `url('${data.banner_url}')`;
+          }
+        }
+        if (data.title) {
+          const titleInput = document.getElementById('title');
+          if (titleInput && !titleInput.value.trim()) {
+            titleInput.value = data.title;
+          }
+        }
+        if (data.description) {
+          const bioInput = document.getElementById('bio');
+          if (bioInput && !bioInput.value.trim()) {
+            bioInput.value = data.description.substring(0, 300);
+          }
+        }
+
+        if (statusEl) {
+          statusEl.style.color = '#16a34a';
+          statusEl.innerText = '✓ YouTube logo & background banner auto-imported!';
+        }
+      } else {
+        if (statusEl) {
+          statusEl.style.color = '#dc2626';
+          statusEl.innerText = data.error || 'Could not fetch channel branding. Check URL and try again.';
+        }
+      }
+    } catch (err) {
+      if (statusEl) {
+        statusEl.style.color = '#dc2626';
+        statusEl.innerText = 'Network error fetching YouTube info.';
+      }
+    } finally {
+      if (fetchBtn) {
+        fetchBtn.disabled = false;
+        fetchBtn.innerText = '⚡ Auto-Fetch Branding';
+      }
+    }
+  }
+
+  function checkAutoFetchYT(input) {
+    if (input && input.value.trim() && (!document.getElementById('avatar_url').value || !document.getElementById('banner_url').value)) {
+      autoFetchFromYouTube();
+    }
+  }
 </script>
 
 {% endblock %}

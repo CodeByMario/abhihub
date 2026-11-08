@@ -13,11 +13,20 @@ from methods.channel_service import (
     save_user_channel,
     increment_channel_views,
     get_channel_notes,
-    sanitize_handle
+    sanitize_handle,
+    get_preview_notes
 )
 
 channels_bp = Blueprint('channels', __name__)
 logger = logging.getLogger(__name__)
+
+@channels_bp.route('/preview')
+@channels_bp.route('/preview/<slug>')
+def educator_preview(slug=None):
+    slug = slug or request.args.get('c') or request.args.get('channel') or 'study_with_wasu'
+    real_notes = get_preview_notes(slug)
+    return render_template('educator_preview.html', slug=slug, real_notes=real_notes)
+
 
 
 @channels_bp.route('/c/<handle>')
@@ -25,6 +34,34 @@ def public_channel_view(handle):
     """Public creator channel page accessible from YouTube / Telegram / Instagram links."""
     channel = get_channel_by_handle(handle)
     if not channel:
+        clean_h = sanitize_handle(handle)
+        from methods.channel_service import ALL_LEADS, get_preview_notes
+        if clean_h in ALL_LEADS:
+            lead = ALL_LEADS[clean_h]
+            channel = {
+                'id': f"lead_{clean_h}",
+                'handle': lead['handle'],
+                'title': lead['title'],
+                'bio': lead['bio'],
+                'avatar_url': lead.get('avatar'),
+                'banner_url': lead.get('banner'),
+                'social_links': lead.get('socials', {}),
+                'views_count': lead.get('views', 1200),
+                'rating': lead.get('rating', 4.9),
+                'verified': True,
+                'user_id': None
+            }
+            notes = get_preview_notes(clean_h)
+            total_notes = len(notes)
+            total_views = sum(n.get('views', 0) for n in notes) or channel['views_count']
+            return render_template(
+                'channel_view.html',
+                channel=channel,
+                notes=notes,
+                total_notes=total_notes,
+                total_views=total_views,
+                is_owner=False
+            )
         return render_template('channel_view.html', channel=None, handle=handle, notes=[]), 404
 
     # Increment view count
@@ -32,6 +69,9 @@ def public_channel_view(handle):
 
     # Fetch notes belonging to this creator
     notes = get_channel_notes(channel.get('user_id'))
+    if not notes:
+        # Fallback to preview notes so prospect channels always showcase documents
+        notes = get_preview_notes(handle)
     
     # Calculate channel stats
     total_notes = len(notes)
@@ -183,3 +223,16 @@ def api_create_broadcast():
         return jsonify(res), 400
     return jsonify(res)
 
+
+
+@channels_bp.route('/api/channel/fetch-youtube-meta', methods=['POST'])
+def api_fetch_youtube_meta():
+    """Extracts logo, banner, and channel name directly from a public YouTube channel URL."""
+    data = request.get_json(silent=True) or {}
+    youtube_url = (data.get('youtube_url') or '').strip()
+    if not youtube_url:
+        return jsonify({'success': False, 'error': 'YouTube URL or handle is required'}), 400
+
+    from methods.channel_service import fetch_youtube_branding
+    result = fetch_youtube_branding(youtube_url)
+    return jsonify(result)

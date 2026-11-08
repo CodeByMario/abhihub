@@ -1,0 +1,1896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Creator Channel Preview · AbhiHub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+      line-height: 1.5;
+    }
+    .site-nav {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .site-brand {
+      font-weight: 800;
+      font-size: 1.25rem;
+      color: #0f172a;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .site-brand span { color: #4f46e5; }
+    .channel-container {
+      max-width: 1100px;
+      margin: 1.5rem auto 5rem;
+      padding: 0 1rem;
+    }
+    .preview-control-bar {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 0.85rem 1.25rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      overflow-x: auto;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+    .preview-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #4f46e5;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .lead-chip {
+      padding: 0.4rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      color: #475569;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .lead-chip:hover {
+      background: #eef2ff;
+      color: #4f46e5;
+      border-color: #c7d2fe;
+    }
+    .lead-chip.active {
+      background: #4f46e5;
+      color: #ffffff;
+      border-color: #4f46e5;
+    }
+    .channel-banner {
+      height: 180px;
+      width: 100%;
+      border-radius: 20px 20px 0 0;
+      background: linear-gradient(135deg, #4f46e5, #06b6d4 50%, #3b82f6);
+      background-size: cover;
+      background-position: center;
+      position: relative;
+    }
+    .channel-header-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 0 0 20px 20px;
+      padding: 1.5rem 2rem 1.8rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+      position: relative;
+    }
+    .channel-avatar-wrapper {
+      position: absolute;
+      top: -55px;
+      left: 2rem;
+    }
+    .channel-avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      border: 4px solid #ffffff;
+      background: #e0e7ff;
+      object-fit: cover;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: #4338ca;
+    }
+    .channel-meta-area {
+      margin-top: 50px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .channel-title-group h1 {
+      font-size: 1.7rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0 0 0.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .channel-handle {
+      color: #64748b;
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+    .channel-bio {
+      color: #334155;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      max-width: 650px;
+      margin-bottom: 1rem;
+      white-space: pre-line;
+    }
+    .channel-stats-row {
+      display: flex;
+      gap: 1.5rem;
+      font-size: 0.9rem;
+      color: #475569;
+    }
+    .channel-stats-row strong { color: #0f172a; }
+    .social-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      align-items: center;
+    }
+    .social-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 0.9rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .social-pill-yt { background: #fee2e2; color: #dc2626; }
+    .social-pill-tg { background: #e0f2fe; color: #0284c7; }
+    .social-pill-ig { background: #fce7f3; color: #db2777; }
+    .social-pill-live { background: #dcfce7; color: #15803d; }
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2.5rem;
+    }
+    .walkthrough-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 1.25rem 1.4rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+    .walkthrough-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .step-num {
+      background: #eef2ff;
+      color: #4f46e5;
+      font-weight: 800;
+      font-size: 0.78rem;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+    .step-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .walkthrough-points {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      font-size: 0.85rem;
+      color: #475569;
+    }
+    .walkthrough-points li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      line-height: 1.45;
+    }
+    .walkthrough-points li svg {
+      flex-shrink: 0;
+      margin-top: 3px;
+      color: #10b981;
+    }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+    }
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0;
+    }
+    .channel-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+    }
+    .search-wrapper {
+      position: relative;
+      flex: 1;
+      min-width: 240px;
+      max-width: 450px;
+    }
+    .search-input {
+      width: 100%;
+      padding: 0.65rem 1rem 0.65rem 2.4rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .search-input:focus {
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+    }
+    .search-icon {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      color: #94a3b8;
+      pointer-events: none;
+    }
+    .group-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .group-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #64748b;
+    }
+    .group-btn {
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      color: #475569;
+      padding: 0.45rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .group-btn:hover { background: #f8fafc; color: #0f172a; }
+    .group-btn.active { background: #4f46e5; color: #ffffff; border-color: #4f46e5; }
+    .notes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 3rem;
+    }
+    .note-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 1.25rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .note-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+    .note-badge-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    .tag-pill {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+      background: #f1f5f9;
+      color: #475569;
+    }
+    .subject-pill {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+      background: #eef2ff;
+      color: #4338ca;
+    }
+    .price-tag {
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 0.25rem 0.65rem;
+      border-radius: 9999px;
+    }
+    .price-free { background: #dcfce7; color: #15803d; }
+    .price-paid { background: #fef08a; color: #854d0e; }
+    .note-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0 0 0.5rem;
+      line-height: 1.35;
+    }
+    .note-info {
+      font-size: 0.85rem;
+      color: #64748b;
+      margin-bottom: 1.2rem;
+      display: flex;
+      gap: 1rem;
+    }
+    .note-action-row {
+      display: grid;
+      grid-template-columns: 1fr 1.3fr;
+      gap: 0.5rem;
+    }
+    .note-btn {
+      display: block;
+      text-align: center;
+      background: #4f46e5;
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 0.88rem;
+      padding: 0.55rem 0.8rem;
+      border-radius: 10px;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .note-btn:hover { background: #4338ca; }
+    .note-btn-secondary { background: #f1f5f9; color: #334155; }
+    .note-btn-secondary:hover { background: #e2e8f0; color: #0f172a; }
+    .powered-by-card {
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      border-radius: 16px;
+      padding: 1.75rem 1.5rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .powered-by-title {
+      font-size: 0.95rem;
+      color: #475569;
+      margin: 0;
+    }
+    .powered-by-title strong { color: #4f46e5; }
+    .start-channel-btn {
+      display: inline-block;
+      margin-top: 0.5rem;
+      background: #0f172a;
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 0.85rem;
+      padding: 0.55rem 1.4rem;
+      border-radius: 8px;
+      text-decoration: none;
+    }
+    .preview-modal-bg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .preview-modal-card {
+      background: #ffffff;
+      border-radius: 18px;
+      max-width: 480px;
+      width: 100%;
+      padding: 1.5rem;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+      position: relative;
+    }
+    .modal-close-x {
+      position: absolute;
+      top: 1rem;
+      right: 1.25rem;
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      cursor: pointer;
+      color: #94a3b8;
+    }
+    @media (max-width: 768px) {
+      .channel-header-card { padding: 1.25rem 1rem; }
+      .channel-avatar-wrapper { left: 1rem; }
+      .channel-meta-area { flex-direction: column; }
+      
+    }
+  
+/**
+ * Apple Design System - Reusable Media Card
+ * Conforms to Apple Product Showcase & Conversion UI Tokens
+ */
+
+:root {
+  --apple-surface: #ffffff;
+  --apple-surface-sub: #f5f5f7;
+  --apple-border: rgba(0, 0, 0, 0.08);
+  --apple-border-hover: rgba(0, 113, 227, 0.35);
+  --apple-text: #1d1d1f;
+  --apple-text-secondary: #6e6e73;
+  --apple-text-muted: #86868b;
+  --apple-blue: #0071e3;
+  --apple-blue-subtle: rgba(0, 113, 227, 0.08);
+  --apple-amber: #d97706;
+  --apple-amber-bg: rgba(217, 119, 6, 0.08);
+  --apple-violet: #6366f1;
+  --apple-violet-bg: rgba(99, 102, 241, 0.08);
+  --apple-emerald: #059669;
+  --apple-emerald-bg: rgba(5, 150, 105, 0.08);
+  --radius-card: 18px;
+  --radius-pill: 980px;
+  --radius-doc: 10px;
+  --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+  --card-shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.09), 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] {
+  --apple-surface: #1c1c1e;
+  --apple-surface-sub: #2c2c2e;
+  --apple-border: rgba(255, 255, 255, 0.1);
+  --apple-border-hover: rgba(41, 151, 255, 0.45);
+  --apple-text: #f5f5f7;
+  --apple-text-secondary: #a1a1a6;
+  --apple-text-muted: #6e6e73;
+  --apple-blue: #2997ff;
+  --apple-blue-subtle: rgba(41, 151, 255, 0.12);
+  --apple-amber: #fbbf24;
+  --apple-amber-bg: rgba(251, 191, 36, 0.12);
+  --apple-violet: #818cf8;
+  --apple-violet-bg: rgba(129, 140, 248, 0.12);
+  --apple-emerald: #34d399;
+  --apple-emerald-bg: rgba(52, 211, 153, 0.12);
+  --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  --card-shadow-hover: 0 12px 36px rgba(0, 0, 0, 0.55);
+}
+
+/* ── Apple Card Container ────────────────────────── */
+.arch-apple-card {
+  background: var(--apple-surface);
+  border: 1px solid var(--apple-border);
+  border-radius: var(--radius-card);
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.24s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+  outline: none;
+}
+
+.arch-apple-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--card-shadow-hover);
+  border-color: var(--apple-border-hover);
+}
+
+.arch-apple-card:focus-visible {
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.45);
+}
+
+/* Document Visual Plate / Hero Canvas */
+.arch-card-plate {
+  position: relative;
+  padding: 1.15rem 1.15rem 0.95rem;
+  border-bottom: 1px solid var(--apple-border);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 94px;
+  transition: background-color 0.2s ease;
+}
+
+.arch-apple-card.type-pyq .arch-card-plate {
+  background: linear-gradient(135deg, var(--apple-amber-bg) 0%, rgba(217, 119, 6, 0.02) 100%);
+}
+
+.arch-apple-card.type-notes .arch-card-plate {
+  background: linear-gradient(135deg, var(--apple-blue-subtle) 0%, rgba(0, 113, 227, 0.02) 100%);
+}
+
+.arch-apple-card.type-practical .arch-card-plate {
+  background: linear-gradient(135deg, var(--apple-violet-bg) 0%, rgba(99, 102, 241, 0.02) 100%);
+}
+
+.arch-plate-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.arch-doc-icon-wrap {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-doc);
+  background: var(--apple-surface);
+  border: 1px solid var(--apple-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  flex-shrink: 0;
+}
+
+.arch-apple-card.type-pyq .arch-doc-icon-wrap { color: var(--apple-amber); }
+.arch-apple-card.type-notes .arch-doc-icon-wrap { color: var(--apple-blue); }
+.arch-apple-card.type-practical .arch-doc-icon-wrap { color: var(--apple-violet); }
+
+.arch-badge-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.arch-type-pill {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.arch-apple-card.type-pyq .arch-type-pill {
+  background: var(--apple-amber-bg);
+  color: var(--apple-amber);
+  border: 1px solid rgba(217, 119, 6, 0.25);
+}
+
+.arch-apple-card.type-notes .arch-type-pill {
+  background: var(--apple-blue-subtle);
+  color: var(--apple-blue);
+  border: 1px solid rgba(0, 113, 227, 0.25);
+}
+
+.arch-apple-card.type-practical .arch-type-pill {
+  background: var(--apple-violet-bg);
+  color: var(--apple-violet);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+}
+
+.arch-price-tag {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  line-height: 1;
+  background: var(--apple-emerald-bg);
+  color: var(--apple-emerald);
+  border: 1px solid rgba(5, 150, 105, 0.2);
+}
+
+.arch-price-tag.paid {
+  background: var(--apple-blue-subtle);
+  color: var(--apple-blue);
+  border-color: rgba(0, 113, 227, 0.25);
+}
+
+.arch-plate-bottom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 0.75rem;
+  font-size: 11px;
+  color: var(--apple-text-secondary);
+  font-weight: 500;
+}
+
+.arch-code-capsule {
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--apple-text);
+  background: var(--apple-surface);
+  border: 1px solid var(--apple-border);
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+/* Card Content Details */
+.arch-card-body {
+  padding: 1.15rem 1.15rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.arch-card-title {
+  font-size: 1.02rem;
+  font-weight: 650;
+  line-height: 1.32;
+  color: var(--apple-text);
+  margin: 0 0 0.5rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  letter-spacing: -0.015em;
+  min-height: 2.65rem;
+}
+
+.arch-card-desc {
+  font-size: 12.5px;
+  color: var(--apple-text-secondary);
+  line-height: 1.4;
+  margin-bottom: 1.1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.arch-card-desc svg {
+  flex-shrink: 0;
+  color: var(--apple-text-muted);
+}
+
+/* Card Footer (Author & Action Button) */
+.arch-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--apple-border);
+}
+
+.arch-uploader-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 135px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--apple-text-secondary);
+}
+
+.arch-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--apple-surface-sub);
+  border: 1px solid var(--apple-border);
+  color: var(--apple-text);
+  font-size: 9.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.arch-apple-card:hover .arch-avatar {
+  border-color: var(--apple-blue);
+  color: var(--apple-blue);
+}
+
+.arch-verified-icon {
+  color: var(--apple-blue);
+  flex-shrink: 0;
+}
+
+.arch-footer-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.arch-views-count {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--apple-text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.arch-action-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--apple-blue);
+  background: var(--apple-blue-subtle);
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.arch-action-cta svg {
+  transition: transform 0.2s ease;
+}
+
+.arch-apple-card:hover .arch-action-cta {
+  background: var(--apple-blue);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 113, 227, 0.3);
+}
+
+.arch-apple-card:hover .arch-action-cta svg {
+  transform: translateX(2px);
+}
+
+/* ── Responsive Card Grid ────────────────────────── */
+.apple-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .apple-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+  /* Role Switcher Toolbar Styles */
+  .role-switcher-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .role-switcher-label {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .role-toggle-group {
+    display: inline-flex;
+    background: #f1f5f9;
+    padding: 3px;
+    border-radius: 9999px;
+    border: 1px solid #cbd5e1;
+  }
+  .role-toggle-btn {
+    padding: 0.35rem 0.85rem;
+    border-radius: 9999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    border: none;
+    background: transparent;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .role-toggle-btn.active {
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+  .role-toggle-btn.active.role-owner {
+    color: #4f46e5;
+  }
+
+  /* Creator Owner Dashboard Bar */
+  .owner-analytics-bar {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 16px;
+    padding: 1.15rem 1.5rem;
+    margin-bottom: 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.04);
+  }
+  .owner-metric-col {
+    display: flex;
+    flex-direction: column;
+  }
+  .owner-metric-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+  }
+  .owner-metric-val {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-top: 2px;
+  }
+  .owner-metric-val.money {
+    color: #059669;
+  }
+  .owner-action-btns {
+    display: flex;
+    gap: 0.6rem;
+  }
+  .btn-withdraw {
+    background: #059669;
+    color: #ffffff;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-withdraw:hover {
+    background: #047857;
+  }
+  .student-trust-banner {
+    background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%);
+    border: 1px solid #bfdbfe;
+    border-radius: 14px;
+    padding: 0.85rem 1.25rem;
+    margin-bottom: 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: #1e40af;
+  }
+
+  /* Full-Experience Interactive Tour Bar & Reader Styles */
+  .tour-bar {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.65rem 1rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  }
+  .tour-title {
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: #4f46e5;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .tour-pills {
+    display: flex;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+  }
+  .tour-btn {
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.35rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #334155;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .tour-btn:hover {
+    background: #eef2ff;
+    color: #4f46e5;
+    border-color: #818cf8;
+  }
+
+  /* Watermarked Reader Canvas */
+  .reader-viewport {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    margin: 1rem 0;
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 1.5rem;
+    user-select: none;
+  }
+  .reader-watermark {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: rotate(-25deg);
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: rgba(148, 163, 184, 0.28);
+    pointer-events: none;
+    text-align: center;
+    line-height: 1.6;
+    letter-spacing: 2px;
+  }
+  .reader-page-content {
+    position: relative;
+    z-index: 2;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+  .reader-nav-row {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #64748b;
+  }
+
+  /* Live Notification Toast */
+  .toast-container {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    pointer-events: none;
+  }
+  .toast-card {
+    background: #0f172a;
+    color: #ffffff;
+    border-radius: 12px;
+    padding: 0.85rem 1.25rem;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    animation: slideInToast 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  @keyframes slideInToast {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+</style>
+</head>
+<body>
+
+  <header class="site-nav">
+    <a href="/" class="site-brand">AbhiHub<span>Creator</span></a>
+    <span style="font-size: 0.8rem; background: #eef2ff; color: #4f46e5; font-weight: 700; padding: 4px 10px; border-radius: 9999px;">
+      STUDY_WITH_WASU DESIGN REPLICA
+    </span>
+  </header>
+
+  <div class="channel-container">
+    <div class="preview-control-bar">
+      <div class="preview-label">
+        <svg width="15" height="15" fill="currentColor" viewBox="0 0 20 20"><path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z"/></svg>
+        Switch Channel:
+      </div>
+      <div id="leadButtonsList" style="display: flex; gap: 0.5rem; flex-wrap: nowrap;"></div>
+    </div>
+
+      <!-- Educator Interactive Test-Drive Tour Bar -->
+  <div class="tour-bar">
+    <div class="tour-title">
+      <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/></svg>
+      Interactive Test-Drive:
+    </div>
+    <div class="tour-pills">
+      <button type="button" class="tour-btn" onclick="triggerTestDrive('preview')">👁 1. Test Watermarked Sample</button>
+      <button type="button" class="tour-btn" onclick="triggerTestDrive('buy')">💳 2. Test 1-Click UPI Buy</button>
+      <button type="button" class="tour-btn" onclick="openUploadWizard()">⚡ 3. Test 30-Sec Upload</button>
+      <button type="button" class="tour-btn" onclick="triggerTestDrive('withdraw')">💰 4. Test Wallet Payout</button>
+      <button type="button" class="tour-btn" onclick="switchRole(currentRole === 'student' ? 'owner' : 'student')">⇄ Toggle Student/Owner</button>
+    </div>
+  </div>
+
+  <div class="channel-banner" id="bannerElement"></div>
+
+    <div class="channel-header-card">
+      <div class="channel-avatar-wrapper">
+        <div id="avatarContainer"></div>
+      </div>
+
+      <div class="channel-meta-area">
+        <div class="channel-title-group">
+          <h1>
+            <span id="channelTitle">Study With Wasudha</span>
+            <svg style="width: 20px; height: 20px; color: #4f46e5;" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+          </h1>
+          <div class="channel-handle" id="channelHandle">@study_with_wasu</div>
+          <div class="channel-bio" id="channelBio">Learn Smart, Score Better.</div>
+          <div class="channel-stats-row">
+            <div><strong id="statNotesCount">6</strong> Notes</div>
+            <div><strong id="statViewsCount">10,240</strong> Channel Views</div>
+            <div><strong id="statRating">4.9 ★</strong> Rating</div>
+          </div>
+        </div>
+
+        <div class="social-pills" id="socialPills"></div>
+      </div>
+    </div>
+
+    <!-- Creator Instant Upload Trigger Banner -->
+    <!-- Owner / Creator Real-Time Control & Analytics Bar (Visible in Owner View) -->
+  <div class="owner-analytics-bar" id="ownerDashboardBar" style="display: none;">
+    <div style="display: flex; gap: 2rem; align-items: center; flex-wrap: wrap;">
+      <div class="owner-metric-col">
+        <span class="owner-metric-label">Creator Wallet Balance</span>
+        <span class="owner-metric-val money">₹4,890.00</span>
+      </div>
+      <div class="owner-metric-col">
+        <span class="owner-metric-label">30-Day Student Unlocks</span>
+        <span class="owner-metric-val">58 Purchases</span>
+      </div>
+      <div class="owner-metric-col">
+        <span class="owner-metric-label">Total Channel Views</span>
+        <span class="owner-metric-val" id="ownerMetricViews">12,480</span>
+      </div>
+      <div class="owner-metric-col">
+        <span class="owner-metric-label">Payout Status</span>
+        <span style="color: #059669; font-size: 0.82rem; font-weight: 700; margin-top: 5px;">● T+1 Auto-Settled</span>
+      </div>
+    </div>
+
+    <div class="owner-action-btns">
+      <button type="button" class="btn-withdraw" onclick="openWithdrawModal()">Withdraw to UPI / Bank</button>
+      <button type="button" class="creator-upload-cta" style="padding: 0.5rem 1rem; font-size: 0.85rem;" onclick="openUploadWizard()">+ Upload Notes</button>
+    </div>
+  </div>
+
+  <!-- Student Trust Bar (Visible in Student View) -->
+  <div class="student-trust-banner" id="studentTrustBanner">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <svg width="18" height="18" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+      <span><b>Verified Educator Channel</b> · All handwritten notes and question banks unlock instantly upon 1-click UPI checkout.</span>
+    </div>
+    <span style="font-weight: 700; white-space: nowrap;">🔒 Anti-Piracy Watermarked Reader</span>
+  </div>
+
+  <div class="upload-trigger-card">
+    <div class="upload-trigger-content">
+      <div class="upload-trigger-badge">⚡ Experience 30-Second Upload</div>
+      <h3 class="upload-trigger-title">Want to see how fast listing your notes is?</h3>
+      <p class="upload-trigger-sub">Test the creator upload flow — drag a PDF, set pricing & preview pages, and get an instant shareable link in under a minute.</p>
+    </div>
+    <button type="button" class="creator-upload-cta" onclick="openUploadWizard()">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+      <span>+ Upload Notes (Demo)</span>
+    </button>
+  </div>
+
+  <!-- Interactive Upload Wizard Modal (Dummy Flow) -->
+<div class="preview-modal-bg" id="uploadWizardModal">
+  <div class="wizard-card">
+    <button class="modal-close-x" onclick="closeUploadWizard()">&times;</button>
+    
+    <!-- Steps Navigation Header -->
+    <div class="wizard-steps-nav">
+      <div class="wizard-step-node active" id="nodeStep1">
+        <div class="node-bubble" id="bubble1">1</div>
+        <span class="node-title">File Intake</span>
+      </div>
+      <div style="flex: 1; height: 2px; background: #e2e8f0; margin: 0 8px -12px;"></div>
+      <div class="wizard-step-node" id="nodeStep2">
+        <div class="node-bubble" id="bubble2">2</div>
+        <span class="node-title">Price & Preview</span>
+      </div>
+      <div style="flex: 1; height: 2px; background: #e2e8f0; margin: 0 8px -12px;"></div>
+      <div class="wizard-step-node" id="nodeStep3">
+        <div class="node-bubble" id="bubble3">3</div>
+        <span class="node-title">Live Channel Link</span>
+      </div>
+    </div>
+
+    <!-- Step 1 Content: File Drop & Basic Info -->
+    <div id="stepContent1">
+      <div class="wizard-dropzone" onclick="simulateSelectFile()">
+        <div style="font-size: 2.2rem; margin-bottom: 0.5rem;" id="dropIcon">📁</div>
+        <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem;" id="dropTitle">Drop your PDF or Handwritten Notes here</div>
+        <div style="font-size: 0.78rem; color: #64748b; margin-top: 0.25rem;" id="dropSub">Click anywhere to simulate instant file intake (Max 50MB)</div>
+      </div>
+
+      <div style="margin-top: 1.25rem;">
+        <label class="wizard-input-label">Document Title</label>
+        <input type="text" id="wizDocTitle" class="wizard-input-field" value="Operating Systems Complete Unit-Wise Handwritten Notes (2026)">
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div>
+            <label class="wizard-input-label">Subject</label>
+            <input type="text" id="wizSubject" class="wizard-input-field" value="Operating Systems (UCSL301)">
+          </div>
+          <div>
+            <label class="wizard-input-label">Category</label>
+            <select id="wizCategory" class="wizard-input-field">
+              <option value="Notes" selected>Handwritten Notes</option>
+              <option value="PYQ">Question Bank / PYQ</option>
+              <option value="Lab">Practical Manual</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="wizard-nav-actions" style="justify-content: flex-end;">
+        <button type="button" class="creator-upload-cta" onclick="goToStep(2)">
+          <span>Next: Set Price & Sample Pages →</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 2 Content: Price & Free Preview Selection -->
+    <div id="stepContent2" style="display: none;">
+      <h3 style="font-size: 1.05rem; font-weight: 800; color: #0f172a; margin-bottom: 0.35rem;">Set Pricing & Watermarked Sample</h3>
+      <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 1.25rem;">Choose whether this note is paid or free, and pick preview pages for students.</p>
+
+      <label class="wizard-input-label">Choose Price</label>
+      <div class="pricing-chips-row">
+        <button type="button" class="pricing-chip-btn" onclick="selectDemoPrice(0, this)">Free</button>
+        <button type="button" class="pricing-chip-btn selected" onclick="selectDemoPrice(49, this)">₹49</button>
+        <button type="button" class="pricing-chip-btn" onclick="selectDemoPrice(99, this)">₹99</button>
+        <button type="button" class="pricing-chip-btn" onclick="selectDemoPrice(149, this)">₹149</button>
+      </div>
+
+      <!-- Live Earnings Calculator Card -->
+      <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 0.85rem 1rem; margin-bottom: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; font-size: 0.88rem; font-weight: 700; color: #166534;">
+          <span>Your Instant Credit per purchase:</span>
+          <span id="wizPayoutPreview" style="font-size: 1rem;">₹44</span>
+        </div>
+        <div style="font-size: 0.75rem; color: #15803d; margin-top: 0.25rem;">
+          ✓ 0% listing fee · Credited directly to your wallet · Daily T+1 settlement
+        </div>
+      </div>
+
+      <!-- Sample Pages Selection -->
+      <label class="wizard-input-label">Free Preview Pages (Anti-Piracy Shielded)</label>
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 0.85rem 1rem; margin-bottom: 1rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <span style="font-size: 0.85rem; font-weight: 600; color: #1e293b;">Allow preview of first 3 pages:</span>
+          <input type="checkbox" checked id="wizPreviewCheckbox" style="width: 18px; height: 18px; accent-color: #4f46e5;">
+        </div>
+        <p style="font-size: 0.74rem; color: #64748b; margin: 0.35rem 0 0;">
+          All preview pages render with real-time student ID watermarks to stop unauthorized Telegram distribution.
+        </p>
+      </div>
+
+      <div class="wizard-nav-actions">
+        <button type="button" class="note-btn note-btn-secondary" onclick="goToStep(1)">← Back</button>
+        <button type="button" class="creator-upload-cta" onclick="goToStep(3)">
+          <span>Publish Notes Now 🚀</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 3 Content: Instant Published Confirmation & Channel Link -->
+    <div id="stepContent3" style="display: none; text-align: center;">
+      <div style="width: 56px; height: 56px; background: #dcfce7; border-radius: 50%; color: #15803d; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 0.75rem;">
+        ✓
+      </div>
+      <h3 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 0.25rem;">Published in 0.8 Seconds!</h3>
+      <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 1.25rem;">
+        Your document is now live on your dedicated channel with 1-click UPI checkout.
+      </p>
+
+      <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 1rem; margin-bottom: 1.25rem; text-align: left;">
+        <span style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: #4f46e5;">Your Dedicated Channel URL:</span>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 0.4rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.5rem 0.75rem;">
+          <code style="font-size: 0.85rem; font-weight: 700; color: #0f172a;" id="wizGeneratedLink">abhihub.com/c/yourchannel/os-notes</code>
+          <button type="button" class="lead-chip" style="padding: 3px 10px; font-size: 0.75rem;" onclick="copyWizLink(this)">Copy Link</button>
+        </div>
+        <p style="font-size: 0.74rem; color: #64748b; margin: 0.5rem 0 0;">
+          Drop this short link in your YouTube video description or Telegram broadcast.
+        </p>
+      </div>
+
+      <button type="button" class="creator-upload-cta" style="width: 100%; justify-content: center;" onclick="finishUploadDemo()">
+        <span>See It Live On Channel Grid 👁</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Interactive Simulation Modal (Student Reader & UPI Checkout) -->
+<div class="preview-modal-bg" id="simModal">
+  <div class="wizard-card" style="max-width: 500px;">
+    <button class="modal-close-x" onclick="closeSimModal()">&times;</button>
+    <div id="modalDynamicBody"></div>
+  </div>
+</div>
+
+<!-- Withdrawal Simulation Modal (Owner View) -->
+<div class="preview-modal-bg" id="withdrawModal">
+  <div class="wizard-card" style="max-width: 440px;">
+    <button class="modal-close-x" onclick="closeWithdrawModal()">&times;</button>
+    <div style="font-size: 0.75rem; color: #059669; font-weight: 800; text-transform: uppercase; margin-bottom: 0.4rem;">Creator Payout Settlement</div>
+    <h3 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 0.35rem;">Withdraw Available Funds</h3>
+    <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 1.25rem;">Funds are transferred directly without holding fees.</p>
+
+    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 1.15rem; margin-bottom: 1.25rem; text-align: center;">
+      <div style="font-size: 0.8rem; color: #15803d; font-weight: 700;">Available for Instant Payout</div>
+      <div style="font-size: 2rem; font-weight: 800; color: #166534; margin: 0.2rem 0;" id="withdrawModalBalance">₹4,890.00</div>
+      <div style="font-size: 0.74rem; color: #15803d;">Minimum withdrawal: ₹100 · 0% transaction fee</div>
+    </div>
+
+    <label class="wizard-input-label">Select Payout Destination</label>
+    <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 0.75rem; margin-bottom: 0.6rem; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <div style="font-weight: 700; font-size: 0.88rem; color: #0f172a;">UPI ID: educator@okaxis</div>
+        <div style="font-size: 0.72rem; color: #64748b;">Instant settlement via UPI AutoPay</div>
+      </div>
+      <input type="radio" name="payoutDest" checked style="accent-color: #059669;">
+    </div>
+    <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 0.75rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <div style="font-weight: 700; font-size: 0.88rem; color: #0f172a;">HDFC Bank (A/C: ****4053)</div>
+        <div style="font-size: 0.72rem; color: #64748b;">Direct IMPS / NEFT transfer</div>
+      </div>
+      <input type="radio" name="payoutDest" style="accent-color: #059669;">
+    </div>
+
+    <button type="button" class="btn-withdraw" style="width: 100%; padding: 0.75rem; font-size: 0.95rem;" onclick="simulateWithdrawSuccess()">
+      Confirm Withdrawal (<span id="withdrawBtnAmount">₹4,890.00</span>)
+    </button>
+  </div>
+</div>
+
+<script>
+    const ALL_LEADS = {
+      'study_with_wasu': {
+        title: 'Study With Wasudha',
+        handle: 'study_with_wasu',
+        bio: 'Learn Smart, Score Better. Comprehensive notes, simplified concepts and exam solutions.',
+        avatarUrl: 'https://i.pinimg.com/originals/d4/01/a5/d401a575ef44c8c10cc25a2b1ea11b6d.jpg',
+        bannerUrl: 'https://i.pinimg.com/736x/3c/34/59/3c34599fb214dbdc022d3db5c165d143.jpg',
+        views: '12,480',
+        rating: '4.9 ★',
+        yt: 'https://youtube.com',
+        tg: 'https://t.me',
+        ig: 'https://instagram.com/_abhihub_',
+        notes: [
+          { title: 'Database Management Systems (DBMS) Unit 1-4', subject: 'DBMS', category: 'Notes', price: 49, views: 320 },
+          { title: 'Computer Networks Full Semester Revision Pack', subject: 'CN', category: 'Notes', price: 99, views: 245 },
+          { title: 'Object Oriented Programming with C++ Complete Guide', subject: 'OOP', category: 'Notes', price: 79, views: 180 }
+        ]
+      },
+      'cs-engineering-gyan': {
+        title: 'CS Engineering Gyan',
+        handle: 'csengineeringgyan',
+        bio: '13+ years teaching. Premium handwritten notes for B.Tech, BCA, MCA & GATE students.',
+        avatarUrl: '',
+        bannerUrl: '',
+        views: '10,500+',
+        rating: '4.9 ★',
+        yt: 'https://www.youtube.com/@CSEngineeringGyan',
+        tg: 'https://csegyan.com',
+        ig: '',
+        notes: [
+          { title: 'Data Structures & Algorithms Handwritten Revision', subject: 'DSA', category: 'Core CSE', price: 49, views: 820 },
+          { title: 'Operating Systems Complete Exam Pack', subject: 'OS', category: 'Semester', price: 99, views: 640 },
+          { title: 'Computer Networks Quick Revision Blueprint', subject: 'Networks', category: 'GATE CSE', price: 149, views: 510 }
+        ]
+      },
+      'ak-engineering-academy': {
+        title: 'AK Engineering Academy',
+        handle: 'akacademy',
+        bio: 'Baner, Pune. Specialized handwritten resources for GATE, ESE, and MPSC Civil & Mechanical.',
+        avatarUrl: '',
+        bannerUrl: '',
+        views: '8,900+',
+        rating: '4.8 ★',
+        yt: 'https://www.akacademy.info',
+        tg: 'https://t.me',
+        ig: '',
+        notes: [
+          { title: 'Strength of Materials — Handwritten Master Notes', subject: 'Civil', category: 'GATE / ESE', price: 149, views: 430 },
+          { title: 'Thermodynamics & Machinery Concept Pack', subject: 'Mechanical', category: 'ESE', price: 199, views: 380 },
+          { title: 'MPSC Civil Engineering Quick Reference Kit', subject: 'Civil', category: 'MPSC', price: 99, views: 560 }
+        ]
+      },
+      'poriyaan': {
+        title: 'Poriyaan.in',
+        handle: 'poriyaan',
+        bio: 'Dr. R. Krishnamurthy Iyer · Anna University study materials, question banks & semester notes.',
+        avatarUrl: '',
+        bannerUrl: '',
+        views: '26,000+',
+        rating: '4.9 ★',
+        yt: '',
+        tg: '',
+        ig: 'https://www.poriyaan.in',
+        notes: [
+          { title: 'Anna Univ Engineering Mathematics Solved Q-Bank', subject: 'Mathematics', category: 'Question Bank', price: 99, views: 1200 },
+          { title: 'Signals and Systems Lecture Notes & Derivations', subject: 'ECE / EEE', category: 'Lecture Notes', price: 149, views: 890 },
+          { title: 'Strength of Materials Anna Univ Study Pack', subject: 'Civil / Mech', category: 'Study Pack', price: 179, views: 650 }
+        ]
+      },
+      'online-engineering': {
+        title: 'Online Engineering',
+        handle: 'onlineengineering',
+        bio: 'Vishal Bhatt · 15+ years teaching. Focused PDF companions for GATE, ESE & State AE/JE.',
+        avatarUrl: '',
+        bannerUrl: '',
+        views: '19,500+',
+        rating: '4.9 ★',
+        yt: 'https://www.onlineengineering.in',
+        tg: 'https://t.me',
+        ig: '',
+        notes: [
+          { title: 'Structural Analysis Quick Revision Notes', subject: 'Civil', category: 'GATE / ESE', price: 199, views: 710 },
+          { title: 'Fluid Mechanics Formula & Concept Guide', subject: 'Mechanical', category: 'Formula Book', price: 149, views: 540 },
+          { title: 'State AE / JE High-Yield Practice Capsule', subject: 'Civil / Mech', category: 'AE / JE', price: 99, views: 980 }
+        ]
+      },
+      'one-night-engineer': {
+        title: 'One Night Engineer',
+        handle: 'onenightengineer',
+        bio: 'Darshan · Lonavala / SPPU. Handwritten notes and question packs for the night before.',
+        avatarUrl: '',
+        bannerUrl: '',
+        views: '14,000+',
+        rating: '4.8 ★',
+        yt: 'https://onenightengineer.godaddysites.com',
+        tg: 'https://t.me',
+        ig: '',
+        notes: [
+          { title: 'SPPU FE Engineering Math Unit-wise Notes', subject: 'Mathematics', category: 'SPPU FE', price: 49, views: 1420 },
+          { title: 'Data Structures SPPU Exam Pack with Dry Runs', subject: 'Computer', category: 'SPPU SE', price: 149, views: 980 },
+          { title: 'Basic Thermodynamics Handwritten Notes', subject: 'Mechanical', category: 'SPPU FE', price: 99, views: 760 }
+        ]
+      },
+      'sandeep-jyani': {
+        title: 'Sandeep Jyani',
+        handle: 'sandeepjyani',
+        bio: 'India’s top civil engineering educator. High-yield resources for GATE, IES, and SSC JE.',
+        avatarUrl: '',
+        bannerUrl: '',
+        views: '89,300+',
+        rating: '4.9 ★',
+        yt: 'https://t.me/ssrjyani',
+        tg: 'https://t.me/ssrjyani',
+        ig: '',
+        notes: [
+          { title: 'Geotechnical Engineering Comprehensive Revision Notes', subject: 'Geotech', category: 'GATE Civil', price: 149, views: 3200 },
+          { title: 'Structural Engineering Formula & Short-trick Guide', subject: 'Structures', category: 'IES Civil', price: 99, views: 2800 },
+          { title: 'SSC JE Civil Complete Practice & Notes Pack', subject: 'Civil', category: 'SSC JE', price: 199, views: 4100 }
+        ]
+      }
+    };
+
+    function detectLeadSlug() {
+      const params = new URLSearchParams(window.location.search);
+      const q = params.get('c') || params.get('channel') || params.get('slug') || params.get('name');
+      if (q) return matchOrGenerateLead(q);
+
+      const parts = window.location.pathname.split('/').filter(Boolean);
+      const last = parts[parts.length - 1];
+      if (last && last !== 'preview' && !last.endsWith('.html')) {
+        return matchOrGenerateLead(last);
+      }
+      return 'study_with_wasu';
+    }
+
+    function matchOrGenerateLead(raw) {
+      const clean = raw.toLowerCase().replace(/[-_]/g, '');
+      for (const key of Object.keys(ALL_LEADS)) {
+        const kClean = key.toLowerCase().replace(/[-_]/g, '');
+        if (clean === kClean || clean.includes(kClean) || kClean.includes(clean)) return key;
+      }
+      const title = decodeURIComponent(raw).replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const handle = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
+      ALL_LEADS[raw] = {
+        title: title,
+        handle: handle,
+        bio: `Official AbhiHub Channel for ${title}. Verified notes, curriculum packs, and exam revisions.`,
+        avatarUrl: '',
+        bannerUrl: '',
+        views: '5,000+',
+        rating: '4.9 ★',
+        yt: 'https://youtube.com',
+        tg: 'https://t.me',
+        ig: '',
+        notes: [
+          { title: `${title} — Core Fundamentals Revision`, subject: 'General', category: 'Notes', price: 49, views: 150 },
+          { title: `${title} — Exam Question Bank & Solutions`, subject: 'Exam Prep', category: 'Q-Bank', price: 99, views: 280 }
+        ]
+      };
+      return raw;
+    }
+
+    const OFFLINE_REAL_NOTES = [{"id": "541c76bd-c5ee-4a06-917f-be36c60bfcb7", "title": "GHRCE - ALL - AKRR (UAIL201) - Notes \u00b7 2025", "category": "Notes", "subject": "AI Knowledge Representation and Reasoning", "file_type": "PDF", "status": "approved", "views": 4, "is_paid": true, "price": 99.0, "file_url": "https://res.cloudinary.com/dshahbtnn/raw/upload/uploads/3ee5f02a-e187-47a9-8119-4e8cddda2e91_1793540837_GHRCE_ALL_AKRR_UAIL201_notes_2025.txt", "created_at": "2026-11-01T13:48:18.440321+00:00"}, {"id": "83c4f6a3-4c91-4741-b84a-b8ce83762aba", "title": "GHRCE - ALL - AWS (UITL402) - CAE1 \u00b7 Papers \u00b7 2026", "category": "Papers", "subject": "Amazon Web Services", "file_type": "IMAGE", "status": "approved", "views": 0, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1793353817/pyq/3ee5f02a-e187-47a9-8119-4e8cddda2e91_1793353815_amazon_web_services_uitl402_papers_2026_cae1_f86bx.jpg", "created_at": "2026-10-30T09:50:18.012231+00:00"}, {"id": "67a925eb-bb08-470d-916f-d732661fedab", "title": "GHRCE - ALL - AWS (UITL402) - CAE1 \u00b7 Papers \u00b7 2025", "category": "Papers", "subject": "Amazon Web Services", "file_type": "IMAGE", "status": "approved", "views": 236, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1793279892/pyq/3ee5f02a-e187-47a9-8119-4e8cddda2e91_1793279888_amazon_web_services_uitl402_papers_2025_cae1_254zj.jpg", "created_at": "2026-10-29T13:18:18.647027+00:00"}, {"id": "9bfff45d-434f-4d7d-8fd4-73cda9c12faa", "title": "GHRCE-ALL-SES (UHUL321) - Papers \u00b7 2026", "category": "Papers", "subject": "Soft Employability Skills", "file_type": "IMAGE", "status": "approved", "views": 429, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1792946185/pyq/3ee5f02a-e187-47a9-8119-4e8cddda2e91_1792946176_soft_employability_skills_uhul321_papers_2026_x6jlr.jpg", "created_at": "2026-10-25T16:36:31.339921+00:00"}, {"id": "c4e50a80-234a-4303-b961-93843356abbe", "title": "GHRCE - ALL - SES (UHUL321) - Papers \u00b7 2025", "category": "Papers", "subject": "Soft Employability Skills", "file_type": "IMAGE", "status": "approved", "views": 149, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1792945239/pyq/3ee5f02a-e187-47a9-8119-4e8cddda2e91_1792945231_soft_employability_skills_uhul321_papers_2025_1x8bt.jpg", "created_at": "2026-10-25T16:20:45.603234+00:00"}, {"id": "b7874a0a-1cbc-4e2b-9d97-3fae57110145", "title": "GHRCE - IT - AWS (UITL402) - CAE1 \u00b7 Papers \u00b7 2024", "category": "Papers", "subject": "Amazon Web Services", "file_type": "IMAGE", "status": "approved", "views": 309, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767452861/-_AWS-Cloud_Computing_Services_Hlective-V_Vacation__Summer_Term_Examination_2024_UITL402_hu3vmq.webp", "created_at": "2026-10-25T16:01:36.460228+00:00"}, {"id": "510c026e-612a-40dd-b443-2717bb15885c", "title": "GHRCE - IT - CSS (UCSL401) - ESE \u00b7 Papers \u00b7 2024", "category": "Papers", "subject": "Computer System Security", "file_type": "IMAGE", "status": "approved", "views": 251, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767452827/-T-_Computer_System_Security_Vacation__Summer_Term_Examination_2024_UITL419_zrojdd.webp", "created_at": "2026-10-25T15:52:38.098027+00:00"}, {"id": "e88918e1-ad89-466b-adbb-61de8f3ac0dc", "title": "ABHIHU - ALL - SNOWFL - Practical \u00b7 2026", "category": "Practical", "subject": "SnowFlake", "file_type": "PDF", "status": "approved", "views": 316, "is_paid": true, "price": 200.0, "file_url": "https://res.cloudinary.com/dshahbtnn/raw/upload/v1792922800/practical/3ee5f02a-e187-47a9-8119-4e8cddda2e91_1792922748_snowflake_practical_2026_r2n0r.txt", "created_at": "2026-10-25T10:06:47.63748+00:00"}, {"id": "607e6ea0-1d83-4d4b-ade0-3d58bf1ee34b", "title": "GHRCE - MBA - QB (All Subjects) - Question bank \u00b7 2024", "category": "Question_bank", "subject": "Question Bank", "file_type": "PDF", "status": "approved", "views": 242, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/raw/upload/v1792837673/pyq/3ee5f02a-e187-47a9-8119-4e8cddda2e91_1792837666_question_bank_all_subjects_question_bank_2024_t8ey0.txt", "created_at": "2026-10-24T10:27:57.052418+00:00"}, {"id": "13b54e30-35ee-4ba0-b2f6-420514f61b39", "title": "GHRCE - MBA - QB (All Subject) - Question bank \u00b7 2025", "category": "Question_bank", "subject": "Question Bank", "file_type": "PDF", "status": "approved", "views": 386, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/raw/upload/v1792836496/pyq/3ee5f02a-e187-47a9-8119-4e8cddda2e91_1792836490_question_bank_all_subject_question_bank_2025_fbapp.txt", "created_at": "2026-10-24T10:08:20.640937+00:00"}, {"id": "b212742f-1765-41bd-9e89-87c97be1b068", "title": "GHRCE - MBA - RES (UISL447) - ESE \u00b7 Papers \u00b7 2025", "category": "Papers", "subject": "Renewable Energy Sources", "file_type": "IMAGE", "status": "approved", "views": 421, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767457685/Renewable_Energy_Sources_Term_Examination_2025_UISL447_uwasgl.webp", "created_at": "2026-10-24T06:35:01.392992+00:00"}, {"id": "f594cd15-f83a-46ca-831d-19fa7efe8549", "title": "OS (Syllabus \ud83d\udccb)", "category": "Syllabus \ud83d\udccb", "subject": "General", "file_type": "PDF", "status": "approved", "views": 398, "is_paid": false, "price": 0.0, "file_url": "/static/uploads/chat/chat_1792588986_3ee5f02a_DAA-U1.pdf", "created_at": "2026-10-21T13:23:10.060895+00:00"}, {"id": "39643201-a8a3-48b9-9ca1-908aa6fe9369", "title": "Next Generation Databases", "category": "Papers", "subject": "Next Generation Databases", "file_type": "IMAGE", "status": "approved", "views": 313, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767455087/f__Next_Generation_Databases_Vacation__Summer_Term_Examination_2024_UDIL426_uhlkwd.webp", "created_at": "2026-09-23T17:20:22.616529+00:00"}, {"id": "0cd16907-0b72-4d94-9cc7-1e67fb5cc6a7", "title": "NLP CAE1", "category": "Papers", "subject": "Natural Language Processing ", "file_type": "IMAGE", "status": "approved", "views": 477, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1790085277/pyq/3ee5f02a-e187-47a9-8119-4e8cddda2e91_1790085269_2025_natural_language_processing__uaip302_papers_cae1_085267.jpg", "created_at": "2026-09-22T13:54:39.231233+00:00"}, {"id": "14f2d0cc-26c9-4b3e-b52f-5c9960012543", "title": "Object Oriented Programming (UITL201)", "category": "Papers", "subject": "Object Oriented Programming", "file_type": "IMAGE", "status": "approved", "views": 249, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1789837373/pyq/3ee5f02a-e187-47a9-8119-4e8cddda2e91_1789837367_object_oriented_programming_uitl201_papers_cae1_837364.jpg", "created_at": "2026-09-19T17:02:57.96943+00:00"}, {"id": "1459058a-3c05-48e1-99e0-f0010b3d3c60", "title": "Question Bank (All paper)", "category": "Pyq", "subject": "Question Bank", "file_type": "PDF", "status": "approved", "views": 401, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/raw/upload/v1788608474/pyq/3ee5f02a-e187-47a9-8119-4e8cddda2e91_1788608440_question_bank_all_paper_question_bank_608439.txt", "created_at": "2026-09-05T11:41:26.614331+00:00"}, {"id": "4833caea-6233-4d56-ada3-0b272ea8f4af", "title": "Question Bank (All Subject)", "category": "Question_bank", "subject": "Question Bank", "file_type": "PDF", "status": "approved", "views": 145, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/raw/upload/v1788606367/pyq/3ee5f02a-e187-47a9-8119-4e8cddda2e91_1788606318_question_bank_all_subject_question_bank_606316.txt", "created_at": "2026-09-05T11:06:32.897059+00:00"}, {"id": "1aefd063-3396-4f08-830b-0d13dce13cd3", "title": "Reinforcement Learning", "category": "Papers", "subject": "Reinforcement Learning", "file_type": "IMAGE", "status": "approved", "views": 167, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767457256/Reinforcement_Learning_Term_Examination_2025_UAIL431_wfn53q.webp", "created_at": "2026-09-02T10:25:58.244616+00:00"}, {"id": "2a3023e4-15f9-4071-af2e-b87a75d1ede8", "title": "Computer Networks", "category": "Papers", "subject": "Computer Networks ", "file_type": "IMAGE", "status": "approved", "views": 403, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767457247/Computer_Networks_Term_Examination_2025_UITL204_m61kbl.webp", "created_at": "2026-09-02T10:25:16.189701+00:00"}, {"id": "bb540fff-03d8-4296-83f4-34b4b08f7135", "title": "Transforms and Numerical Methods", "category": "Papers", "subject": "Transforms and Numerical Methods", "file_type": "IMAGE", "status": "approved", "views": 183, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767457242/oT_Transforms_and_Numerical_Methods_Term_Examination_2025_UNBSL202_f8sriu.webp", "created_at": "2026-09-02T10:24:58.168699+00:00"}, {"id": "c21f4af4-e2e9-417e-847f-877b7c653f7a", "title": "Database Management Systems", "category": "Papers", "subject": "Database Management Systems ", "file_type": "IMAGE", "status": "approved", "views": 241, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767457238/Lt_Database_Management_Systemes_Term_Examination_2025_UNCSL202_qmmwfo.webp", "created_at": "2026-09-02T10:24:39.46037+00:00"}, {"id": "ef97b7e8-6b41-411a-92f8-ab75cad31e93", "title": "Design and Analysis of Algorithm", "category": "Papers", "subject": "Design and Analysis of Algorithm ", "file_type": "IMAGE", "status": "approved", "views": 211, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767457236/TT_Design_and_Analysis_of_Algorithms_Term_Examination_2025_UCSL205_mk2isk.webp", "created_at": "2026-09-02T10:24:15.267445+00:00"}, {"id": "1d658fbc-8491-4be0-81f8-8a942e0d3f11", "title": "Discrete Mathematics and Graph Theory", "category": "Papers", "subject": "Discrete Mathematics and Graph Theory", "file_type": "IMAGE", "status": "approved", "views": 298, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767457233/Discrete_Mathematics_and_Graph_Theory_Term_Examination_2025_UNBSL201_wdzpaz.webp", "created_at": "2026-09-02T10:23:50.031564+00:00"}, {"id": "8cac3117-abce-4ad6-b6a0-a43a732657e0", "title": "Natural Language Processing", "category": "Papers", "subject": "Natural Language Processing ", "file_type": "IMAGE", "status": "approved", "views": 130, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767457231/is_Natural_Language_Processing_Vacation__Summer_Term_Examination_2025_UAIL302_w8thhw.webp", "created_at": "2026-09-02T10:22:16.032229+00:00"}, {"id": "2cffe230-5ce6-4232-9208-c7939a74486d", "title": "Software Engineering", "category": "Papers", "subject": "Software Engineering", "file_type": "IMAGE", "status": "approved", "views": 198, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767457195/CT_Software_Engineering_Term_Examination_2025_UNITLM207_m7k8fl.webp", "created_at": "2026-09-02T10:21:51.218415+00:00"}, {"id": "1359046a-11cf-4f8d-baaa-a3c713e724ef", "title": "GPU Computing", "category": "Papers", "subject": "GPU Computing", "file_type": "IMAGE", "status": "approved", "views": 50, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767457171/cr_GPU_Computing_Term_Examination_2025_UAIL309_p3ienb.webp", "created_at": "2026-09-02T10:19:33.738613+00:00"}, {"id": "0c0a03b7-e8da-4ff5-80de-e6459c27ad66", "title": "Business Intelligence", "category": "Papers", "subject": "Business Intelligence", "file_type": "IMAGE", "status": "approved", "views": 334, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767457167/-_Business_Intelligence_Term_Examination_2025_UAIL210_bfeiap.webp", "created_at": "2026-09-02T10:18:39.186152+00:00"}, {"id": "8ef0ac80-a703-4cab-b5a4-85c182989f0d", "title": "Computer Architecture And Operating System", "category": "Papers", "subject": "Computer Architecture And Operating System", "file_type": "IMAGE", "status": "approved", "views": 149, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767457204/Computer_Architecture_and_Operating_System_Term_Examination_2025_UNDIL201_sjnkd8.webp", "created_at": "2026-09-02T10:15:28.204561+00:00"}, {"id": "dc1cfd0e-9325-4d55-aee4-a84526afd933", "title": "Big Data Computing", "category": "Papers", "subject": "Big Data Computing ", "file_type": "IMAGE", "status": "approved", "views": 191, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767457192/CT_Big_Data_Computing_Vacation__Summer_Term_Examination_2025_UITL305_ous0vg.webp", "created_at": "2026-09-02T10:14:58.792383+00:00"}, {"id": "aca1b46f-a57c-43d8-96ff-98f52de49215", "title": "User Interface Design and User Experiance", "category": "Papers", "subject": "User Interface Design and User Experiance", "file_type": "IMAGE", "status": "approved", "views": 263, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767457189/User_Interface_Design_and_User_Experience_Term_Examination_2025_UCSL324_trmawt.webp", "created_at": "2026-09-02T10:14:36.296513+00:00"}, {"id": "ef53581b-2730-472d-a2a5-674e519c9cd7", "title": "Optimization Techniques in Soft Computing", "category": "Papers", "subject": "Optimization Techniques in Soft Computing", "file_type": "IMAGE", "status": "approved", "views": 70, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767457171/Optimization_Techniques_in_Soft_Computing_Term_Examination_2025_UAIL306_bbqtup.webp", "created_at": "2026-09-02T10:13:00.872792+00:00"}, {"id": "41c44b9b-3e15-42b6-ae9b-5615ef6d346d", "title": "Natural Language Processing", "category": "Papers", "subject": "Natural Language Processing ", "file_type": "IMAGE", "status": "approved", "views": 241, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767457165/cr__Natural_Language_Processing_Term_Examination_2025_UAIL302_q8mjwv.webp", "created_at": "2026-09-02T10:09:00.106722+00:00"}, {"id": "0de5f819-b300-484e-917e-07668a6df74a", "title": "Big Data Computing", "category": "Papers", "subject": "Big Data Computing ", "file_type": "IMAGE", "status": "approved", "views": 271, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767457164/r__Big_Data_Computing_Term_Examination_2025_VITL305_rs22l2.webp", "created_at": "2026-09-02T10:08:35.084223+00:00"}, {"id": "207277ae-7e18-486d-94ad-6b97971586a2", "title": "Fls Mt2 - Mid Sem", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 432, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769153820/FLS_MT2_b_e3schf.jpg", "created_at": "2026-01-23T07:37:00+00:00"}, {"id": "041a24c8-0a03-45d8-ba45-8aca8b1f212b", "title": "Dt Ms1", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 210, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769153814/DT_MS1_lnbfez.jpg", "created_at": "2026-01-23T07:36:54+00:00"}, {"id": "c5fb5449-621e-443c-a27b-3fa769c37d62", "title": "Apc Mt2 - Mid Sem", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 64, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769153786/APC_MT2_kjrkb5.jpg", "created_at": "2026-01-23T07:36:26+00:00"}, {"id": "cd2fd99d-4ffd-4a9e-9d65-d75ff00b73f9", "title": "Bpc Mt1 - Mid Sem", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 415, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769153759/BPC_MT1_oapnj1.jpg", "created_at": "2026-01-23T07:35:59+00:00"}, {"id": "a6e54535-049b-476f-9bb6-127179592018", "title": "Bc De Mt1 - Mid Sem", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 377, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769153717/BC_DE_MT1_fdpe8q.jpg", "created_at": "2026-01-23T07:35:17+00:00"}, {"id": "f2364189-e428-4815-85de-2bfd8fb9fe48", "title": "Cag Mt1 - Mid Sem", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 479, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769153716/CAG_MT1_pibqpx.jpg", "created_at": "2026-01-23T07:35:16+00:00"}, {"id": "63fba1a2-ff7f-47df-b401-79b4e4f1ee61", "title": "Bc De Mt2 - Mid Sem", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 135, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769153715/BC_DE_MT2_flsrjr.jpg", "created_at": "2026-01-23T07:35:15+00:00"}, {"id": "f9cc4d35-eebc-4538-8614-f8a3b67a7422", "title": "Fls Mt1 - Mid Sem", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 56, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769153705/FLS_MT1_b_jalfdy.jpg", "created_at": "2026-01-23T07:35:05+00:00"}, {"id": "380532e2-388a-4a18-a2ad-62a444097dc0", "title": "Bpc Mt1 - Mid Sem", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 221, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769153692/BPC_MT1_b_nwbjy6.jpg", "created_at": "2026-01-23T07:34:52+00:00"}, {"id": "402264d9-57f5-495b-a421-aa8bc7c8644b", "title": "Fls - ESE", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 128, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769153692/FLS_ESE_oqoolp.jpg", "created_at": "2026-01-23T07:34:52+00:00"}, {"id": "69d9bc54-444b-43ab-9e55-deacb2027557", "title": "Fai Mt1 - Mid Sem", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 216, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769153673/FAI_MT1_b_nctddl.jpg", "created_at": "2026-01-23T07:34:33+00:00"}, {"id": "babb54f8-ea2e-4248-adcb-7e5a016ce1db", "title": "Ee Mt1 - Mid Sem", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 324, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769153665/BE_EE_MT1_zesmya.jpg", "created_at": "2026-01-23T07:34:25+00:00"}, {"id": "718ec582-2685-4339-8c8c-ca37002ce432", "title": "Ap Mt1 - Mid Sem", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 85, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769153565/AP_MT1_wgymvk.jpg", "created_at": "2026-01-23T07:32:45+00:00"}, {"id": "bcd1d99b-3d44-43df-b924-3557151389c9", "title": "Em - ESE", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 270, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769153565/EM_ESE_b_yh7lgw.jpg", "created_at": "2026-01-23T07:32:45+00:00"}, {"id": "6c5f3c9c-3a31-422f-ae0d-e2f834c52cbf", "title": "Ee - ESE", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 264, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769153560/BE_EE_ESE_atwhig.jpg", "created_at": "2026-01-23T07:32:40+00:00"}, {"id": "1fbbff3b-facc-4ddc-afb4-49d42ba49f70", "title": "Ap Mt1 - Mid Sem", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 323, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769153542/AP_MT1_b_jvbag5.jpg", "created_at": "2026-01-23T07:32:22+00:00"}, {"id": "d5c8dab2-855f-4af2-b669-155c7c516ae9", "title": "Mb Mt2 - Mid Sem", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 57, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769153530/MB_MT2_b_uhgaft.jpg", "created_at": "2026-01-23T07:32:10+00:00"}, {"id": "f2c75e22-bba3-4a14-9984-a057ae4ac66f", "title": "Ac Mt2 - Mid Sem", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 444, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769153134/AC_MT2_lsab6g.jpg", "created_at": "2026-01-23T07:25:34+00:00"}, {"id": "6124e51f-e45d-4b0b-a1db-1ccfb1d3794f", "title": "Fls Ese2 - ESE", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 82, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769153115/FLS_ESE2_v5dnde.jpg", "created_at": "2026-01-23T07:25:15+00:00"}, {"id": "3af3522d-a16c-4bd9-b94b-7c077b957968", "title": "Ms - ESE", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 421, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769153114/MS_ESE_b_mrsocs.jpg", "created_at": "2026-01-23T07:25:14+00:00"}, {"id": "cb3c9793-30ee-4324-b8e7-65150af09fea", "title": "Cs Mt1 - Mid Sem", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 180, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769153095/CS_MT1_b_urp9u1.jpg", "created_at": "2026-01-23T07:24:55+00:00"}, {"id": "3b14abc7-193d-4634-80e5-e60d9979c4a3", "title": "Ee Mt1 - Mid Sem", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 126, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769153083/BE_EE_MT1_b_nwe7qo.jpg", "created_at": "2026-01-23T07:24:43+00:00"}, {"id": "c9ec523d-0b6f-4463-be9e-c5e6186c6e71", "title": "Acfss Mt2 - Mid Sem", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 121, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769152816/ACFSS_MT2_b_ygrlj9.jpg", "created_at": "2026-01-23T07:20:16+00:00"}, {"id": "ea20e1d8-310b-4463-a2cc-268232c52a79", "title": "Fundamental Of Ai U1", "category": "Papers", "subject": "General", "file_type": "PDF", "status": "approved", "views": 417, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769152648/Fundamental_of_AI-U1_jkr2yn.pdf", "created_at": "2026-01-23T07:17:28+00:00"}, {"id": "10c92888-d934-46b1-8980-811d2632e2fe", "title": "Voc - CAE2", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 404, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151917/VOC_CAE2_fxaspa.jpg", "created_at": "2026-01-23T07:05:17+00:00"}, {"id": "6317420b-7008-486e-a1c5-9df717977793", "title": "Voc1 - CAE1", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 434, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151865/VOC1_CAE1_z0mxfc.jpg", "created_at": "2026-01-23T07:04:25+00:00"}, {"id": "c687a0f5-f72d-4166-a6d4-fcf5c8527a82", "title": "Voc - CAE1", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 413, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151862/VOC_CAE1_m0ekth.jpg", "created_at": "2026-01-23T07:04:22+00:00"}, {"id": "42200db3-112c-4d4c-b82c-7f9c2f660f5c", "title": "Pps - ESE", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 64, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151829/PPS_ESE_qlzu4z.jpg", "created_at": "2026-01-23T07:03:49+00:00"}, {"id": "6193f615-6b7c-42e1-9938-41117a831bc1", "title": "Pps B1 - ESE", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 140, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151817/PPS_ESE_b1_f2wf8y.jpg", "created_at": "2026-01-23T07:03:37+00:00"}, {"id": "27789406-ce20-4141-b49c-2a85e124e2a0", "title": "Pps - CAE1", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 461, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151809/PPS_CAE1_e8wvly.jpg", "created_at": "2026-01-23T07:03:29+00:00"}, {"id": "4c64b66f-339d-43e5-a0c7-ee2d9eaa13b1", "title": "Dc Summ - CAE1", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 225, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151791/M_DC_CAE1_summ_ugie64.jpg", "created_at": "2026-01-23T07:03:11+00:00"}, {"id": "89bc396a-c8a8-4649-b833-ddcdab09f61d", "title": "Dc - ESE", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 238, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151785/M_DC_ESE_pbcdip.jpg", "created_at": "2026-01-23T07:03:05+00:00"}, {"id": "84ede170-5a37-49eb-9535-7145fdc60b45", "title": "Iks - ESE", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 397, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151771/IKS_ESE_ab7paf.jpg", "created_at": "2026-01-23T07:02:51+00:00"}, {"id": "ee822c85-0f10-4a5e-b4a9-ab2eb81b9cbd", "title": "Iks - ESE", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 286, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151771/IKS_ESE_b_g5fx8a.jpg", "created_at": "2026-01-23T07:02:51+00:00"}, {"id": "435cf60e-7f58-4b45-a87e-a3ae0ddf3bd6", "title": "Iks - CAE2", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 302, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151767/IKS_CAE2_y9d4xp.jpg", "created_at": "2026-01-23T07:02:47+00:00"}, {"id": "e83390f9-e340-461c-9c4f-23b576748b48", "title": "Iks - CAE1", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 448, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151741/IKS_CAE1_jdwlos.jpg", "created_at": "2026-01-23T07:02:21+00:00"}, {"id": "aa9ed8c7-a11e-4831-9151-c826be49dca7", "title": "Ep - ESE", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 141, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151736/EP_ESE_trqb91.jpg", "created_at": "2026-01-23T07:02:16+00:00"}, {"id": "9952ab9b-0306-4cb6-8400-79070962f553", "title": "Ec - CAE2", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 429, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151695/EC_CAE2_tcn5dg.jpg", "created_at": "2026-01-23T07:01:35+00:00"}, {"id": "9c8c1e8a-49d6-43fe-aeff-5e1d5fcb0485", "title": "Ep - CAE2", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 312, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151677/EP_CAE2_awtlij.jpg", "created_at": "2026-01-23T07:01:17+00:00"}, {"id": "671966a1-0cd4-448a-ad60-e75cbae7d327", "title": "Ese1 - ESE", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 392, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151651/BE_ESE1_n16uhk.jpg", "created_at": "2026-01-23T07:00:51+00:00"}, {"id": "c48bfc0f-2e97-4902-a960-fee3954a1a0e", "title": "Ec Ese2 - ESE", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 271, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151617/EC_ESE2_mg7fjk.jpg", "created_at": "2026-01-23T07:00:17+00:00"}, {"id": "96418a0f-7960-47b7-b41f-817ccf75c62e", "title": "Jp826X - CAE II - CAE2", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 239, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151555/BE_CAE2_jp826x.jpg", "created_at": "2026-01-23T06:59:15+00:00"}, {"id": "5372a87a-557e-4b32-895a-e71daf007eb3", "title": "Bee - ESE", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 56, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151547/BEE_ESE_b_tdajme.jpg", "created_at": "2026-01-23T06:59:07+00:00"}, {"id": "b4168c15-e221-436c-91cc-e9e23645ec6e", "title": "Bme Cae2B - CAE2", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 233, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151545/BME_CAE2B_fzckro.jpg", "created_at": "2026-01-23T06:59:05+00:00"}, {"id": "c0586197-762c-4187-8329-de99758dc46b", "title": "Bme Cae1B - CAE1", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 40, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151527/BME_CAE1B_gqlwjm.jpg", "created_at": "2026-01-23T06:58:47+00:00"}, {"id": "5afe8e3e-5010-4425-bb71-c848ed82cb44", "title": "Aet - CAE1", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 260, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151499/AET_CAE1_zg1uir.jpg", "created_at": "2026-01-23T06:58:19+00:00"}, {"id": "ef4ba190-7027-44b5-b978-fa72c15e0e9b", "title": "Gml0Nc - CAE I - CAE1", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 368, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151486/BE_CAE1_gml0nc.jpg", "created_at": "2026-01-23T06:58:06+00:00"}, {"id": "57644ed7-27d0-4401-98ce-256383e15d04", "title": "Bee - CAE2", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 478, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151481/BEE_CAE2_t7vbp0.jpg", "created_at": "2026-01-23T06:58:01+00:00"}, {"id": "b83d50de-9a3d-4f4c-bb07-d46249b8958e", "title": "Bee - CAE1", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 90, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151435/BEE_CAE1_e9cu19.jpg", "created_at": "2026-01-23T06:57:15+00:00"}, {"id": "7e0c0eef-533e-4b97-92ff-f936ece2d9d0", "title": "Aet - ESE", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 166, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151402/AET_ESE_b_azouyd.jpg", "created_at": "2026-01-23T06:56:42+00:00"}, {"id": "d80a5a83-362f-4e60-aff2-763d86d5c557", "title": "Ee - ESE", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 60, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151354/BE_EE_ESE_b_hbqmxc.jpg", "created_at": "2026-01-23T06:55:54+00:00"}, {"id": "3fb3c352-8f30-43c7-8ce1-529de2b3431d", "title": "Ac Mt1 - Mid Sem", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 55, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151344/AC_MT1_knkvrd.jpg", "created_at": "2026-01-23T06:55:44+00:00"}, {"id": "0aab47da-dd1c-4cf7-a83f-7fa9dde0d625", "title": "Apc Eseb - ESE", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 173, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151340/APC_ESEB_khoypt.jpg", "created_at": "2026-01-23T06:55:40+00:00"}, {"id": "582fa6a6-adc6-41c1-8f50-f0f942b516d8", "title": "Ac - ESE", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 105, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151192/AC_ESE_dflfid.jpg", "created_at": "2026-01-23T06:53:12+00:00"}, {"id": "7ef8f619-1549-4de4-9eef-359e33e47f43", "title": "Acfss - ESE", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 274, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151106/ACFSS_ESE_b_ul3ol3.jpg", "created_at": "2026-01-23T06:51:46+00:00"}, {"id": "0b8f4eec-18b0-44c2-8b5b-c3f3b9e0bb03", "title": "Acfss Mt1B - Mid Sem", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 447, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769151081/ACFSS_MT1B_zudtle.jpg", "created_at": "2026-01-23T06:51:21+00:00"}, {"id": "298aa0d3-f6df-47b1-973d-34132623c838", "title": "Acfss - ESE", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 236, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1769150997/ACFSS_ESE_mclir5.jpg", "created_at": "2026-01-23T06:49:57+00:00"}, {"id": "ecd6f04c-0641-44ce-8c8a-fbbb07ff1565", "title": "Ct Introduction To Classical Artificial Intelligence Unailm202", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 63, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767458765/CT_Introduction_to_Classical_Artificial_Intelligence_Term_Examination_2024_UNAILM202_hlurjl.webp", "created_at": "2026-01-03T16:46:05+00:00"}, {"id": "4e9f95bb-88e8-4a19-be34-bd4dff9fd604", "title": "Electronic Devices Circuits", "category": "Papers", "subject": "Electronics devices and system", "file_type": "IMAGE", "status": "approved", "views": 118, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767458758/s_P_Electronic_Devices__Circuits_Vacation__Summer_Term_Examination_2024_UNECL201_bci7mk.webp", "created_at": "2026-01-03T16:45:58+00:00"}, {"id": "d5f676ba-e875-469e-8a1b-42c85ffa9cbb", "title": "Signals And Systems", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 305, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767458755/-_Signals_and_Systems_Vacation__Summer_Term_Examination_2024_UNECL202_h7gwgn.webp", "created_at": "2026-01-03T16:45:55+00:00"}, {"id": "b8999695-f15b-4f4c-a86d-baddbb0636da", "title": "Seeing Wireless Sensor Network Elective Id", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 396, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767458747/_seeing_Wireless_Sensor_Network_Elective-ID_Vacation__Summer_Term_Examination_2024_UECL412_ufbdgn.webp", "created_at": "2026-01-03T16:45:47+00:00"}, {"id": "6e0567f0-9a44-4a9c-8672-c51b54fbd70b", "title": "Advanced Embedded Systems", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 373, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767458735/_Advanced_Embedded_Systems_Vacation__Summer_Term_Examination_2024_UECL425_c6byni.webp", "created_at": "2026-01-03T16:45:35+00:00"}, {"id": "06a56af8-2333-413f-bc1c-38e34f82c94a", "title": "System On Chip", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 72, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767458727/System_on_Chip_Vacation__Summer_Term_Examination_2024_UECL417_edaunn.webp", "created_at": "2026-01-03T16:45:27+00:00"}, {"id": "eb60c3da-2e8c-4bbb-a6c1-104656a7f89f", "title": "Wireless And Mobile Communication", "category": "Papers", "subject": "Wireless Mobile Communication", "file_type": "IMAGE", "status": "approved", "views": 352, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767458719/_Wireless_and_Mobile_Communication_Vacation__Summer_Term_Examination_2024_UECL403_bsiigv.webp", "created_at": "2026-01-03T16:45:19+00:00"}, {"id": "54cc4665-88d9-4007-923c-1866dc07267b", "title": "Analog Vlsi Design - Unit Test", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 43, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767458711/_Analog_VLSI_Design_Vacation__Summer_Term_Examination_2024_UECL423_djssut.webp", "created_at": "2026-01-03T16:45:11+00:00"}, {"id": "5387c051-ffa9-45ac-ad93-648753cd557c", "title": "Advanced Embedded Systems Elective Vd", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 175, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767458709/Advanced_Embedded_Systems_Elective-VD_Term_Examination_2024_UECL425_q7mp0c.webp", "created_at": "2026-01-03T16:45:09+00:00"}, {"id": "02ec01fd-74a4-4939-94b1-c57020464ff6", "title": "Cr Nagper Analog Vlsi Design", "category": "Papers", "subject": "General", "file_type": "IMAGE", "status": "approved", "views": 320, "is_paid": false, "price": 0.0, "file_url": "https://res.cloudinary.com/dshahbtnn/image/upload/v1767458706/cr_Nagper_Analog_VLSI_Design_Term_Examination_2024_UECL423_ggkepu.webp", "created_at": "2026-01-03T16:45:06+00:00"}];
+    let activeLeadKey = detectLeadSlug();
+
+    function renderChannel(leadKey) {
+      activeLeadKey = leadKey;
+      const lead = ALL_LEADS[leadKey] || ALL_LEADS['study_with_wasu'];
+      if (typeof OFFLINE_REAL_NOTES !== 'undefined' && OFFLINE_REAL_NOTES.length > 0) {
+        lead.notes = OFFLINE_REAL_NOTES;
+      }
+
+      const chipsContainer = document.getElementById('leadButtonsList');
+      chipsContainer.innerHTML = Object.keys(ALL_LEADS).map(k => {
+        const item = ALL_LEADS[k];
+        return `<button class="lead-chip ${k === leadKey ? 'active' : ''}" onclick="selectLead('${k}')">${item.title}</button>`;
+      }).join('');
+
+      const bannerEl = document.getElementById('bannerElement');
+      if (lead.bannerUrl) {
+        bannerEl.style.backgroundImage = `url('${lead.bannerUrl}')`;
+      } else {
+        bannerEl.style.backgroundImage = 'none';
+        bannerEl.style.background = 'linear-gradient(135deg, #4f46e5, #06b6d4 50%, #3b82f6)';
+      }
+
+      const avatarContainer = document.getElementById('avatarContainer');
+      if (lead.avatarUrl) {
+        avatarContainer.innerHTML = `<img src="${lead.avatarUrl}" alt="${lead.title}" class="channel-avatar">`;
+      } else {
+        const initial = (lead.title || 'C').charAt(0).toUpperCase();
+        avatarContainer.innerHTML = `<div class="channel-avatar">${initial}</div>`;
+      }
+
+      document.getElementById('channelTitle').textContent = lead.title;
+      document.getElementById('channelHandle').textContent = `@${lead.handle}`;
+      document.getElementById('channelBio').textContent = lead.bio;
+      document.getElementById('statNotesCount').textContent = lead.notes.length;
+      document.getElementById('statViewsCount').textContent = lead.views;
+      document.getElementById('statRating').textContent = lead.rating;
+      document.getElementById('notes-counter').textContent = `${lead.notes.length} notes`;
+      document.title = `${lead.title} (@${lead.handle}) · AbhiHub`;
+
+      let socialHtml = '';
+      if (lead.yt) socialHtml += `<a href="${lead.yt}" target="_blank" class="social-pill social-pill-yt">▶ YouTube</a>`;
+      if (lead.tg) socialHtml += `<a href="${lead.tg}" target="_blank" class="social-pill social-pill-tg">✈ Telegram</a>`;
+      if (lead.ig) socialHtml += `<a href="${lead.ig}" target="_blank" class="social-pill social-pill-ig">📷 Instagram</a>`;
+      socialHtml += `<span class="social-pill social-pill-live">● Verified Creator</span>`;
+      document.getElementById('socialPills').innerHTML = socialHtml;
+
+      const subjects = ['All', ...new Set(lead.notes.map(n => n.subject))];
+      document.getElementById('tagGroupControls').innerHTML = `
+        <span class="group-label">Filter:</span>
+        ${subjects.map((s, idx) => `
+          <button type="button" class="group-btn ${idx === 0 ? 'active' : ''}" onclick="filterNotesBySubject('${s}', this)">${s}</button>
+        `).join('')}
+      `;
+
+      renderNotesGrid(lead.notes);
+    }
+
+    function renderNotesGrid(notesList) {
+    const grid = document.getElementById('notesGridContainer');
+    const activeLead = ALL_LEADS[activeLeadKey] || {};
+
+    grid.innerHTML = notesList.map((note) => {
+      const cat = (note.category || 'Notes').toLowerCase();
+      const isPyq = cat.includes('pyq') || cat.includes('paper');
+      const isPractical = cat.includes('practical') || cat.includes('lab');
+      const typeClass = isPyq ? 'type-pyq' : (isPractical ? 'type-practical' : 'type-notes');
+      const typeLabel = isPyq ? 'PYQ' : (isPractical ? 'Lab' : (note.category || 'Notes'));
+
+      const isPaid = Boolean(note.is_paid && note.price > 0);
+      const priceVal = isPaid ? Math.round(note.price) : 0;
+      const priceTag = isPaid 
+        ? `<span class="arch-price-tag paid">₹${priceVal}</span>` 
+        : `<span class="arch-price-tag">Free</span>`;
+
+      const resourceUrl = note.id ? `/resource/${note.id}` : '#';
+      const fileTitle = note.title || 'Untitled Document';
+      const rawSubject = note.display_subject || note.subject;
+      const displaySubject = (rawSubject && rawSubject !== 'General Engineering' && rawSubject !== 'General') ? rawSubject : fileTitle;
+      const subjCode = note.subject_code || 'ENG';
+      const collegeAbbr = note.college_abbr || 'GHRCE';
+      const uploaderName = note.uploader_name || activeLead.title || 'Student Contributor';
+      const initial = (uploaderName.charAt(0) || 'S').toUpperCase();
+      const viewsCount = note.views || 0;
+
+      let docSvg = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>`;
+      if (isPyq) {
+        docSvg = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>`;
+      } else if (isPractical) {
+        docSvg = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31"></path><path d="M14 9.3V2"></path><path d="M8.5 2h7"></path><path d="M14 9.3a6.5 6.5 0 1 1-4 0"></path></svg>`;
+      }
+
+      let descHtml = '';
+      if (fileTitle && fileTitle !== displaySubject) {
+        descHtml = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg><span>${fileTitle}</span>`;
+      } else {
+        descHtml = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg><span>Verified Semester Resource</span>`;
+      }
+
+      return `
+      <div class="arch-apple-card ${typeClass}" style="cursor: pointer;" onclick="handleCardClick(event, '${resourceUrl}', '${encodeURIComponent(displaySubject)}', ${priceVal}, '${note.id || ''}')">
+        <!-- Visual Hero Plate -->
+        <div class="arch-card-plate">
+          <div class="arch-plate-top">
+            <div class="arch-doc-icon-wrap" aria-hidden="true">
+              ${docSvg}
+            </div>
+            <div class="arch-badge-group">
+              <span class="arch-type-pill">${typeLabel}</span>
+              ${priceTag}
+            </div>
+          </div>
+          <!-- Subject Code & Curriculum Sub-line -->
+          <div class="arch-plate-bottom">
+            <span class="arch-code-capsule">${subjCode}</span>
+            <span>•</span>
+            <span>${collegeAbbr} Curriculum</span>
+          </div>
+        </div>
+
+        <!-- Card Body Content -->
+        <div class="arch-card-body">
+          <h3 class="arch-card-title">${displaySubject}</h3>
+          
+          <div class="arch-card-desc">
+            ${descHtml}
+          </div>
+
+          <!-- Card Footer -->
+          <div class="arch-card-footer">
+            <span class="arch-uploader-info" title="${uploaderName}">
+              <span class="arch-avatar" aria-hidden="true">${initial}</span>
+              <span>${uploaderName}</span>
+              <svg class="arch-verified-icon" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-label="Verified Contributor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            </span>
+
+            <div class="arch-footer-right">
+              <span class="arch-views-count" title="Total Views">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                <span>${viewsCount}</span>
+              </span>
+              <div class="arch-action-cta">
+                <span>${isPaid ? 'Unlock' : 'View'}</span>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      `;
+    }).join('');
+    }
+
+    function handleCardClick(e, resourceUrl, titleDecoded, price, noteId) {
+      if (price > 0) {
+        openSimPurchase(titleDecoded, price);
+      } else if (noteId) {
+        window.open(resourceUrl, '_blank');
+      } else {
+        openSimPreview(titleDecoded, noteId);
+      }
+    }
+
+    function selectLead(key) {
+      history.pushState(null, '', `?c=${key}`);
+      renderChannel(key);
+    }
+
+    function filterNotesBySubject(subject, btn) {
+      document.querySelectorAll('.group-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const lead = ALL_LEADS[activeLeadKey];
+      if (subject === 'All') {
+        renderNotesGrid(lead.notes);
+      } else {
+        const filtered = lead.notes.filter(n => n.subject === subject);
+        renderNotesGrid(filtered);
+      }
+    }
+
+    document.getElementById('channel-search-input').addEventListener('input', function(e) {
+      const q = e.target.value.trim().toLowerCase();
+      const lead = ALL_LEADS[activeLeadKey];
+      const filtered = lead.notes.filter(n => 
+        n.title.toLowerCase().includes(q) ||
+        n.subject.toLowerCase().includes(q) ||
+        n.category.toLowerCase().includes(q)
+      );
+      const noResults = document.getElementById('no-search-results');
+      const counter = document.getElementById('notes-counter');
+      counter.textContent = `${filtered.length} notes`;
+
+      if (filtered.length === 0) {
+        document.getElementById('notesGridContainer').innerHTML = '';
+        noResults.style.display = 'block';
+        document.getElementById('search-query-display').textContent = e.target.value;
+      } else {
+        noResults.style.display = 'none';
+        renderNotesGrid(filtered);
+      }
+    });
+
+    function openSimPreview(title) {
+      const dec = decodeURIComponent(title);
+      document.getElementById('modalDynamicBody').innerHTML = `
+        <div style="font-size: 0.75rem; color: #4f46e5; font-weight: 700; text-transform: uppercase; margin-bottom: 0.4rem;">Protected Note Viewer</div>
+        <h3 style="font-size: 1.15rem; font-weight: 700; color: #0f172a; margin-bottom: 0.5rem;">${dec}</h3>
+        <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 2rem 1rem; text-align: center; margin: 1rem 0;">
+          <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">📄</div>
+          <p style="font-size: 0.9rem; font-weight: 700; color: #1e293b; margin-bottom: 0.25rem;">Sample Preview Pages (1–3)</p>
+          <p style="font-size: 0.78rem; color: #64748b; line-height: 1.4;">Watermarked with viewer ID. Copying and unpermitted downloading are restricted to protect creator copyright.</p>
+        </div>
+        <button class="note-btn" style="width: 100%;" onclick="closeSimModal()">Close Sample</button>
+      `;
+      document.getElementById('simModal').style.display = 'flex';
+    }
+
+    function openSimPurchase(title, price) {
+      const dec = decodeURIComponent(title);
+      const creatorEarnings = (price * 0.9).toFixed(0);
+      document.getElementById('modalDynamicBody').innerHTML = `
+        <div style="font-size: 0.75rem; color: #10b981; font-weight: 700; text-transform: uppercase; margin-bottom: 0.4rem;">Instant UPI / QR Checkout Simulation</div>
+        <h3 style="font-size: 1.15rem; font-weight: 700; color: #0f172a; margin-bottom: 0.35rem;">Unlock Complete Notes</h3>
+        <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1rem;">${dec}</p>
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.95rem; margin-bottom: 0.5rem;">
+            <span>Student Price:</span>
+            <b>₹${price}</b>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #475569;">
+            <span>Creator Instant Credit:</span>
+            <b style="color: #10b981;">₹${creatorEarnings}</b>
+          </div>
+        </div>
+        <p style="font-size: 0.78rem; color: #64748b; margin-bottom: 1.25rem; line-height: 1.45;">
+          Students pay instantly using Google Pay, PhonePe, or Paytm. Access unlocks instantly without WhatsApp screenshots. Funds are credited directly to your AbhiHub Creator Wallet and can be withdrawn daily to your UPI or Bank Account.
+        </p>
+        <button class="note-btn" style="width: 100%;" onclick="alert('Demo: Payment completed! Notes unlocked for student, and ₹${creatorEarnings} credited to Creator Wallet.'); closeSimModal();">
+          Simulate Pay via UPI (₹${price})
+        </button>
+      `;
+      document.getElementById('simModal').style.display = 'flex';
+    }
+
+    function closeSimModal() {
+      document.getElementById('simModal').style.display = 'none';
+    }
+
+    
+  let wizSelectedPrice = 49;
+
+  function openUploadWizard() {
+    goToStep(1);
+    document.getElementById('uploadWizardModal').style.display = 'flex';
+  }
+
+  function closeUploadWizard() {
+    document.getElementById('uploadWizardModal').style.display = 'none';
+  }
+
+  function simulateSelectFile() {
+    document.getElementById('dropIcon').textContent = '📄';
+    document.getElementById('dropTitle').textContent = 'Operating_Systems_Revision_Pack_2026.pdf (4.8 MB)';
+    document.getElementById('dropSub').textContent = '✓ 28 Pages auto-extracted & verified.';
+    document.getElementById('dropSub').style.color = '#10b981';
+  }
+
+  function goToStep(step) {
+    document.getElementById('stepContent1').style.display = step === 1 ? 'block' : 'none';
+    document.getElementById('stepContent2').style.display = step === 2 ? 'block' : 'none';
+    document.getElementById('stepContent3').style.display = step === 3 ? 'block' : 'none';
+
+    // Update Bubbles
+    const b1 = document.getElementById('bubble1');
+    const b2 = document.getElementById('bubble2');
+    const b3 = document.getElementById('bubble3');
+
+    document.getElementById('nodeStep1').className = 'wizard-step-node ' + (step === 1 ? 'active' : 'completed');
+    document.getElementById('nodeStep2').className = 'wizard-step-node ' + (step === 2 ? 'active' : (step > 2 ? 'completed' : ''));
+    document.getElementById('nodeStep3').className = 'wizard-step-node ' + (step === 3 ? 'active' : '');
+
+    if (step === 3) {
+      const activeLead = ALL_LEADS[activeLeadKey] || {};
+      const handle = activeLead.handle || 'creator';
+      document.getElementById('wizGeneratedLink').textContent = `abhihub.com/c/${handle}/os-notes`;
+    }
+  }
+
+  function selectDemoPrice(price, btn) {
+    wizSelectedPrice = price;
+    document.querySelectorAll('.pricing-chip-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    const payout = price > 0 ? `₹${Math.round(price * 0.9)}` : 'Free Resource';
+    document.getElementById('wizPayoutPreview').textContent = payout;
+  }
+
+  function copyWizLink(btn) {
+    const link = document.getElementById('wizGeneratedLink').textContent;
+    navigator.clipboard.writeText('https://' + link);
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy Link'; }, 2000);
+  }
+
+  function finishUploadDemo() {
+    closeUploadWizard();
+    const docTitle = document.getElementById('wizDocTitle').value || 'Operating Systems Complete Unit-Wise Handwritten Notes';
+    const activeLead = ALL_LEADS[activeLeadKey] || {};
+
+    const newNote = {
+      id: 'demo-' + Date.now(),
+      title: docTitle,
+      display_subject: 'Operating Systems',
+      category: document.getElementById('wizCategory').value || 'Notes',
+      subject: 'Operating Systems',
+      subject_code: 'UCSL301',
+      college_abbr: 'GHRCE',
+      uploader_name: activeLead.title || 'Verified Educator',
+      file_type: 'PDF',
+      status: 'approved',
+      views: 1,
+      is_paid: wizSelectedPrice > 0,
+      price: wizSelectedPrice,
+      file_url: '#'
+    };
+
+    if (activeLead.notes) {
+      activeLead.notes.unshift(newNote);
+    }
+    renderNotesGrid(activeLead.notes || [newNote]);
+    const counter = document.getElementById('notes-counter');
+    if (counter) counter.textContent = `${activeLead.notes.length} notes`;
+
+    // Smooth scroll to top of notes
+    document.getElementById('notesGridContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  
+  let currentRole = (new URLSearchParams(window.location.search)).get('role') || 'student';
+
+  function switchRole(role) {
+    currentRole = role;
+    const btnStudent = document.getElementById('btnRoleStudent');
+    const btnOwner = document.getElementById('btnRoleOwner');
+    const ownerDashboard = document.getElementById('ownerDashboardBar');
+    const studentTrust = document.getElementById('studentTrustBanner');
+    const uploadTriggerCard = document.querySelector('.upload-trigger-card');
+
+    if (role === 'owner') {
+      btnOwner.classList.add('active');
+      btnStudent.classList.remove('active');
+      if (ownerDashboard) ownerDashboard.style.display = 'flex';
+      if (studentTrust) studentTrust.style.display = 'none';
+      if (uploadTriggerCard) uploadTriggerCard.style.display = 'flex';
+      
+      // Update social pills to include Owner Management badge
+      const activeLead = ALL_LEADS[activeLeadKey] || {};
+      const ownerPill = `<button type="button" class="social-pill social-pill-upload" onclick="openUploadWizard()">+ Upload New Note</button>
+                         <a href="/channel/studio" class="social-pill" style="background: #f1f5f9; color: #0f172a;">⚙ Creator Studio</a>`;
+      const pillsContainer = document.getElementById('socialPills');
+      if (pillsContainer && !pillsContainer.innerHTML.includes('Creator Studio')) {
+        pillsContainer.innerHTML = ownerPill + pillsContainer.innerHTML;
+      }
+    } else {
+      btnStudent.classList.add('active');
+      btnOwner.classList.remove('active');
+      if (ownerDashboard) ownerDashboard.style.display = 'none';
+      if (studentTrust) studentTrust.style.display = 'flex';
+      if (uploadTriggerCard) uploadTriggerCard.style.display = 'none';
+
+      // Re-render student pills
+      const activeLead = ALL_LEADS[activeLeadKey] || {};
+      let socialHtml = '';
+      if (activeLead.yt) socialHtml += `<a href="${activeLead.yt}" target="_blank" class="social-pill social-pill-yt">▶ YouTube</a>`;
+      if (activeLead.tg) socialHtml += `<a href="${activeLead.tg}" target="_blank" class="social-pill social-pill-tg">✈ Telegram</a>`;
+      if (activeLead.ig) socialHtml += `<a href="${activeLead.ig}" target="_blank" class="social-pill social-pill-ig">📷 Instagram</a>`;
+      socialHtml += `<span class="social-pill social-pill-live">● Verified Creator</span>`;
+      document.getElementById('socialPills').innerHTML = socialHtml;
+    }
+  }
+
+  function openWithdrawModal() {
+    const m = document.getElementById('withdrawModal');
+    if (m) {
+      const balEl = document.getElementById('withdrawModalBalance');
+      const btnEl = document.getElementById('withdrawBtnAmount');
+      if (balEl) balEl.textContent = `₹${liveWalletBalance.toFixed(2)}`;
+      if (btnEl) btnEl.textContent = `₹${liveWalletBalance.toFixed(2)}`;
+      m.style.display = 'flex';
+    }
+  }
+
+  function closeWithdrawModal() {
+    const m = document.getElementById('withdrawModal');
+    if (m) m.style.display = 'none';
+  }
+
+  function simulateWithdrawSuccess() {
+    closeWithdrawModal();
+    const amt = liveWalletBalance;
+    liveWalletBalance = 0.00;
+    const walletEl = document.querySelector('.owner-metric-val.money');
+    if (walletEl) walletEl.textContent = '₹0.00';
+    showToast('💸 Payout Transferred!', `₹${amt.toFixed(2)} transferred via IMPS/UPI (UTR: 260811984210) to verified bank account.`);
+  }
+
+  renderChannel(activeLeadKey);
+  switchRole(currentRole);
+  </script>
+<div class="toast-container" id="toastContainer"></div>
+</body>
+</html>
