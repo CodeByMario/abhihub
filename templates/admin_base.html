@@ -529,6 +529,7 @@
             <a href="/admin/payments" class="nav-link {% if request.path == '/admin/payments' %}active{% endif %}">
                 <i class="fas fa-credit-card"></i>
                 <span>Payments & Payouts</span>
+                <span class="nav-badge" id="sidebarPayoutsBadge" style="display:none; background:var(--accent-amber);">0</span>
             </a>
             <a href="/admin/economy" class="nav-link {% if request.path == '/admin/economy' %}active{% endif %}">
                 <i class="fas fa-coins"></i>
@@ -619,16 +620,29 @@
             }, 4500);
         }
 
-        // Live Pending Count in Sidebar
+        // Live Pending Count & Payouts in Sidebar
         async function updateSidebarBadge() {
             try {
                 const res = await fetch('/api/admin/stats');
                 const data = await res.json();
-                if (data.success && data.stats && data.stats.pending_documents > 0) {
+                if (data.success && data.stats) {
                     const badge = document.getElementById('sidebarPendingBadge');
                     if (badge) {
-                        badge.textContent = data.stats.pending_documents;
-                        badge.style.display = 'inline-block';
+                        if (data.stats.pending_documents > 0) {
+                            badge.textContent = data.stats.pending_documents;
+                            badge.style.display = 'inline-block';
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    }
+                    const payBadge = document.getElementById('sidebarPayoutsBadge');
+                    if (payBadge) {
+                        if (data.stats.pending_payouts_count > 0) {
+                            payBadge.textContent = data.stats.pending_payouts_count;
+                            payBadge.style.display = 'inline-block';
+                        } else {
+                            payBadge.style.display = 'none';
+                        }
                     }
                 }
             } catch (e) {}

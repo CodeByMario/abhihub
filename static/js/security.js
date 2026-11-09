@@ -18,6 +18,11 @@
     const style = document.createElement('style');
     style.id = 'abhihub-sec-styles';
     style.textContent = `
+      html, body {
+        touch-action: pan-x pan-y !important;
+        -webkit-text-size-adjust: 100% !important;
+        text-size-adjust: 100% !important;
+      }
       *, *::before, *::after {
         -webkit-user-select: none !important;
         -moz-user-select: none !important;
@@ -554,4 +559,9 @@
     protectConsole();
   }
 
+
+  // Disable browser gesture/pinch zoom
+  document.addEventListener('gesturestart', function(e) { e.preventDefault(); }, { passive: false });
+  document.addEventListener('gesturechange', function(e) { e.preventDefault(); }, { passive: false });
+  document.addEventListener('gestureend', function(e) { e.preventDefault(); }, { passive: false });
 })();

@@ -1391,6 +1391,23 @@ def get_suggestions_payload(query: str, college_id: str = None) -> Dict[str, Any
     }
     seen = set()
 
+    # Precomputed Top-K Trie lookup (exact prefix + typo-tolerant fuzzy)
+    try:
+        from jobs.build_search_trie import get_cached_trie
+        _trie_inst = get_cached_trie()
+        for _tm in _trie_inst.fuzzy_search(clean_q, max_distance=1):
+            if _tm not in seen:
+                groups['subjects'].append({
+                    'type': 'subject',
+                    'title': _tm.title(),
+                    'subtitle': 'Top Suggestion',
+                    'query': _tm,
+                    'chip': {'type': 'subject', 'value': _tm, 'label': _tm}
+                })
+                seen.add(_tm)
+    except Exception:
+        pass
+
     # 1. Detected Intent Row (Exact resolution of code, alias, college, branch, or type)
     if clean_code:
         for s in taxonomy.get('subjects', []):
@@ -1625,6 +1642,12 @@ def suggest_endpoint():
 def search_v2_endpoint():
     """Unified Search Endpoint with tiered resolution and relaxation."""
     q = request.args.get('q', '').strip()[:120]
+    if q:
+        try:
+            from jobs.build_search_trie import record_search_query
+            record_search_query(q)
+        except Exception:
+            pass
     college_id = request.args.get('college_id')
     department_id = request.args.get('department_id') or request.args.get('branch')
     semester = request.args.get('semester') or request.args.get('sem')

@@ -419,26 +419,35 @@ def admin_kyc_verify(kyc_id):
 
     try:
         now_iso = datetime.now(timezone.utc).isoformat()
+        target_field = 'id'
+        check = client.table('user_kyc_details').select('id, user_id').eq('id', kyc_id).limit(1).execute()
+        if not check.data:
+            check_u = client.table('user_kyc_details').select('id, user_id').eq('user_id', kyc_id).limit(1).execute()
+            if check_u.data:
+                target_field = 'user_id'
+
+        admin_uid_val = admin_id if (admin_id and validate_uuid(admin_id)) else None
         if action == 'approve':
             client.table('user_kyc_details').update({
                 'is_verified': True,
                 'verified_at': now_iso,
-                'verified_by': admin_id,
+                'verified_by': admin_uid_val,
                 'rejection_reason': None,
                 'updated_at': now_iso
-            }).eq('id', kyc_id).execute()
+            }).eq(target_field, kyc_id).execute()
         else:
             client.table('user_kyc_details').update({
                 'is_verified': False,
                 'verified_at': None,
                 'rejection_reason': reason,
                 'updated_at': now_iso
-            }).eq('id', kyc_id).execute()
+            }).eq(target_field, kyc_id).execute()
 
         log_admin_action('kyc_verify', target=kyc_id, details={'action': action, 'reason': reason})
         return jsonify({'success': True, 'message': f'KYC application {action}d successfully'})
     except Exception as e:
-        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
+        logging.error(f"[admin_kyc_verify] Failed to update KYC status: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': f'Failed to update KYC: {str(e)}'}), 500
 
 
 @admin_bp.route('/api/admin/audit/export', methods=['GET'])
@@ -1368,7 +1377,61 @@ def get_admin_stats():
             
         messages = _load_contact_messages()
         messages_count = len(messages)
-                
+
+        # Cross-tab aggregations
+        pending_payouts_count = 0
+        pending_payouts_amount = 0.0
+        try:
+            from methods.wallet_service import get_all_payout_requests
+            payouts_res = get_all_payout_requests(status='pending')
+            payout_items = payouts_res.get('requests', []) if isinstance(payouts_res, dict) else []
+            pending_payouts_count = len(payout_items)
+            pending_payouts_amount = sum(float(p.get('amount', 0)) for p in payout_items)
+        except Exception:
+            pass
+
+        pending_reports_count = 0
+        try:
+            rep_res = client.table('viewer_failure_reports').select('id', count='exact').in_('status', ['open', 'pending']).execute()
+            pending_reports_count = getattr(rep_res, 'count', None) or len(rep_res.data or [])
+        except Exception:
+            pass
+
+        # High-Priority Admin Special Notifications (High / Critical ONLY)
+        special_notifications = []
+        if pending_payouts_count > 0:
+            special_notifications.append({
+                'id': 'payouts_pending',
+                'priority': 'critical',
+                'icon': 'fa-money-bill-transfer',
+                'title': f'{pending_payouts_count} Creator Payout(s) Pending',
+                'description': f'Total ₹{pending_payouts_amount:,.2f} awaiting disbursement.',
+                'link': '/admin/payments',
+                'action_label': 'Review Payouts'
+            })
+
+        if pending_docs > 0:
+            special_notifications.append({
+                'id': 'moderation_queue',
+                'priority': 'high',
+                'icon': 'fa-clipboard-check',
+                'title': f'{pending_docs} Document(s) in Moderation Queue',
+                'description': 'Student uploads waiting for verification and approval.',
+                'tab': 'moderation',
+                'action_label': 'Moderate Queue'
+            })
+
+        if pending_reports_count > 0:
+            special_notifications.append({
+                'id': 'file_reports',
+                'priority': 'high',
+                'icon': 'fa-triangle-exclamation',
+                'title': f'{pending_reports_count} Unresolved Student File Report(s)',
+                'description': 'User reports submitted for broken, unreadable or corrupt documents.',
+                'link': '/admin/file-reports',
+                'action_label': 'Inspect Reports'
+            })
+
         return jsonify({
             'success': True,
             'stats': {
@@ -1377,8 +1440,12 @@ def get_admin_stats():
                 'pending_documents': pending_docs,
                 'total_views': total_views,
                 'total_subscribers': total_subs,
-                'total_messages': messages_count
-            }
+                'total_messages': messages_count,
+                'pending_payouts_count': pending_payouts_count,
+                'pending_payouts_amount': pending_payouts_amount,
+                'pending_reports_count': pending_reports_count
+            },
+            'special_notifications': special_notifications
         })
     except Exception as e:
         return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
@@ -1551,12 +1618,58 @@ def reject_document():
         return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
 
+@admin_bp.route('/api/admin/documents/batch-action', methods=['POST'])
+@auth_required
+@admin_required
+def batch_moderate_documents():
+    """Batch approve or reject pending documents in a single atomic request."""
+    try:
+        data = request.get_json() or {}
+        doc_ids = data.get('document_ids', [])
+        action = str(data.get('action', '')).strip().lower()
+        remark = str(data.get('remark', '')).strip()
+
+        if not doc_ids or not isinstance(doc_ids, list):
+            return jsonify({'success': False, 'error': 'document_ids list is required'}), 400
+        if action not in {'approve', 'reject'}:
+            return jsonify({'success': False, 'error': "action must be 'approve' or 'reject'"}), 400
+
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
+
+        admin_user = session.get('user', {})
+        admin_uid = admin_user.get('uid') or admin_user.get('id')
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        if action == 'approve':
+            update_payload = {
+                'status': 'approved',
+                'verified_by': admin_uid if validate_uuid(admin_uid) else None,
+                'verified_at': now_iso
+            }
+            if remark:
+                update_payload['verification_notes'] = remark
+            client.table('documents').update(update_payload).in_('id', doc_ids).execute()
+        else:
+            update_payload = {
+                'status': 'rejected',
+                'rejection_reason': remark or 'Does not meet content standards'
+            }
+            client.table('documents').update(update_payload).in_('id', doc_ids).execute()
+
+        log_admin_action(f'batch_{action}_documents', target=f'{len(doc_ids)} items', details={'doc_ids': doc_ids, 'remark': remark})
+        return jsonify({'success': True, 'processed': len(doc_ids), 'action': action})
+    except Exception as e:
+        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
+
+
 @admin_bp.route('/api/admin/file-reports')
 @admin_required
 def admin_file_reports():
     """API endpoint for admin to view all file reports and logs with full student profiles."""
     try:
-        client = init_supabase()
+        client = init_supabase_admin() or init_supabase()
         if not client:
             return jsonify({'success': False, 'message': 'Database not connected'}), 500
         result = client.table('viewer_failure_reports').select(
@@ -1635,48 +1748,47 @@ def admin_file_reports():
 
 
 @admin_bp.route('/api/admin/file-reports/<report_id>/status', methods=['POST'])
-@auth_required
 @admin_required
 def admin_update_file_report_status(report_id):
     """Update a failure report status (open, resolved, closed)."""
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         new_status = data.get('status', 'resolved').lower().strip()
         if new_status not in ['open', 'resolved', 'closed']:
             return jsonify({'success': False, 'message': 'Invalid status. Must be open, resolved, or closed'}), 400
             
-        client = init_supabase()
+        client = init_supabase_admin() or init_supabase()
         if not client:
             return jsonify({'success': False, 'message': 'Database client not initialized'}), 500
             
         admin_user = session.get('user', {})
         admin_email = admin_user.get('email', 'Admin')
+        target_rep_id = str(report_id).strip()
 
         res = client.table('viewer_failure_reports').update({
             'status': new_status
-        }).eq('id', report_id).execute()
+        }).eq('id', target_rep_id).execute()
 
-        log_admin_action('update_file_report_status', target=report_id, details={'status': new_status, 'admin': admin_email})
+        log_admin_action('update_file_report_status', target=target_rep_id, details={'status': new_status, 'admin': admin_email})
         return jsonify({
             'success': True,
-            'report_id': report_id,
+            'report_id': target_rep_id,
             'status': new_status,
             'message': f"Report successfully marked as {new_status}."
         }), 200
     except Exception as e:
-        logging.error("[admin_update_file_report_status] internal error")
-        return jsonify({'success': False, 'message': 'An internal error occurred.'}), 500
+        logging.error(f"[admin_update_file_report_status] error: {e}")
+        return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 500
 
 
 @admin_bp.route('/api/admin/file-reports/<report_id>/delete-file', methods=['POST', 'DELETE'])
-@auth_required
 @admin_required
 def admin_delete_file_completely(report_id):
     """Permanently delete a reported file from database, Cloudinary, and any cloud storage."""
     try:
         data = request.get_json(silent=True) or {}
         doc_id = data.get('doc_id')
-        client = init_supabase()
+        client = init_supabase_admin() or init_supabase()
         if not client:
             return jsonify({'success': False, 'message': 'Database client not initialized'}), 500
 

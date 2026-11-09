@@ -327,7 +327,7 @@
         }
     </style>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="application-version" content="v{{ APP_VERSION }}">
     <script>window.__APP_VERSION__ = "v{{ APP_VERSION }}";</script>
     <meta name="language" content="en">
@@ -531,8 +531,8 @@
 
             <!-- Apple Unified Right Navigation Cluster -->
             <div class="nav-right-cluster">
-                <!-- Search Link (Redirects to Search Page) -->
-                <a href="{{ url_for('library.search_page') }}" id="headerSearchBtn" class="ap-nav-icon-btn" aria-label="Search library" title="Search library & papers" style="text-decoration:none;">
+                <!-- Search Link (Opens Right 30% Drawer) -->
+                <button type="button" id="headerSearchBtn" class="ap-nav-icon-btn" aria-label="Search library" title="Search library & papers" style="background:none; border:none; padding:0; cursor:pointer;">
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <circle cx="11" cy="11" r="8"></circle>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -567,7 +567,30 @@
                         </svg>
                         <span id="notifBadge"></span>
                     </button>
+                </div>
+                {% endif %}
 
+                <a href="{{ url_for('site.careers') }}" class="nav-careers-link">Careers</a>
+
+                {% if not session.get('user') and not is_auth_or_payment %}
+                {% set cur_req_path = request.full_path if request.query_string else request.path %}
+                {% if cur_req_path and cur_req_path.strip() not in ('/', '/landing') %}
+                <a href="{{ url_for('auth.login', next=cur_req_path.strip()) }}" class="nav-login-link">Log In</a>
+                {% else %}
+                <a href="{{ url_for('auth.login') }}" class="nav-login-link">Log In</a>
+                {% endif %}
+                <a href="{{ url_for('auth.signup') }}" class="btn-apple-nav-signup">Sign Up</a>
+                {% else %}
+                <a href="{{ url_for('app_pages.home') }}" class="btn-apple-nav-signup" style="padding:0.38rem 1.1rem; gap:0.35rem;">
+                    <span>Home</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </a>
+                {% endif %}
+            </div>
+        </nav>
+    </header>
+
+    {% if session.get('user') %}
                     <!-- Dimming backdrop for drawer -->
                     <div id="notifBackdrop" class="notif-backdrop" onclick="window.toggleNotifPanel && window.toggleNotifPanel()"></div>
 
@@ -657,28 +680,12 @@
                             </a>
                         </div>
                     </div>
-                </div>
-                {% endif %}
+    {% endif %}
 
-                <a href="{{ url_for('site.careers') }}" class="nav-careers-link">Careers</a>
-
-                {% if not session.get('user') and not is_auth_or_payment %}
-                {% set cur_req_path = request.full_path if request.query_string else request.path %}
-                {% if cur_req_path and cur_req_path.strip() not in ('/', '/landing') %}
-                <a href="{{ url_for('auth.login', next=cur_req_path.strip()) }}" class="nav-login-link">Log In</a>
-                {% else %}
-                <a href="{{ url_for('auth.login') }}" class="nav-login-link">Log In</a>
-                {% endif %}
-                <a href="{{ url_for('auth.signup') }}" class="btn-apple-nav-signup">Sign Up</a>
-                {% else %}
-                <a href="{{ url_for('app_pages.home') }}" class="btn-apple-nav-signup" style="padding:0.38rem 1.1rem; gap:0.35rem;">
-                    <span>Home</span>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                </a>
-                {% endif %}
-            </div>
-        </nav>
-    </header>
+    <!-- Global Sliding Search & Filter Drawer (30% Right Docked on Desktop / Mobile Swipe) -->
+    {% if request.headers.get('Sec-Fetch-Dest') != 'iframe' %}
+    {% include 'includes/_search_drawer.html' ignore missing %}
+    {% endif %}
     <main style="display: block; min-height: 0;">
         {% block content %}
 
@@ -689,7 +696,7 @@
     {% if not hide_footer %}
     {% include 'p_footer.html' ignore missing %}
     {% endif %}
-    {% include 'nav.html' ignore missing %}
+    {% include 'p_nav.html' ignore missing %}
     {% if not is_auth_or_payment %}
     {% include 'includes/auth_gate_overlay.html' ignore missing %}
     {% if session.get('user') and not is_auth_or_payment and not (profile_data and profile_data.get('college_id')) %}
@@ -923,8 +930,10 @@
                 }
             };
 
-            window.openSearchSection = function () {
-                window.location.href = "{{ url_for('library.search_page') }}";
+            window.openSearchSection = function (query) {
+                if (typeof window.openSearchDrawer === 'function') {
+                    window.openSearchDrawer(query);
+                }
             };
 
             window.toggleNotifPanel = function () {
@@ -933,6 +942,9 @@
                 const backdrop = document.getElementById('notifBackdrop');
                 if (!panel) return;
                 _notifOpen = !_notifOpen;
+                if (_notifOpen && typeof window.closeSearchDrawer === 'function') {
+                    window.closeSearchDrawer();
+                }
                 panel.style.display = _notifOpen ? 'flex' : 'none';
                 if (backdrop) {
                     backdrop.style.display = _notifOpen ? 'block' : 'none';

@@ -6,6 +6,7 @@
   {% set cat = (file.get('document_category') or file.get('type') or file.get('category') or 'notes')|lower %}
   {% set is_pyq = ('pyq' in cat or 'paper' in cat) %}
   {% set is_practical = ('practical' in cat or 'lab' in cat) %}
+  {% set is_syllabus = ('syllab' in cat or 'curriculum' in cat) %}
   {% set doc_id = file.get('document_id') or file.get('id') or file.get('doc_id') or file.get('record_id') %}
   {% set furl = ('/resources/' ~ doc_id) if doc_id else (file.get('file_url') or '#') %}
   {% set price_val = file.get('price_inr') if file.get('price_inr') is not none else file.get('price', 0) %}
@@ -29,7 +30,7 @@
   {% set uploader_name = (prof_dict.get('full_name') if prof_dict is mapping else None) or (prof_val if prof_val is string else None) or file.get('uploader_name') or file.get('author') or 'Student Contributor' %}
   {% set initial = (uploader_name[:1] or 'S')|upper %}
 
-  <a href="{{ furl }}" class="arch-apple-card note-card {% if is_pyq %}type-pyq{% elif is_practical %}type-practical{% else %}type-notes{% endif %}"
+  <a href="{{ furl }}" class="arch-apple-card note-card {% if is_pyq %}type-pyq{% elif is_practical %}type-practical{% elif is_syllabus %}type-syllabus{% else %}type-notes{% endif %}"
      data-title="{{ file_title|lower }}"
      data-subject="{{ display_subject }}"
      data-category="{{ cat }}">
@@ -48,7 +49,7 @@
 
         <div class="arch-badge-group">
           <span class="arch-type-pill">
-            {% if is_pyq %}PYQ{% elif is_practical %}Lab{% else %}Notes{% endif %}
+            {% if is_pyq %}PYQ{% elif is_practical %}Lab{% elif is_syllabus %}Syllabus{% else %}Notes{% endif %}
           </span>
           {% if is_paid %}
             <span class="arch-price-tag paid">₹{{ price_val|int if price_val == price_val|int else price_val }}</span>

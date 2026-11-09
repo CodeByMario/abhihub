@@ -1090,20 +1090,38 @@ def api_get_subjects():
     if query:
         cache_key = f"subjects_search:{query.lower()}:{department_id or 'all'}:{semester or 0}"
         def search_fetcher():
+            import difflib
+            clean_q = query.strip()
             try:
+                # 1. Search in current department across all semesters
                 q = client.table("subjects").select("id, name, subject_code, semester, department_id")
                 if department_id:
                     q = q.eq("department_id", department_id)
-                if semester:
-                    q = q.or_(f"semester.eq.{semester},semester.is.null")
-                res = q.or_(f"name.ilike.%{query}%,subject_code.ilike.%{query}%").order("name").limit(60).execute()
-                return res.data or []
+                res = q.or_(f"name.ilike.%{clean_q}%,subject_code.ilike.%{clean_q}%").order("name").limit(60).execute()
+                results = res.data or []
+
+                # 2. If not found in current department, search globally across all departments
+                if not results and department_id:
+                    res_global = client.table("subjects").select("id, name, subject_code, semester, department_id").or_(f"name.ilike.%{clean_q}%,subject_code.ilike.%{clean_q}%").order("name").limit(60).execute()
+                    results = res_global.data or []
+
+                # 3. Typo-tolerant fuzzy matching (e.g. 'opreating' -> 'Operating System')
+                if not results:
+                    base_q = client.table("subjects").select("id, name, subject_code, semester, department_id")
+                    if department_id:
+                        pool = base_q.eq("department_id", department_id).execute().data or []
+                        if not pool:
+                            pool = client.table("subjects").select("id, name, subject_code, semester, department_id").limit(200).execute().data or []
+                    else:
+                        pool = base_q.limit(200).execute().data or []
+
+                    pool_names = {s['name'].lower(): s for s in pool if s.get('name')}
+                    close = difflib.get_close_matches(clean_q.lower(), list(pool_names.keys()), n=5, cutoff=0.55)
+                    results = [pool_names[c] for c in close if c in pool_names]
+
+                return results
             except Exception:
-                try:
-                    res = client.table("subjects").select("id, name, subject_code, semester, department_id").ilike("name", f"%{query}%").order("name").limit(60).execute()
-                    return res.data or []
-                except Exception:
-                    return []
+                return []
 
         subjects = cache.get_cached(cache_key, level=cache.L1, ttl=cache.SHORT, fetcher=search_fetcher) if cache else search_fetcher()
         return jsonify({'success': True, 'subjects': subjects}), 200
@@ -1122,12 +1140,14 @@ def api_get_subjects():
     cache_key = f"subjects:{department_id}:{semester or 0}"
     def fetch_subjects():
         try:
-            q = client.table("subjects").select("id, name, subject_code, semester, department_id").eq("department_id", department_id)
-            if semester:
-                res = q.or_(f"semester.eq.{semester},semester.is.null").order("name").execute()
-            else:
-                res = q.order("name").execute()
-            return res.data or []
+            # Fetch all subjects for the department so no semester is excluded
+            res = client.table("subjects").select("id, name, subject_code, semester, department_id").eq("department_id", department_id).order("name").execute()
+            subjs = res.data or []
+            if semester and subjs:
+                # Prioritize currently selected semester first
+                s_int = int(semester)
+                subjs.sort(key=lambda s: 0 if s.get('semester') == s_int else 1)
+            return subjs
         except Exception:
             return []
 

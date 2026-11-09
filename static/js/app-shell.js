@@ -155,13 +155,13 @@
             iframeMain.style.display = 'none';
             iframeUpload.style.display = 'block';
 
-            // First time loading upload iframe?
-            if (!iframeUpload.dataset.loaded) {
+            const currentSrc = iframeUpload.getAttribute('src') || '';
+            const isLoaded = iframeUpload.dataset.loaded === 'ready' && currentSrc.includes('/upload');
+
+            if (!isLoaded) {
                 showLoader();
                 iframeUpload.src = targetPath;
-                iframeUpload.dataset.loaded = 'true';
             } else {
-                // Already loaded, instant display!
                 hideLoader();
                 updateChrome(targetPath, 'Upload');
                 syncShellUrl(targetPath);
@@ -207,6 +207,20 @@
     // ── Handle Iframe Load ──
     function onIframeLoaded(iframeEl) {
         if (iframeEl !== activeIframe) return;
+
+        try {
+            const innerWin = iframeEl.contentWindow;
+            let innerHref = '';
+            try { innerHref = innerWin ? innerWin.location.href : ''; } catch (e) {}
+            if (!innerWin || innerHref === 'about:blank') {
+                return;
+            }
+            if (iframeEl === iframeUpload) {
+                iframeUpload.dataset.loaded = 'ready';
+            }
+        } catch (e) {
+            return;
+        }
 
         hideLoader();
         // Reset modal state on every iframe load
@@ -301,7 +315,6 @@
 
     if (iframeUpload) {
         iframeUpload.addEventListener('load', function () {
-            iframeUpload.dataset.loaded = 'true';
             onIframeLoaded(iframeUpload);
         });
     }
@@ -442,6 +455,24 @@
                 }
                 break;
 
+            case 'SEARCH_TOGGLE':
+                if (typeof window.toggleSearchDrawer === 'function') {
+                    window.toggleSearchDrawer(msg.query || '');
+                }
+                break;
+
+            case 'SEARCH_OPEN':
+                if (typeof window.openSearchDrawer === 'function') {
+                    window.openSearchDrawer(msg.query || '');
+                }
+                break;
+
+            case 'SEARCH_CLOSE':
+                if (typeof window.closeSearchDrawer === 'function') {
+                    window.closeSearchDrawer();
+                }
+                break;
+
             case 'TARIKA_ASK':
                 if (typeof window.askAiAboutFile === 'function') {
                     window.askAiAboutFile(msg.prompt || '');
@@ -571,6 +602,9 @@
     if (notifBell) {
         notifBell.addEventListener('click', function () {
             notifOpen = !notifOpen;
+            if (notifOpen && typeof window.closeSearchDrawer === 'function') {
+                window.closeSearchDrawer();
+            }
             if (notifPanel) notifPanel.style.display = notifOpen ? 'flex' : 'none';
             if (notifOpen) {
                 fetchNotifications(false);
@@ -582,7 +616,13 @@
     if (shellSearchBtn) {
         shellSearchBtn.addEventListener('click', function (e) {
             e.preventDefault();
-            navigateTo('/search', true);
+            if (notifOpen) {
+                notifOpen = false;
+                if (notifPanel) notifPanel.style.display = 'none';
+            }
+            if (typeof window.toggleSearchDrawer === 'function') {
+                window.toggleSearchDrawer();
+            }
         });
     }
 

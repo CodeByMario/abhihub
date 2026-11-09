@@ -1336,7 +1336,7 @@
           </a>
 
           <!-- Card 2: Topper Notes -->
-          <a href="{{ url_for('library.search_page') }}?category=notes" class="intent-card intent-card-notes"
+          <a href="javascript:void(0)" onclick="if(window.openSearchDrawer){window.openSearchDrawer('notes');} else {location.href='/home?q=notes';}" class="intent-card intent-card-notes"
              onclick="trackLandingEvent('landing_intent_click', {intent:'notes'})">
             <div class="intent-card-top">
               <span class="intent-pill intent-pill-notes"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg> High-Yield Study</span>
@@ -1366,7 +1366,7 @@
       </div>
 
       <!-- Instant Hero Search Form (Apple Playbook - Frictionless First Step) -->
-      <form action="{{ url_for('library.search_page') }}" method="GET" class="hero-search-form" role="search" aria-label="Search study materials">
+      <form action="/home" onsubmit="event.preventDefault(); const val=this.querySelector('input').value; if(window.openSearchDrawer){window.openSearchDrawer(val);} else {location.href='/home?q='+encodeURIComponent(val);}" method="GET" class="hero-search-form" role="search" aria-label="Search study materials">
         <svg class="search-input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="11" cy="11" r="8"></circle>
           <line x1="21" y1="21" x2="16.65" y2="16.65"></line>

@@ -281,9 +281,9 @@ def pyq_landing_legacy_redirect():
 
 @library_bp.route('/search')
 def search_page():
-    """Public search page. Accepts ?q=... to prefill + auto-run search on load."""
+    """Search route removed; redirect to home where search panel opens."""
     q = request.args.get('q', '').strip()
-    return render_template('p_search.html', initial_query=q)
+    return redirect(url_for('app_pages.home', q=q) if q else url_for('app_pages.home'))
 
 
 def _canonical_college_redirect(college, requested_slug, suffix=''):

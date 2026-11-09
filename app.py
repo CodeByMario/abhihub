@@ -778,7 +778,7 @@ def check_csrf():
     if not app.config.get('WTF_CSRF_ENABLED', True):
         return
     if request.method not in ['GET', 'HEAD', 'OPTIONS', 'TRACE']:
-        if request.path.startswith('/api/') or request.path.startswith('/auth') or request.path.startswith('/store-room/api/') or request.path == '/account/update':
+        if request.path.startswith('/api/') or request.path.startswith('/admin/api/') or request.path.startswith('/auth') or request.path.startswith('/store-room/api/') or request.path == '/account/update':
             return
         csrf.protect()
 

@@ -1,1712 +1,961 @@
-<!-- AbhiHub Native AI Assistant Component (Tarika) -->
+<!-- AbhiHub Native AI Assistant Component (Tarika - Mercury-3 Edition) -->
 <style>
-/* ── Tarika Design Tokens & Shell (Native AbhiHub System) ───────── */
+/* ── Tarika Design Tokens & Shell (Apple HIG) ───────────────────── */
 :root {
-  --tarika-bg: var(--v2-surface, #ffffff);
-  --tarika-bg-subtle: var(--v2-bg, #f5f6fa);
-  --tarika-ink: var(--v2-ink, #0f172a);
-  --tarika-muted: var(--v2-muted, #566079);
-  --tarika-line: var(--v2-line, #e1e5ee);
-  --tarika-brand: var(--v2-brand, #1d4ed8);
-  --tarika-brand-hover: var(--v2-brand-hover, #1e40af);
-  --tarika-font-sans: var(--v2-font-body, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
-  --tarika-radius-panel: var(--v2-radius-panel, 14px);
-  --tarika-radius-pill: var(--v2-radius-pill, 9999px);
-  --tarika-shadow: 0 12px 32px -4px rgba(15, 23, 42, 0.12), 0 4px 12px -2px rgba(15, 23, 42, 0.06);
+  --tarika-bg: rgba(255, 255, 255, 0.94);
+  --tarika-surface: #ffffff;
+  --tarika-subtle: #f5f5f7;
+  --tarika-text: #1d1d1f;
+  --tarika-text-sec: #6e6e73;
+  --tarika-text-muted: #86868b;
+  --tarika-border: rgba(0, 0, 0, 0.08);
+  --tarika-blue: #0071e3;
+  --tarika-blue-subtle: rgba(0, 113, 227, 0.08);
+  --tarika-amber: #d97706;
+  --tarika-amber-subtle: rgba(217, 119, 6, 0.1);
+  --tarika-green: #059669;
+  --tarika-purple: #8b5cf6;
+  --tarika-shadow: -8px 0 32px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --tarika-bg: var(--v2-surface, #131b2d);
-    --tarika-bg-subtle: var(--v2-bg, #0b1120);
-    --tarika-ink: var(--v2-ink, #eaeef7);
-    --tarika-muted: var(--v2-muted, #98a3bb);
-    --tarika-line: var(--v2-line, #25304a);
-    --tarika-brand: var(--v2-brand, #7fa0ff);
-    --tarika-brand-hover: var(--v2-brand-hover, #9bb7ff);
-    --tarika-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
-  }
-}
-
-:root[data-theme="dark"],
 [data-theme="dark"] {
-  --tarika-bg: var(--v2-surface, #131b2d);
-  --tarika-bg-subtle: var(--v2-bg, #0b1120);
-  --tarika-ink: var(--v2-ink, #eaeef7);
-  --tarika-muted: var(--v2-muted, #98a3bb);
-  --tarika-line: var(--v2-line, #25304a);
-  --tarika-brand: var(--v2-brand, #7fa0ff);
-  --tarika-brand-hover: var(--v2-brand-hover, #9bb7ff);
-  --tarika-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --tarika-bg: rgba(28, 28, 30, 0.94);
+  --tarika-surface: #2c2c2e;
+  --tarika-subtle: #1c1c1e;
+  --tarika-text: #f5f5f7;
+  --tarika-text-sec: #a1a1a6;
+  --tarika-text-muted: #6e6e73;
+  --tarika-border: rgba(255, 255, 255, 0.08);
+  --tarika-blue: #2997ff;
+  --tarika-blue-subtle: rgba(41, 151, 255, 0.12);
+  --tarika-amber: #fbbf24;
+  --tarika-amber-subtle: rgba(251, 191, 36, 0.12);
+  --tarika-green: #34d399;
+  --tarika-purple: #a78bfa;
+  --tarika-shadow: -8px 0 36px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
-/* ── Launcher Pill Button ───────────────────────────────────────── */
+/* ── Floating Launcher Trigger ──────────────────────────────────── */
 #abhiAiLauncher {
   position: fixed;
-  bottom: calc(var(--nav-bottom-height, 80px) + 8px);
+  bottom: calc(var(--nav-bottom-height, 80px) + 12px);
   right: 18px;
   z-index: 9998;
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 9px 15px;
-  background: var(--tarika-brand);
+  padding: 8px 16px;
+  background: #0071e3;
   color: #ffffff;
-  border-radius: var(--tarika-radius-pill);
+  border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 14px rgba(29, 78, 216, 0.28), 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 113, 227, 0.35), 0 1px 3px rgba(0, 0, 0, 0.12);
   cursor: pointer;
-  font-family: var(--tarika-font-sans);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 13px;
   font-weight: 600;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+  letter-spacing: -0.01em;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
   user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 #abhiAiLauncher:hover {
-  transform: translateY(-2px);
-  background: var(--tarika-brand-hover);
-  box-shadow: 0 6px 20px rgba(29, 78, 216, 0.38);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 24px rgba(0, 113, 227, 0.45);
 }
-#abhiAiLauncher .ai-spark {
-  display: inline-block;
-  font-size: 13px;
+#abhiAiLauncher:active {
+  transform: scale(0.97);
 }
 
-/* ── Native Drawer Panel (Left Docked 30% on Desktop / Full Screen on Mobile) ── */
+/* ── Dimming Backdrop ───────────────────────────────────────────── */
+#tarikaBackdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 99998;
+  opacity: 0;
+  transition: opacity 0.24s ease;
+}
+#tarikaBackdrop.active {
+  display: block;
+  opacity: 1;
+}
+
+/* ── Sliding Assistant Drawer ───────────────────────────────────── */
 #abhiAiDrawer {
   position: fixed;
   top: 0;
-  left: 0;
+  right: 0;
   bottom: 0;
-  height: 100vh;
+  width: 32vw;
+  min-width: 380px;
+  max-width: 480px;
+  height: 100%;
   height: 100dvh;
-  max-height: 100dvh;
+  z-index: 99999;
   background: var(--tarika-bg);
-  color: var(--tarika-ink);
-  z-index: 10000;
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border-left: 1px solid var(--tarika-border);
+  box-shadow: var(--tarika-shadow);
   display: flex;
   flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--tarika-text);
   overflow: hidden;
-  font-family: var(--tarika-font-sans);
-  box-shadow: 8px 0 32px rgba(0, 0, 0, 0.14);
-  transform: translateX(-100%);
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.28s ease;
-  visibility: hidden;
-  pointer-events: none;
+  will-change: transform;
 }
-#abhiAiDrawer.open {
+#abhiAiDrawer.active {
   transform: translateX(0);
-  visibility: visible;
-  pointer-events: auto;
 }
 
-/* Desktop Docked Left: Tarika takes exactly 30% width of page, whole app uses 70% (fully visible & accessible) */
-@media (min-width: 769px) {
-  #abhiAiDrawer {
-    width: 30vw !important;
-    max-width: 30vw !important;
-    min-width: 30vw !important;
-    left: 0 !important;
-    top: 0 !important;
-    bottom: 0 !important;
-    right: auto !important;
-    height: 100vh !important;
-    height: 100dvh !important;
-    box-sizing: border-box !important;
-    border-radius: 0 !important;
-    border-top: none !important;
-    border-bottom: none !important;
-    border-left: none !important;
-    border-right: 1px solid var(--tarika-line) !important;
-    z-index: 10000 !important;
-  }
-
-  body {
-    transition: margin-left 0.28s cubic-bezier(0.16, 1, 0.3, 1), width 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  body.tarika-docked-open {
-    margin-left: 30vw !important;
-    width: 70vw !important;
-    max-width: 70vw !important;
-    min-width: 70vw !important;
-    box-sizing: border-box !important;
-    overflow-x: hidden !important;
-  }
-
-  /* Reset all potential 100vw child wrappers so they conform strictly to the 70% body width without clipping */
-  body.tarika-docked-open .app-shell-viewport,
-  body.tarika-docked-open .shell-main-area,
-  body.tarika-docked-open .shell-iframe,
-  body.tarika-docked-open .apple-shell,
-  body.tarika-docked-open .apple-container,
-  body.tarika-docked-open .container,
-  body.tarika-docked-open main,
-  body.tarika-docked-open header,
-  body.tarika-docked-open .main-nav,
-  body.tarika-docked-open .site-header,
-  body.tarika-docked-open .shell-header {
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-    left: auto !important;
-    right: auto !important;
-    margin-left: 0 !important;
-  }
-
-  /* Center the floating bottom navbar within the remaining 70% app area (30vw offset + 35vw center) */
-  body.tarika-docked-open .navbar--bottom {
-    left: calc(30vw + 35vw) !important;
-    transform: translateX(-50%) !important;
-    max-width: calc(70vw - 2rem) !important;
-    transition: left 0.28s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  /* Hide floating launcher pill button while Tarika is docked so it doesn't obstruct the remaining page */
-  body.tarika-docked-open #abhiAiLauncher {
-    display: none !important;
-  }
-}
-
-/* Mobile Slide-In: Full screen width (100vw) & height (100dvh) */
 @media (max-width: 768px) {
   #abhiAiDrawer {
-    width: 100vw !important;
-    max-width: 100vw !important;
-    right: 0 !important;
-    border-radius: 0 !important;
-    border: none !important;
-  }
-  .ai-mobile-swipe-handle {
-    display: block;
-    width: 38px;
-    height: 4px;
-    background: var(--tarika-line, rgba(0, 0, 0, 0.2));
-    border-radius: 99px;
-    margin: 6px auto 2px;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    border-left: none;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
   }
 }
 
-.ai-mobile-swipe-handle {
+/* ── Mobile Grab Handle ─────────────────────────────────────────── */
+.tarika-drag-handle {
   display: none;
+  width: 36px;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 999px;
+  margin: 8px auto 2px;
+  flex-shrink: 0;
+}
+[data-theme="dark"] .tarika-drag-handle {
+  background: rgba(255, 255, 255, 0.25);
+}
+@media (max-width: 768px) {
+  .tarika-drag-handle { display: block; }
 }
 
-/* ── Drawer Header ────────────────────────────────────────────── */
-.ai-drw-hdr {
+/* ── Drawer Header ──────────────────────────────────────────────── */
+.tarika-hdr {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: var(--tarika-bg-subtle);
-  border-bottom: 1px solid var(--tarika-line);
+  border-bottom: 1px solid var(--tarika-border);
+  flex-shrink: 0;
+  gap: 10px;
 }
-.ai-drw-title {
+.tarika-hdr-left {
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-weight: 700;
-  font-size: 14.5px;
-  color: var(--tarika-ink);
+  gap: 10px;
+  min-width: 0;
 }
-.ai-drw-model-wrap {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-.ai-drw-badge {
-  font-size: 10px;
-  background: rgba(29, 78, 216, 0.08);
-  color: var(--tarika-brand);
-  border: 1px solid rgba(29, 78, 216, 0.2);
-  padding: 2px 7px;
-  border-radius: var(--tarika-radius-pill);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  cursor: pointer;
-  user-select: none;
-  transition: all 0.15s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-.ai-drw-badge:hover, .ai-drw-badge:focus-visible {
-  background: rgba(29, 78, 216, 0.16);
-  border-color: var(--tarika-brand);
-}
-.ai-drw-model-menu {
-  display: none;
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  min-width: 215px;
-  background: var(--tarika-bg, #ffffff);
-  border: 1px solid var(--tarika-line, #e2e8f0);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+.tarika-avatar-badge {
+  width: 32px;
+  height: 32px;
   border-radius: 10px;
-  padding: 6px;
-  z-index: 10000;
-}
-[data-theme="dark"] .ai-drw-model-menu {
-  background: #181c24;
-  border-color: #2b3240;
-}
-.ai-drw-model-menu.show {
-  display: block;
-}
-.ai-menu-section-title {
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--tarika-muted, #64748b);
-  padding: 5px 8px 3px;
-  font-weight: 700;
-}
-.ai-model-opt {
+  background: var(--tarika-blue-subtle);
+  color: var(--tarika-blue);
   display: flex;
   align-items: center;
-  width: 100%;
-  padding: 6px 8px;
-  font-size: 11.5px;
-  color: var(--tarika-ink, #0f172a);
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.12s ease;
-  font-family: inherit;
+  justify-content: center;
+  flex-shrink: 0;
 }
-.ai-model-opt:hover, .ai-model-opt.active {
-  background: var(--tarika-bg-subtle, #f1f5f9);
-  color: var(--tarika-brand, #2563eb);
-  font-weight: 600;
+.tarika-title-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
-.ai-model-opt.disabled {
-  opacity: 0.45;
-  cursor: not-allowed !important;
-}
-#aiSendBtn.stop {
-  background: #ef4444 !important;
-  color: #ffffff !important;
-}
-.ai-download-progress {
-  margin-top: 6px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 9999px;
-  height: 6px;
-  overflow: hidden;
-}
-.ai-download-progress-bar {
-  background: var(--tarika-brand, #2563eb);
-  height: 100%;
-  width: 0%;
-  transition: width 0.2s ease;
-}
-.ai-menu-divider {
-  height: 1px;
-  background: var(--tarika-line, #e2e8f0);
-  margin: 4px 0;
-}
-.ai-model-manage-link {
-  display: block;
-  font-size: 10.5px;
-  color: var(--tarika-muted, #64748b);
-  text-decoration: none;
-  padding: 5px 8px;
-  border-radius: 6px;
-}
-.ai-model-manage-link:hover {
-  color: var(--tarika-brand, #2563eb);
-  background: var(--tarika-bg-subtle, #f1f5f9);
-}
-.ai-drw-actions {
+.tarika-brand-row {
   display: flex;
   align-items: center;
   gap: 6px;
 }
-.ai-drw-btn {
-  background: var(--tarika-bg);
-  border: 1px solid var(--tarika-line);
-  color: var(--tarika-muted);
-  cursor: pointer;
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  transition: all 0.15s ease;
-  text-decoration: none;
+.tarika-brand-name {
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: inherit;
+  margin: 0;
+  line-height: 1.2;
 }
-.ai-drw-btn:hover {
-  color: var(--tarika-ink);
-  background: var(--tarika-bg-subtle);
-  border-color: var(--tarika-brand);
-}
-
-/* ── Context Bar ──────────────────────────────────────────────── */
-#aiContextBar {
-  background: #eff6ff;
-  padding: 9px 14px;
-  border-bottom: 1px solid #bfdbfe;
-  font-size: 12px;
-  display: none;
-}
-@media (prefers-color-scheme: dark) {
-  #aiContextBar {
-    background: rgba(29, 78, 216, 0.15);
-    border-bottom-color: rgba(127, 160, 255, 0.25);
-  }
-}
-[data-theme="dark"] #aiContextBar {
-  background: rgba(29, 78, 216, 0.15);
-  border-bottom-color: rgba(127, 160, 255, 0.25);
-}
-.ai-ctx-file {
+.tarika-engine-tag {
+  font-size: 10px;
   font-weight: 600;
-  color: #1e40af;
+  padding: 1.5px 6px;
+  border-radius: 999px;
+  background: rgba(0, 113, 227, 0.09);
+  color: var(--tarika-blue);
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+}
+.tarika-sub-desc {
+  font-size: 11px;
+  color: var(--tarika-text-sec);
+  margin-top: 1px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 5px;
+}
+
+.tarika-hdr-actions {
   display: flex;
   align-items: center;
-  gap: 5px;
-}
-@media (prefers-color-scheme: dark) {
-  .ai-ctx-file { color: #bfdbfe; }
-}
-.ai-ctx-actions {
-  display: flex;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-shrink: 0;
 }
-.ai-ctx-chip {
-  background: #ffffff;
-  border: 1px solid #bfdbfe;
-  color: var(--tarika-brand);
+.tarika-quota-pill {
   font-size: 11px;
   font-weight: 600;
-  padding: 3px 9px;
-  border-radius: var(--tarika-radius-pill);
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--tarika-amber-subtle);
+  color: var(--tarika-amber);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  letter-spacing: 0.01em;
+}
+.tarika-icon-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--tarika-text-sec);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   transition: all 0.15s ease;
 }
-@media (prefers-color-scheme: dark) {
-  .ai-ctx-chip {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(127, 160, 255, 0.3);
-    color: #eaeef7;
-  }
+[data-theme="dark"] .tarika-icon-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--tarika-text-sec);
 }
-.ai-ctx-chip:hover {
-  background: var(--tarika-brand);
-  border-color: var(--tarika-brand);
-  color: #ffffff;
+.tarika-icon-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: var(--tarika-text);
+}
+[data-theme="dark"] .tarika-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--tarika-text);
 }
 
-/* ── Welcome Hero & Realtime Status System ── */
-.ai-welcome-hero {
-  padding: 24px 16px 12px;
+/* ── Action Study Tabs (Segmented Control) ──────────────────────── */
+.tarika-tabs-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 14px;
+  background: rgba(0, 0, 0, 0.02);
+  border-bottom: 1px solid var(--tarika-border);
+  flex-shrink: 0;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tarika-tabs-row::-webkit-scrollbar { display: none; }
+
+.tarika-seg-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--tarika-text-sec);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+.tarika-seg-tab.active {
+  background: var(--tarika-surface);
+  color: var(--tarika-blue);
+  border-color: var(--tarika-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+[data-theme="dark"] .tarika-seg-tab.active {
+  background: #2c2c2e;
+}
+
+/* ── Active Context Strip ───────────────────────────────────────── */
+.tarika-doc-banner {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 14px;
+  background: var(--tarika-blue-subtle);
+  border-bottom: 1px solid rgba(0, 113, 227, 0.15);
+  font-size: 11.5px;
+  color: var(--tarika-blue);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+.tarika-doc-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Chat Stream Area ───────────────────────────────────────────── */
+.tarika-chat-stream {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.tarika-chat-stream::-webkit-scrollbar {
+  width: 4px;
+}
+.tarika-chat-stream::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 999px;
+}
+[data-theme="dark"] .tarika-chat-stream::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ── Welcome Card ───────────────────────────────────────────────── */
+.tarika-welcome-box {
+  margin: auto 0;
+  padding: 1.5rem 1rem;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  animation: aiBubbleIn 0.22s ease forwards;
 }
-.ai-welcome-spark-wrap {
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, rgba(29, 78, 216, 0.12), rgba(16, 185, 129, 0.12));
-  border: 1px solid rgba(29, 78, 216, 0.2);
-  display: flex;
+.tarika-spark-big {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--tarika-blue-subtle);
+  color: var(--tarika-blue);
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
-.ai-welcome-heading {
-  font-size: 16.5px;
-  font-weight: 800;
-  color: var(--tarika-ink);
+.tarika-welcome-title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
   margin: 0 0 4px;
 }
-.ai-welcome-tagline {
-  font-size: 12px;
-  color: var(--tarika-muted);
-  margin: 0 0 10px;
-  line-height: 1.45;
-  max-width: 290px;
-}
-.ai-status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  border-radius: var(--tarika-radius-pill);
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  font-size: 11px;
-  font-weight: 600;
-  color: #10b981;
-}
-.ai-status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #10b981;
-  animation: pulse 1.2s infinite alternate;
-}
-.ai-drw-status-sub {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 11px;
-  color: var(--apple-text-muted, #86868b);
-  padding: 0 4px;
-}
-.ai-thinking-indicator-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
+.tarika-welcome-text {
   font-size: 12.5px;
-  color: var(--tarika-ink);
+  color: var(--tarika-text-sec);
+  margin: 0 0 1.25rem;
+  max-width: 280px;
+  line-height: 1.4;
 }
-.ai-thinking-pulse-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #10b981;
-  animation: pulse 1s infinite alternate;
-  display: inline-block;
-}
-
-/* ── Messages Stream ──────────────────────────────────────────── */
-#aiMsgList {
-  flex: 1;
-  overflow-y: auto;
-  padding: 14px;
+.tarika-prompt-cards {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  background: var(--tarika-bg);
-  scroll-behavior: smooth;
+  gap: 6px;
+  width: 100%;
 }
-#aiMsgList::-webkit-scrollbar { width: 5px; }
-#aiMsgList::-webkit-scrollbar-thumb { background: var(--tarika-line); border-radius: 99px; }
+.tarika-prompt-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--tarika-surface);
+  border: 1px solid var(--tarika-border);
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--tarika-text);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+[data-theme="dark"] .tarika-prompt-btn {
+  background: rgba(255, 255, 255, 0.04);
+}
+.tarika-prompt-btn:hover {
+  background: var(--tarika-blue-subtle);
+  border-color: rgba(0, 113, 227, 0.3);
+  color: var(--tarika-blue);
+  transform: translateY(-1px);
+}
 
-.ai-bubble {
-  max-width: 88%;
-  padding: 9px 13px;
-  border-radius: 12px;
-  font-size: 13px;
-  line-height: 1.55;
-  word-wrap: break-word;
-  animation: aiBubbleIn 0.18s ease forwards;
+/* ── Chat Message Bubbles ───────────────────────────────────────── */
+.tarika-msg-wrap {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  animation: tarikaFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-@keyframes aiBubbleIn {
+@keyframes tarikaFadeIn {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.ai-bubble.user {
-  align-self: flex-end;
-  background: var(--tarika-brand);
-  color: #ffffff;
-  border-bottom-right-radius: 3px;
+.tarika-msg-wrap.user {
+  align-items: flex-end;
 }
-.ai-bubble.assistant {
-  align-self: flex-start;
-  background: var(--tarika-bg-subtle);
-  color: var(--tarika-ink);
-  border: 1px solid var(--tarika-line);
-  border-bottom-left-radius: 3px;
-  max-width: 96%;
-}
-.ai-bubble:empty {
-  display: none !important;
-}
-.ai-bubble.thinking {
-  align-self: flex-start;
-  background: var(--tarika-bg-subtle);
-  color: var(--tarika-muted);
-  font-size: 12.5px;
-}
-.ai-typing-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 3.5px;
-  vertical-align: middle;
-  padding: 0 4px;
-}
-.ai-typing-indicator span {
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  background: currentColor;
-  border-radius: 50%;
-  animation: aiTypingBounce 1.4s infinite ease-in-out both;
-}
-.ai-typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
-.ai-typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
-.ai-typing-indicator span:nth-child(3) { animation-delay: 0s; }
-@keyframes aiTypingBounce {
-  0%, 80%, 100% { transform: scale(0.5); opacity: 0.35; }
-  40% { transform: scale(1.1); opacity: 1; }
+.tarika-msg-wrap.assistant {
+  align-items: flex-start;
 }
 
-/* Typography in Assistant Bubbles */
-.ai-bubble.assistant h1, .ai-bubble.assistant h2, .ai-bubble.assistant h3, .ai-bubble.assistant h4 {
-  color: var(--tarika-ink);
-  margin: 7px 0 3px 0;
-  font-weight: 700;
-}
-.ai-bubble.assistant h1 { font-size: 14.5px; border-bottom: 1px solid var(--tarika-line); padding-bottom: 3px; }
-.ai-bubble.assistant h2 { font-size: 13.5px; }
-.ai-bubble.assistant h3 { font-size: 12.5px; color: var(--tarika-brand); }
-.ai-bubble.assistant p { margin: 5px 0; }
-.ai-bubble.assistant ul, .ai-bubble.assistant ol { margin: 5px 0; padding-left: 18px; }
-.ai-bubble.assistant li { margin: 2px 0; }
-.ai-bubble.assistant strong { color: var(--tarika-ink); font-weight: 600; }
-.ai-bubble.assistant a { color: var(--tarika-brand); text-decoration: underline; }
-
-/* Markdown Tables */
-.ai-table-wrap {
-  width: 100%;
-  overflow-x: auto;
-  margin: 8px 0;
-  border-radius: 7px;
-  border: 1px solid var(--tarika-line);
-  background: var(--tarika-bg);
-}
-.ai-bubble.assistant table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-  text-align: left;
-}
-.ai-bubble.assistant th {
-  background: var(--tarika-bg-subtle);
-  color: var(--tarika-ink);
-  font-weight: 600;
-  padding: 6px 9px;
-  border-bottom: 2px solid var(--tarika-line);
-}
-.ai-bubble.assistant td {
-  padding: 5px 9px;
-  border-bottom: 1px solid var(--tarika-line);
-  color: var(--tarika-ink);
-}
-
-/* Code & Math Styling */
-.ai-bubble.assistant pre {
-  position: relative;
-  background: #0f172a;
-  border: 1px solid #1e293b;
-  border-radius: 7px;
-  padding: 9px 11px;
-  margin: 7px 0;
-  overflow-x: auto;
-  font-family: 'Fira Code', Consolas, Monaco, monospace;
-  font-size: 11.5px;
+.tarika-msg-bubble {
+  max-width: 88%;
+  padding: 9px 13px;
+  border-radius: 15px;
+  font-size: 13px;
   line-height: 1.45;
-  color: #f8fafc;
+  word-break: break-word;
 }
-.ai-bubble.assistant pre code {
-  background: transparent;
-  padding: 0;
-  color: #e2e8f0;
-  border: none;
+.tarika-msg-wrap.user .tarika-msg-bubble {
+  background: #0071e3;
+  color: #ffffff;
+  border-bottom-right-radius: 4px;
 }
-.ai-bubble.assistant code {
-  font-family: 'Fira Code', Consolas, Monaco, monospace;
+.tarika-msg-wrap.assistant .tarika-msg-bubble {
+  background: var(--tarika-surface);
+  border: 1px solid var(--tarika-border);
+  color: inherit;
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+[data-theme="dark"] .tarika-msg-wrap.assistant .tarika-msg-bubble {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tarika-msg-bubble pre, .tarika-msg-bubble code {
+  font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
   font-size: 11.5px;
-  background: rgba(29, 78, 216, 0.08);
-  color: var(--tarika-brand);
+  background: rgba(0, 0, 0, 0.06);
   padding: 2px 5px;
   border-radius: 4px;
 }
-.ai-bubble.assistant .katex {
-  font-size: 1.05em;
-  color: var(--tarika-ink) !important;
-}
-.ai-bubble.assistant .katex-display {
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding: 4px 0;
-  margin: 5px 0;
-}
-.ai-code-copy-btn {
-  position: absolute;
-  top: 5px;
-  right: 5px;
+[data-theme="dark"] .tarika-msg-bubble pre, [data-theme="dark"] .tarika-msg-bubble code {
   background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #94a3b8;
-  font-size: 10px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.15s ease;
 }
-.ai-code-copy-btn:hover {
-  background: var(--tarika-brand);
-  color: #fff;
-}
-.ai-stream-cursor {
-  display: inline-block;
-  color: var(--tarika-brand);
-  font-weight: 900;
-  animation: aiCursorPulse 0.55s ease-in-out infinite alternate;
-  margin-left: 2px;
-}
-@keyframes aiCursorPulse {
-  0% { opacity: 0.3; }
-  100% { opacity: 1; }
-}
-
-/* Action Cards in Chat */
-.ai-action-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--tarika-bg);
-  border: 1px solid var(--tarika-line);
-  border-radius: 9px;
-  padding: 8px 11px;
-  margin-top: 7px;
-  gap: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-}
-.ai-card-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--tarika-ink);
-}
-.ai-card-badge {
-  font-size: 10px;
-  background: var(--tarika-brand);
-  color: #fff;
-  padding: 1px 6px;
-  border-radius: 4px;
-}
-.ai-bubble.assistant a.ai-card-btn,
-.ai-card-btn {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 5px !important;
-  padding: 6px 12px !important;
-  border-radius: 8px !important;
-  font-size: 11.5px !important;
-  font-weight: 600 !important;
-  text-decoration: none !important;
-  transition: all 0.15s ease !important;
-  cursor: pointer !important;
-}
-
-.ai-bubble.assistant a.ai-card-btn-primary,
-.ai-card-btn-primary {
-  background: var(--tarika-brand, #1d4ed8) !important;
-  color: #ffffff !important;
-  border: 1px solid var(--tarika-brand, #1d4ed8) !important;
-  box-shadow: 0 2px 6px rgba(29, 78, 216, 0.25) !important;
-}
-.ai-bubble.assistant a.ai-card-btn-primary:hover,
-.ai-card-btn-primary:hover {
-  background: var(--tarika-brand-hover, #1e40af) !important;
-  color: #ffffff !important;
-}
-
-.ai-bubble.assistant a.ai-card-btn-secondary,
-.ai-card-btn-secondary {
-  background: var(--tarika-bg, #ffffff) !important;
-  color: var(--tarika-ink, #0f172a) !important;
-  border: 1px solid var(--tarika-line, #cbd5e1) !important;
-}
-.ai-bubble.assistant a.ai-card-btn-secondary:hover,
-.ai-card-btn-secondary:hover {
-  background: var(--tarika-bg-subtle, #f1f5f9) !important;
-  color: var(--tarika-brand, #1d4ed8) !important;
-  border-color: var(--tarika-brand, #1d4ed8) !important;
-}
-
-.ai-bubble.assistant a.ai-card-btn-outline,
-.ai-card-btn-outline {
-  background: rgba(29, 78, 216, 0.08) !important;
-  color: var(--tarika-brand, #1d4ed8) !important;
-  border: 1px solid rgba(29, 78, 216, 0.25) !important;
-}
-.ai-bubble.assistant a.ai-card-btn-outline:hover,
-.ai-card-btn-outline:hover {
-  background: var(--tarika-brand, #1d4ed8) !important;
-  color: #ffffff !important;
-}
-
-/* Quick Action Chips */
-.ai-quick-prompts {
-  display: flex;
-  gap: 6px;
-  padding: 7px 12px;
+.tarika-msg-bubble pre {
+  padding: 8px;
   overflow-x: auto;
-  border-top: 1px solid var(--tarika-line);
-  background: var(--tarika-bg-subtle);
-}
-.ai-quick-prompts::-webkit-scrollbar { height: 0px; }
-.ai-qchip {
-  white-space: nowrap;
-  font-size: 11px;
-  font-weight: 500;
-  background: var(--tarika-bg);
-  color: var(--tarika-muted);
-  padding: 4px 9px;
-  border-radius: var(--tarika-radius-pill);
-  border: 1px solid var(--tarika-line);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.ai-qchip:hover {
-  color: var(--tarika-brand);
-  background: #eff6ff;
-  border-color: #bfdbfe;
-}
-@media (prefers-color-scheme: dark) {
-  .ai-qchip:hover {
-    background: rgba(29, 78, 216, 0.2);
-    border-color: var(--tarika-brand);
-    color: #ffffff;
-  }
-}
-[data-theme="dark"] .ai-qchip:hover {
-  background: rgba(29, 78, 216, 0.2);
-  border-color: var(--tarika-brand);
-  color: #ffffff;
-}
-
-/* Input Row */
-.ai-drw-input-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 9px 12px;
-  background: var(--tarika-bg);
-  border-top: 1px solid var(--tarika-line);
-}
-#aiChatInput {
-  flex: 1;
-  background: var(--tarika-bg-subtle);
-  border: 1px solid var(--tarika-line);
-  border-radius: 10px;
-  color: var(--tarika-ink);
-  padding: 8px 11px;
-  font-size: 12.5px;
-  outline: none;
-  font-family: inherit;
-  transition: border-color 0.15s ease, background 0.15s ease;
-}
-#aiChatInput:focus {
-  border-color: var(--tarika-brand);
-  background: var(--tarika-bg);
-}
-#aiSendBtn {
-  background: var(--tarika-brand);
-  color: #ffffff;
-  border: none;
-  border-radius: 9px;
-  width: 33px;
-  height: 33px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 13.5px;
-  transition: all 0.15s ease;
-}
-#aiSendBtn:hover:not(:disabled) {
-  background: var(--tarika-brand-hover);
-}
-#aiSendBtn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-/* ── Fullscreen Practice Exam Simulator ───────────────────────── */
-.ai-exam-modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 999999;
-  background: var(--tarika-bg);
-  display: flex;
-  flex-direction: column;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  font-family: var(--tarika-font-sans);
-}
-.ai-exam-modal-box {
-  background: var(--tarika-bg);
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  color: var(--tarika-ink);
-}
-.ai-exam-modal-hdr {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 11px 20px;
-  background: var(--tarika-bg-subtle);
-  border-bottom: 1px solid var(--tarika-line);
-  gap: 14px;
-}
-.ai-exam-modal-title-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.ai-exam-modal-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--tarika-ink);
-  margin: 0;
-}
-.ai-exam-timer {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  background: rgba(29, 78, 216, 0.08);
-  border: 1px solid rgba(29, 78, 216, 0.25);
-  border-radius: var(--tarika-radius-pill);
-  font-weight: 700;
-  font-size: 13px;
-  color: var(--tarika-brand);
-  letter-spacing: 0.4px;
-}
-.ai-exam-timer.warning {
-  background: rgba(239, 68, 68, 0.12);
-  border-color: #ef4444;
-  color: #dc2626;
-}
-.ai-exam-hdr-actions {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-.ai-exam-hdr-btn {
-  background: var(--tarika-bg);
-  border: 1px solid var(--tarika-line);
-  color: var(--tarika-muted);
-  border-radius: 7px;
-  padding: 5px 10px;
-  cursor: pointer;
-  font-size: 11.5px;
-  font-weight: 600;
-}
-.ai-exam-hdr-btn:hover { background: var(--tarika-bg-subtle); color: var(--tarika-ink); }
-.ai-exam-modal-close {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  color: #dc2626;
-  border-radius: 7px;
-  width: 29px;
-  height: 29px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 14px;
-}
-.ai-exam-modal-close:hover { background: #ef4444; color: #fff; }
-
-.ai-exam-nav-strip {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 7px 20px;
-  background: var(--tarika-bg-subtle);
-  border-bottom: 1px solid var(--tarika-line);
-  overflow-x: auto;
-}
-.ai-exam-nav-pill {
-  min-width: 28px;
-  height: 26px;
-  padding: 0 6px;
-  border-radius: 6px;
-  border: 1px solid var(--tarika-line);
-  background: var(--tarika-bg);
-  color: var(--tarika-muted);
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.ai-exam-nav-pill.active {
-  background: var(--tarika-brand) !important;
-  color: #fff !important;
-  border-color: var(--tarika-brand) !important;
-}
-.ai-exam-nav-pill.answered {
-  border-color: #10b981;
-  color: #059669;
-}
-
-.ai-exam-prog-track { height: 3px; background: var(--tarika-line); width: 100%; }
-.ai-exam-prog-fill { height: 100%; background: var(--tarika-brand); transition: width 0.3s ease; }
-
-.ai-exam-modal-body {
-  padding: 22px;
-  overflow-y: auto;
-  flex: 1;
-  background: var(--tarika-bg);
-  color: var(--tarika-ink);
-  display: flex;
-  justify-content: center;
-}
-.ai-exam-content-wrap { width: 100%; max-width: 820px; }
-.ai-exam-meta-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-.ai-exam-badge {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 5px;
-  background: rgba(29, 78, 216, 0.08);
-  color: var(--tarika-brand);
-  border: 1px solid rgba(29, 78, 216, 0.2);
-}
-.ai-exam-badge.marks {
-  background: rgba(16, 185, 129, 0.08);
-  color: #059669;
-  border-color: rgba(16, 185, 129, 0.25);
-}
-.ai-exam-step { margin-left: auto; font-size: 11.5px; color: var(--tarika-muted); font-weight: 600; }
-.ai-exam-qtext-lg { font-size: 15.5px; color: var(--tarika-ink); line-height: 1.6; font-weight: 600; margin-bottom: 16px; }
-
-.ai-exam-opt-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 11px 14px;
-  background: var(--tarika-bg);
-  border: 1.5px solid var(--tarika-line);
-  border-radius: 10px;
-  cursor: pointer;
-  margin-bottom: 9px;
-  font-size: 13px;
-  color: var(--tarika-ink);
-  transition: all 0.15s ease;
-}
-.ai-exam-opt-card:hover { background: var(--tarika-bg-subtle); border-color: var(--tarika-brand); }
-.ai-exam-opt-card.selected {
-  background: #eff6ff !important;
-  border-color: var(--tarika-brand) !important;
-  color: var(--tarika-brand) !important;
-  font-weight: 600;
-}
-@media (prefers-color-scheme: dark) {
-  .ai-exam-opt-card.selected {
-    background: rgba(29, 78, 216, 0.2) !important;
-    border-color: var(--tarika-brand) !important;
-    color: #ffffff !important;
-  }
-}
-.ai-exam-opt-card.correct {
-  background: #ecfdf5 !important;
-  border-color: #10b981 !important;
-  color: #065f46 !important;
-}
-.ai-exam-opt-card.incorrect {
-  background: #fef2f2 !important;
-  border-color: #ef4444 !important;
-  color: #991b1b !important;
-}
-
-.ai-exam-input, .ai-exam-textarea {
-  width: 100%;
-  box-sizing: border-box;
-  background: var(--tarika-bg-subtle);
-  border: 1.5px solid var(--tarika-line);
-  border-radius: 9px;
-  padding: 9px 12px;
-  color: var(--tarika-ink);
-  font-size: 13px;
-  outline: none;
-  font-family: inherit;
-}
-.ai-exam-input:focus, .ai-exam-textarea:focus { border-color: var(--tarika-brand); background: var(--tarika-bg); }
-
-.ai-exam-exp-box {
-  margin-top: 16px;
-  padding: 12px 16px;
-  background: #ecfdf5;
-  border: 1.5px solid #a7f3d0;
-  border-radius: 10px;
-}
-@media (prefers-color-scheme: dark) {
-  .ai-exam-exp-box {
-    background: rgba(16, 185, 129, 0.1);
-    border-color: rgba(16, 185, 129, 0.3);
-  }
-}
-.ai-exam-exp-title { font-size: 12px; font-weight: 700; color: #059669; margin-bottom: 5px; }
-.ai-exam-exp-content { font-size: 13px; color: var(--tarika-ink); line-height: 1.55; }
-.ai-exam-keywords { margin-top: 6px; font-size: 11px; color: #047857; }
-
-.ai-exam-modal-ftr {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-  background: var(--tarika-bg-subtle);
-  border-top: 1px solid var(--tarika-line);
-}
-.ai-exam-btn {
-  border: none;
-  border-radius: 7px;
-  padding: 7px 14px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.ai-exam-btn.pri { background: var(--tarika-brand); color: #fff; }
-.ai-exam-btn.pri:hover { background: var(--tarika-brand-hover); }
-.ai-exam-btn.sec { background: var(--tarika-bg); color: var(--tarika-ink); border: 1px solid var(--tarika-line); }
-.ai-exam-btn.sec:hover { background: var(--tarika-bg-subtle); }
-
-/* In-Chat Launch Card */
-.ai-exam-launch-card {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 10px;
-  padding: 10px 12px;
-  margin: 7px 0;
-}
-@media (prefers-color-scheme: dark) {
-  .ai-exam-launch-card {
-    background: rgba(29, 78, 216, 0.15);
-    border-color: rgba(127, 160, 255, 0.3);
-  }
-}
-.ai-exam-launch-icon { font-size: 22px; flex-shrink: 0; }
-.ai-exam-launch-info { flex: 1; min-width: 0; }
-.ai-exam-launch-title { font-size: 12.5px; font-weight: 700; color: var(--tarika-ink); }
-.ai-exam-launch-sub { font-size: 11px; color: var(--tarika-muted); margin-top: 2px; }
-.ai-exam-launch-btn {
-  background: var(--tarika-brand);
-  color: #fff;
-  border: none;
-  font-size: 11.5px;
-  font-weight: 600;
-  padding: 5px 11px;
-  border-radius: 7px;
-  cursor: pointer;
-}
-.ai-exam-launch-btn:hover { background: var(--tarika-brand-hover); }
-
-/* ── Conversation History Slide-Over Panel ─────────────────────── */
-.ai-history-panel {
-  position: absolute;
-  inset: 0;
-  background: var(--tarika-bg);
-  z-index: 20;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  animation: aiHistorySlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-@keyframes aiHistorySlide {
-  from { opacity: 0; transform: translateX(-100%); }
-  to { opacity: 1; transform: translateX(0); }
-}
-.ai-history-hdr {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background: var(--tarika-bg-subtle);
-  border-bottom: 1px solid var(--tarika-line);
-}
-.ai-history-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.ai-history-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 9px 12px;
-  background: var(--tarika-bg-subtle);
-  border: 1px solid var(--tarika-line);
   border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  text-align: left;
 }
-.ai-history-item:hover {
-  background: var(--tarika-bg);
-  border-color: var(--tarika-brand);
-}
-.ai-history-item.active {
-  border-color: var(--tarika-brand);
-  background: rgba(29, 78, 216, 0.08);
-}
-.ai-history-title {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--tarika-ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 250px;
-}
-.ai-history-date {
-  font-size: 10.5px;
-  color: var(--tarika-muted);
-  margin-top: 2px;
-}
-.ai-history-actions {
+
+/* ── Typing Indicator ───────────────────────────────────────────── */
+.tarika-typing {
   display: flex;
   align-items: center;
   gap: 4px;
-}
-.ai-history-action-btn {
-  background: transparent;
-  border: none;
-  color: var(--tarika-muted);
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  font-size: 12px;
-  line-height: 1;
-  transition: color 0.15s, background 0.15s;
-}
-.ai-history-action-btn:hover {
-  background: var(--tarika-bg);
-  color: var(--tarika-ink);
-}
-.ai-history-action-btn.del:hover {
-  color: #ef4444;
-}
-.ai-history-retry-btn {
-  background: var(--tarika-brand);
-  color: #fff;
-  border: none;
-  padding: 5px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 8px;
-}
-.ai-toast {
-  position: absolute;
-  bottom: 60px;
-  left: 12px;
-  right: 12px;
-  background: #1e293b;
-  color: #f8fafc;
   padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-  z-index: 1000;
-  animation: aiBubbleIn 0.2s ease;
-}
-.ai-toast a {
-  color: #60a5fa;
-  font-weight: 600;
-  text-decoration: underline;
-  margin-left: 8px;
-}
-
-/* Reduced Motion & Mobile */
-@media (prefers-reduced-motion: reduce) {
-  #abhiAiDrawer, #abhiAiLauncher, .ai-bubble, .ai-stream-cursor, .ai-spark, .ai-history-panel {
-    animation: none !important;
-    transition: none !important;
-  }
-}
-/* Responsive drawer layout handled in unified left-dock / mobile full-screen rules */
-
-/* ── Tarika OpenRouter API Key Setup Modal ── */
-.ai-key-modal {
-  position: absolute;
-  inset: 0;
-  background: var(--tarika-bg);
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  animation: aiModalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-@keyframes aiModalFadeIn {
-  from { opacity: 0; transform: scale(0.97); }
-  to { opacity: 1; transform: scale(1); }
-}
-.ai-key-modal-hdr {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 18px;
-  background: var(--tarika-bg-subtle);
-  border-bottom: 1px solid var(--tarika-line);
-}
-.ai-key-modal-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.ai-setup-card {
-  background: var(--tarika-bg-subtle);
-  border: 1.5px solid var(--tarika-line);
+  background: var(--tarika-surface);
+  border: 1px solid var(--tarika-border);
   border-radius: 12px;
-  padding: 13px 15px;
-  transition: all 0.18s ease;
+  width: fit-content;
 }
-.ai-setup-card.active {
-  border-color: var(--tarika-brand);
-  background: rgba(29, 78, 216, 0.04);
+.tarika-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tarika-blue);
+  animation: tarikaBounce 1.2s infinite ease-in-out;
 }
-.ai-setup-card-hdr {
+.tarika-dot:nth-child(2) { animation-delay: 0.2s; }
+.tarika-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes tarikaBounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* ── Composer Form ──────────────────────────────────────────────── */
+.tarika-composer-box {
+  padding: 8px 14px 12px;
+  border-top: 1px solid var(--tarika-border);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tarika-input-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 20px;
+  padding: 4px 6px 4px 14px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-theme="dark"] .tarika-input-pill {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.tarika-input-pill:focus-within {
+  background: var(--tarika-surface);
+  border-color: var(--tarika-blue);
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.18);
+}
+[data-theme="dark"] .tarika-input-pill:focus-within {
+  background: #1c1c24;
+}
+
+.tarika-input-field {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  color: inherit;
+  outline: none;
+  line-height: 1.4;
+}
+.tarika-input-field::placeholder {
+  color: var(--tarika-text-muted);
+}
+
+.tarika-send-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: #0071e3;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.tarika-send-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.tarika-send-btn:not(:disabled):hover {
+  transform: scale(1.06);
+}
+
+.tarika-footer-meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 6px;
-}
-.ai-setup-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  flex-shrink: 0;
-}
-.ai-setup-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--tarika-ink);
-}
-.ai-setup-sub {
-  font-size: 11px;
-  color: var(--tarika-muted);
-}
-.ai-setup-status-badge {
+  padding: 0 4px;
   font-size: 10.5px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 99px;
-  background: rgba(100, 116, 139, 0.12);
-  color: var(--tarika-muted);
-}
-.ai-setup-status-badge.active {
-  background: rgba(16, 185, 129, 0.15);
-  color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
-.ai-setup-desc {
-  font-size: 11.5px;
-  color: var(--tarika-muted);
-  line-height: 1.45;
-  margin: 0;
-}
-.ai-key-input-box {
-  display: flex;
-  gap: 6px;
-  margin-top: 8px;
-}
-.ai-key-input {
-  flex: 1;
-  background: var(--tarika-bg);
-  border: 1.5px solid var(--tarika-line);
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 12px;
-  font-family: monospace;
-  color: var(--tarika-ink);
-  outline: none;
-}
-.ai-key-input:focus {
-  border-color: var(--tarika-brand);
-}
-.ai-key-save-btn {
-  background: #10b981;
-  color: #ffffff;
-  border: none;
-  font-weight: 700;
-  font-size: 12px;
-  padding: 8px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-.ai-key-save-btn:hover {
-  background: #059669;
-}
-.ai-btn-cta {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  background: var(--tarika-brand);
-  color: #ffffff !important;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 10px 16px;
-  border-radius: 10px;
-  border: none;
-  cursor: pointer;
-  width: 100%;
-  box-shadow: 0 2px 10px rgba(29, 78, 216, 0.25);
-  transition: all 0.18s ease;
-}
-.ai-btn-cta:hover {
-  background: var(--tarika-brand-hover);
-  transform: translateY(-1px);
+  color: var(--tarika-text-muted);
 }
 </style>
 
-<!-- Floating Assistant Trigger -->
-<button type="button" id="abhiAiLauncher" onclick="toggleAbhiAiDrawer()" aria-label="Open Tarika Study Assistant" title="Tarika — Personal Study Assistant">
-  <span class="ai-spark" aria-hidden="true">✨</span>
+<!-- Floating Launcher Pill -->
+<button type="button" id="abhiAiLauncher" aria-label="Open Tarika AI" title="Ask Tarika AI">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+  </svg>
   <span>Tarika</span>
 </button>
 
+<!-- Dimming Backdrop -->
+<div id="tarikaBackdrop" onclick="window.closeTarikaDrawer && window.closeTarikaDrawer()"></div>
+
 <!-- Sliding Assistant Drawer -->
-<section id="abhiAiDrawer" role="dialog" aria-label="Tarika AI Study Assistant" aria-modal="true" aria-hidden="true">
-  <div class="ai-mobile-swipe-handle" aria-hidden="true" title="Swipe left to close"></div>
-  <!-- Tarika AI Setup & Preferences Modal (Frictionless Apple-style) -->
-  <aside id="tarikaApiKeyModal" class="ai-key-modal" style="display:none;" aria-label="Tarika AI Setup">
-    <div class="ai-key-modal-hdr">
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span aria-hidden="true" style="font-size:16px;">⚙️</span>
-        <span style="font-weight:700; font-size:14px; color:var(--tarika-ink);">Tarika AI Setup</span>
-      </div>
-      <button type="button" class="ai-drw-btn" onclick="closeTarikaApiKeyModal()" title="Close Setup" style="font-size:12px;">✕</button>
-    </div>
-
-    <div class="ai-key-modal-body">
-      <!-- Option 1: Built-in AbhiHub Cloud (Default & Free) -->
-      <div class="ai-setup-card active" id="aiSetupCloudCard">
-        <div class="ai-setup-card-hdr">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span class="ai-setup-icon" style="background:rgba(29,78,216,0.1); color:var(--tarika-brand);">⚡</span>
-            <div>
-              <div class="ai-setup-title">AbhiHub Free Cloud AI</div>
-              <div class="ai-setup-sub">Ready immediately · No setup required</div>
-            </div>
-          </div>
-          <span class="ai-setup-status-badge active" id="aiCloudStatusBadge">● Active</span>
-        </div>
-        <p class="ai-setup-desc">
-          High-speed access to Gemma 4 31B, DeepSeek R1, and Gemini Flash. Maintained directly by AbhiHub for verified students.
-        </p>
-      </div>
-
-      <!-- Option 2: Optional Custom OpenRouter Key -->
-      <div class="ai-setup-card" id="aiSetupByokCard">
-        <div class="ai-setup-card-hdr">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span class="ai-setup-icon" style="background:rgba(16,185,129,0.1); color:#10b981;">🔑</span>
-            <div>
-              <div class="ai-setup-title">Personal OpenRouter Key (Optional)</div>
-              <div class="ai-setup-sub">For power users who want custom personal quotas</div>
-            </div>
-          </div>
-          <span class="ai-setup-status-badge" id="aiByokStatusBadge">Optional</span>
-        </div>
-        <p class="ai-setup-desc">
-          Paste your free key if you prefer using your own OpenRouter rate limits:
-        </p>
-        <div class="ai-key-input-box">
-          <input type="password" id="tarikaApiKeyModalInput" class="ai-key-input" placeholder="sk-or-v1-xxxxxxxxxxxxxxxx" autocomplete="off">
-          <button type="button" class="ai-key-save-btn" onclick="saveTarikaApiKey()">Save 🚀</button>
-          <button type="button" id="tarikaClearKeyBtn" class="ai-drw-btn" onclick="clearTarikaApiKey()" title="Remove saved key" style="display:none; color:#ef4444; width:34px; height:34px;">🗑️</button>
-        </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:11px;">
-          <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener noreferrer" style="color:var(--tarika-brand); font-weight:600; text-decoration:none;">
-            Get free key at openrouter.ai ↗
-          </a>
-          <span style="color:var(--tarika-muted);">🔒 Stored locally in your browser</span>
-        </div>
-      </div>
-
-      <!-- Option 3: Offline On-Device (WebGPU) -->
-      <div class="ai-setup-card" id="aiSetupOfflineCard">
-        <div class="ai-setup-card-hdr">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span class="ai-setup-icon" style="background:rgba(168,85,247,0.1); color:#a855f7;">🌸</span>
-            <div>
-              <div class="ai-setup-title">On-Device Offline (WebGPU)</div>
-              <div class="ai-setup-sub">100% private in browser · Zero internet needed</div>
-            </div>
-          </div>
-          <button type="button" class="ai-ctx-chip" onclick="selectWebGpuOffline()" id="aiWebGpuToggleBtn">Run Offline</button>
-        </div>
-        <p class="ai-setup-desc">
-          Runs local Llama 3.2 on your device GPU using WebLLM for private studying during network outages.
-        </p>
-      </div>
-
-      <div style="margin-top:auto; padding-top:8px;">
-        <button type="button" class="ai-btn-cta" onclick="closeTarikaApiKeyModal()">
-          <span>Done &amp; Return to Chat</span> ➔
-        </button>
-      </div>
-    </div>
-  </aside>
-
-  <!-- Conversation History Slide-Over Panel -->
-  <aside id="aiHistoryPanel" class="ai-history-panel" style="display:none;" aria-label="Chat History">
-    <div class="ai-history-hdr">
-      <div style="display:flex; align-items:center; gap:6px;">
-        <span aria-hidden="true">🕒</span>
-        <span style="font-weight:700; font-size:13.5px; color:var(--tarika-ink);">Chat History</span>
-      </div>
-      <div style="display:flex; align-items:center; gap:6px;">
-        <button type="button" class="ai-drw-btn" onclick="startNewChat()" title="Start New Chat" style="font-size:12px;">➕</button>
-        <button type="button" class="ai-drw-btn" onclick="toggleHistoryPanel()" title="Close History" style="font-size:12px;">✕</button>
-      </div>
-    </div>
-    <div id="aiHistoryList" class="ai-history-list" role="list">
-      <div style="font-size:12px; color:var(--tarika-muted); padding:16px; text-align:center;">Loading conversation history...</div>
-    </div>
-  </aside>
+<div id="abhiAiDrawer" role="dialog" aria-modal="true" aria-label="Tarika AI Study Partner">
+  <div class="tarika-drag-handle"></div>
 
   <!-- Header -->
-  <header class="ai-drw-hdr">
-    <div class="ai-drw-title">
-      <span aria-hidden="true">✨</span>
-      <span>Tarika</span>
-      <div class="ai-drw-model-wrap">
-        <span class="ai-drw-badge" id="aiDrawerModelBadge" role="button" tabindex="0" title="Switch AI Model" aria-haspopup="true" aria-expanded="false">Gemma 4 ▾</span>
-        <div class="ai-drw-model-menu" id="aiDrawerModelMenu" role="menu" aria-label="Select AI Model">
-          <div class="ai-menu-section-title">⚡ Academic AI Models</div>
-          <div id="aiDrawerFreeModelsList">
-            <button type="button" class="ai-model-opt" data-model="google/gemma-4-31b-it:free" data-provider="openrouter" data-display="Gemma 4 31B">⚡ Gemma 4 31B (Default · Recommended)</button>
-            <button type="button" class="ai-model-opt" data-model="deepseek/deepseek-r1:free" data-provider="openrouter" data-display="DeepSeek R1">🧠 DeepSeek R1 (Math &amp; Reasoning)</button>
-            <button type="button" class="ai-model-opt" data-model="google/gemini-2.0-flash-exp:free" data-provider="openrouter" data-display="Gemini 2.0 Flash">✨ Gemini 2.0 Flash (Fast Answers)</button>
-            <button type="button" class="ai-model-opt" data-model="meta-llama/llama-3.3-70b-instruct:free" data-provider="openrouter" data-display="Llama 3.3 70B">🦙 Llama 3.3 70B (Comprehensive)</button>
-          </div>
-          
-          <div class="ai-menu-divider"></div>
-          <button type="button" class="ai-model-opt" onclick="openTarikaApiKeyModal()" style="color:var(--tarika-brand); font-weight:700;">
-            ⚙️ AI Setup &amp; Preferences
-          </button>
+  <header class="tarika-hdr">
+    <div class="tarika-hdr-left">
+      <div class="tarika-avatar-badge" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+        </svg>
+      </div>
+      <div class="tarika-title-group">
+        <div class="tarika-brand-row">
+          <h3 class="tarika-brand-name">Tarika</h3>
+          <span class="tarika-engine-tag">Mercury-3</span>
         </div>
+        <div class="tarika-sub-desc">Inception Labs Reasoning AI</div>
       </div>
     </div>
-    <div class="ai-drw-actions">
-      <button type="button" class="ai-drw-btn" onclick="startNewChat()" aria-label="Start New Chat" title="Start New Chat">➕</button>
-      <button type="button" class="ai-drw-btn" onclick="toggleHistoryPanel()" aria-label="Chat History" title="View Chat History">🕒</button>
-      <button type="button" class="ai-drw-btn" onclick="openTarikaApiKeyModal()" aria-label="Tarika AI Setup" title="Tarika AI Setup & Preferences">⚙️</button>
-      <button type="button" class="ai-drw-btn" onclick="toggleAbhiAiDrawer()" aria-label="Close Assistant" title="Close">✕</button>
+
+    <div class="tarika-hdr-actions">
+      <span id="tarikaDailyQuotaPill" class="tarika-quota-pill" title="Daily Allowance based on Notes & Uploads">
+        ⚡ Checking...
+      </span>
+      <button type="button" class="tarika-icon-btn" onclick="window.startNewTarikaChat && window.startNewTarikaChat()" title="Start New Chat" aria-label="New Chat">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      </button>
+      <button type="button" class="tarika-icon-btn" onclick="window.closeTarikaDrawer && window.closeTarikaDrawer()" title="Close (Esc)" aria-label="Close">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
     </div>
   </header>
 
-  <!-- Active Document Context Bar -->
-  <aside id="aiContextBar" aria-label="Active Document Context">
-    <div class="ai-ctx-file" id="aiContextDocName">📄 Active Document</div>
-    <div class="ai-ctx-actions">
-      <button type="button" class="ai-ctx-chip" data-action="prompt" data-prompt="Start a practice exam on this paper with MCQ, MSQ, Short, and Brief questions.">🎯 Practice Exam</button>
-      <button type="button" class="ai-ctx-chip" data-action="prompt" data-prompt="Solve the questions in this paper step-by-step with complete explanations.">💡 Solve & Explain</button>
-      <button type="button" class="ai-ctx-chip" data-action="prompt" data-prompt="Summarize this paper thoroughly and outline its main topics.">⚡ Summarize</button>
-    </div>
-  </aside>
+  <!-- Segmented Control Study Tabs -->
+  <div class="tarika-tabs-row" role="tablist">
+    <button type="button" class="tarika-seg-tab active" data-tab-mode="ask" onclick="window.setTarikaTab('ask', this)">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+      <span>Ask Paper</span>
+    </button>
+    <button type="button" class="tarika-seg-tab" data-tab-mode="solve" onclick="window.setTarikaTab('solve', this)">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line></svg>
+      <span>Step-by-Step</span>
+    </button>
+    <button type="button" class="tarika-seg-tab" data-tab-mode="summary" onclick="window.setTarikaTab('summary', this)">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+      <span>Summary</span>
+    </button>
+  </div>
 
-  <!-- Chat Messages Stream -->
-  <div id="aiMsgList" role="log" aria-live="polite">
-    <div class="ai-welcome-hero">
-      <div class="ai-welcome-spark-wrap"><span class="ai-welcome-spark">✨</span></div>
-      <h3 class="ai-welcome-heading">Hi! I'm Tarika</h3>
-      <p class="ai-welcome-tagline">Your personal engineering study partner on AbhiHub.</p>
-      <div class="ai-status-pill">
-        <span class="ai-status-dot"></span>
-        <span id="aiStatusPillText">Ready · Gemma 4 Cloud AI</span>
+  <!-- Active Document Banner (Context Aware) -->
+  <div id="tarikaDocBanner" class="tarika-doc-banner">
+    <div class="tarika-doc-banner-left">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+      <span id="tarikaDocTitle">Active Document</span>
+    </div>
+  </div>
+
+  <!-- Scrollable Messages Stream -->
+  <div id="tarikaChatStream" class="tarika-chat-stream">
+    <div id="tarikaWelcomeBox" class="tarika-welcome-box">
+      <div class="tarika-spark-big">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+      </div>
+      <h4 class="tarika-welcome-title">Hi, I'm Tarika</h4>
+      <p class="tarika-welcome-text">Your AbhiHub study partner &amp; campus guide, powered by Mercury-3.</p>
+      <div class="tarika-prompt-cards" id="tarikaQuickCards">
+        <button type="button" class="tarika-prompt-btn" onclick="window.sendTarikaQuickPrompt('How does AbhiHub work, and how can I earn credits and extra AI questions?')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+          <span>How AbhiHub works &amp; earning credits</span>
+        </button>
+        <button type="button" class="tarika-prompt-btn" onclick="window.sendTarikaQuickPrompt('Explain the key concepts and formulas from this document.')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+          <span>Explain key concepts &amp; formulas</span>
+        </button>
+        <button type="button" class="tarika-prompt-btn" onclick="window.sendTarikaQuickPrompt('Solve the numerical problems step-by-step with formulas.')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>Solve numerical questions step-by-step</span>
+        </button>
+        <button type="button" class="tarika-prompt-btn" onclick="window.sendTarikaQuickPrompt('Give me a 5-minute revision summary of high-yield exam topics.')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          <span>5-minute exam revision summary</span>
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Quick Prompts Strip -->
-  <nav class="ai-quick-prompts" aria-label="Quick Prompts">
-    <button type="button" class="ai-qchip" data-action="prompt" data-prompt="Start a practice exam for me">🎯 Practice Exam</button>
-    <button type="button" class="ai-qchip" data-action="prompt" data-prompt="Find PYQs for Engineering Mathematics">🔍 Math PYQs</button>
-    <button type="button" class="ai-qchip" data-action="prompt" data-prompt="Find notes for Data Structures">📚 DSA Notes</button>
-    <button type="button" class="ai-qchip" data-action="prompt" data-prompt="Solve the paper on this page">📝 Solve This Paper</button>
-  </nav>
+  <!-- Typing / Generating Indicator -->
+  <div id="tarikaTypingIndicator" style="display:none; padding: 0 16px 8px;">
+    <div class="tarika-typing">
+      <span class="tarika-dot"></span>
+      <span class="tarika-dot"></span>
+      <span class="tarika-dot"></span>
+      <span style="font-size:11px; color:var(--tarika-text-sec); margin-left:4px;">Thinking...</span>
+    </div>
+  </div>
 
-  <!-- Input Form Composer -->
-  <footer class="ai-drw-input-row" style="flex-direction:column;gap:6px;align-items:stretch;">
-    <div style="display:flex;width:100%;align-items:center;gap:6px;">
-      <label for="aiChatInput" class="sr-only" style="position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0;">Ask Tarika</label>
-      <input type="text" id="aiChatInput" dir="auto" placeholder="Ask any question, or type / to choose..." autocomplete="off">
-      <button type="button" id="aiSendBtn" aria-label="Send message" title="Send (Enter)">➔</button>
+  <!-- Composer Input -->
+  <div class="tarika-composer-box">
+    <div class="tarika-input-pill">
+      <input type="text" id="tarikaInput" class="tarika-input-field" placeholder="Ask any question or problem..." autocomplete="off" spellcheck="false">
+      <button type="button" id="tarikaSendBtn" class="tarika-send-btn" aria-label="Send" title="Send (Enter)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+      </button>
     </div>
-    <div class="ai-drw-status-sub">
-      <span style="display:inline-flex; align-items:center; gap:4px;">
-        <span class="ai-thinking-dot" style="width:6px; height:6px; background:#10b981; border-radius:50%; display:inline-block;"></span>
-        <span>Free Academic AI</span>
-      </span>
-      <span>Press Enter ↵ to send</span>
+    <div class="tarika-footer-meta">
+      <span>Upload notes to earn +10 daily AI queries</span>
+      <span id="tarikaModelTag">Mercury-3 Reasoning</span>
     </div>
-  </footer>
-</section>
-
-<!-- Fullscreen Practice Exam Simulator Dialog -->
-<div id="tarikaExamModal" class="ai-exam-modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="examModalTitle">
-  <div class="ai-exam-modal-box">
-    <header class="ai-exam-modal-hdr">
-      <div class="ai-exam-modal-title-wrap">
-        <span style="font-size:20px;" aria-hidden="true">🎯</span>
-        <h3 id="examModalTitle" class="ai-exam-modal-title">Practice Exam Simulator</h3>
-      </div>
-      <div class="ai-exam-timer" id="aiExamTimerBadge" title="Time Remaining">
-        <span aria-hidden="true">⏱️</span>
-        <span id="aiExamTimerText">15:00</span>
-      </div>
-      <div class="ai-exam-hdr-actions">
-        <button type="button" class="ai-exam-hdr-btn" id="aiExamFullscreenBtn" onclick="toggleExamFullscreen()" aria-label="Toggle Fullscreen">⛶ Fullscreen</button>
-        <button type="button" class="ai-exam-modal-close" onclick="closeExamModal()" aria-label="Exit Exam">✕</button>
-      </div>
-    </header>
-    <div class="ai-exam-prog-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-      <div id="examModalProgFill" class="ai-exam-prog-fill" style="width:0%;"></div>
-    </div>
-    <nav class="ai-exam-nav-strip" id="examNavStrip" aria-label="Question Navigation"></nav>
-    <main id="examModalBody" class="ai-exam-modal-body">
-      <div class="ai-exam-content-wrap" id="examContentWrap"></div>
-    </main>
-    <footer id="examModalFtr" class="ai-exam-modal-ftr"></footer>
   </div>
 </div>
 
-<!-- Instant Gesture & Left-Docking Handler -->
 <script>
 (function() {
-  window.openAbhiAiDrawer = function() {
-    const drw = document.getElementById('abhiAiDrawer');
-    if (!drw) return;
-    drw.classList.add('open');
-    drw.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('tarika-docked-open');
-    document.documentElement.classList.add('tarika-docked-open');
-    if (typeof detectOpenDocument === 'function') detectOpenDocument();
-    if (typeof window.updateModelBadgeDisplay === 'function') window.updateModelBadgeDisplay();
-    setTimeout(() => document.getElementById('aiChatInput')?.focus(), 150);
-  };
+  let activeTab = 'ask';
+  let chatHistory = [];
+  let isSubmitting = false;
 
-  window.closeAbhiAiDrawer = function() {
-    const drw = document.getElementById('abhiAiDrawer');
-    if (!drw) return;
-    drw.classList.remove('open');
-    drw.setAttribute('aria-hidden', 'true');
-    document.body.classList.remove('tarika-docked-open');
-    document.documentElement.classList.remove('tarika-docked-open');
-  };
+  const launcher = document.getElementById('abhiAiLauncher');
+  const drawer = document.getElementById('abhiAiDrawer');
+  const backdrop = document.getElementById('tarikaBackdrop');
+  const chatStream = document.getElementById('tarikaChatStream');
+  const welcomeBox = document.getElementById('tarikaWelcomeBox');
+  const inputEl = document.getElementById('tarikaInput');
+  const sendBtn = document.getElementById('tarikaSendBtn');
+  const typingIndicator = document.getElementById('tarikaTypingIndicator');
+  const quotaPill = document.getElementById('tarikaDailyQuotaPill');
+  const docBanner = document.getElementById('tarikaDocBanner');
+  const docTitleEl = document.getElementById('tarikaDocTitle');
 
-  window.toggleAbhiAiDrawer = function() {
-    const drw = document.getElementById('abhiAiDrawer');
-    if (!drw) return;
-    if (drw.classList.contains('open')) {
-      window.closeAbhiAiDrawer();
+  // Detect active document context from URL or attributes
+  function getActiveDocContext() {
+    let docId = '';
+    let docTitle = '';
+    const m = window.location.pathname.match(/\/resource[s]?\/([a-zA-Z0-9_-]+)/);
+    if (m && m[1]) {
+      docId = m[1];
+    }
+    const h1 = document.querySelector('h1.ap-doc-title, .ap-hero-title, [data-doc-title]');
+    if (h1) {
+      docTitle = h1.getAttribute('data-doc-title') || h1.textContent.trim();
+    }
+    return { docId, docTitle };
+  }
+
+  // Fetch daily rate limit quota based on notes consumption and uploads
+  async function refreshDailyQuota() {
+    try {
+      const res = await fetch('/api/ai/daily-quota');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data && data.success && quotaPill) {
+        quotaPill.textContent = `⚡ ${data.remaining}/${data.limit} left`;
+        quotaPill.title = data.breakdown || `${data.remaining} queries remaining today`;
+      }
+    } catch(e) {}
+  }
+
+  window.openTarikaDrawer = function(initialPrompt) {
+    if (typeof window.closeSearchDrawer === 'function') {
+      window.closeSearchDrawer();
+    }
+    const ctx = getActiveDocContext();
+    if (ctx.docId && docBanner && docTitleEl) {
+      docTitleEl.textContent = ctx.docTitle || 'Active Document';
+      docBanner.style.display = 'flex';
+    } else if (docBanner) {
+      docBanner.style.display = 'none';
+    }
+
+    if (backdrop) backdrop.classList.add('active');
+    if (drawer) drawer.classList.add('active');
+    refreshDailyQuota();
+
+    if (initialPrompt) {
+      if (inputEl) inputEl.value = initialPrompt;
+      setTimeout(handleSend, 150);
     } else {
-      window.openAbhiAiDrawer();
+      setTimeout(() => inputEl && inputEl.focus(), 250);
     }
   };
 
-  // Mobile edge swipe-to-open and swipe-back-to-close
-  let touchStartX = 0;
-  let touchStartY = 0;
-  let isTrackingEdgeSwipe = false;
-  let isTrackingDrawerSwipe = false;
+  window.closeTarikaDrawer = function() {
+    if (backdrop) backdrop.classList.remove('active');
+    if (drawer) drawer.classList.remove('active');
+  };
 
-  window.addEventListener('touchstart', function(e) {
-    if (!e.touches || e.touches.length !== 1) return;
-    const t = e.touches[0];
-    touchStartX = t.clientX;
-    touchStartY = t.clientY;
-
-    const drw = document.getElementById('abhiAiDrawer');
-    const isOpen = drw && drw.classList.contains('open');
-
-    if (!isOpen) {
-      if (touchStartX <= 45) {
-        isTrackingEdgeSwipe = true;
-      }
+  window.toggleTarikaDrawer = function(prompt) {
+    if (drawer && drawer.classList.contains('active')) {
+      window.closeTarikaDrawer();
     } else {
-      if (drw.contains(e.target)) {
-        isTrackingDrawerSwipe = true;
+      window.openTarikaDrawer(prompt);
+    }
+  };
+
+  if (launcher) {
+    launcher.addEventListener('click', function(e) {
+      e.preventDefault();
+      window.toggleTarikaDrawer();
+    });
+  }
+
+  // Keyboard shortcut: Esc to close
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && drawer && drawer.classList.contains('active')) {
+      window.closeTarikaDrawer();
+    }
+  });
+
+  window.setTarikaTab = function(mode, btn) {
+    activeTab = mode;
+    document.querySelectorAll('.tarika-seg-tab').forEach(t => t.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    const promptCards = document.getElementById('tarikaQuickCards');
+    if (!promptCards) return;
+
+    if (mode === 'solve') {
+      promptCards.innerHTML = `
+        <button type="button" class="tarika-prompt-btn" onclick="window.sendTarikaQuickPrompt('Step-by-step complete solution with all intermediate steps and explanations.')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>Step-by-step complete solution with working</span>
+        </button>
+        <button type="button" class="tarika-prompt-btn" onclick="window.sendTarikaQuickPrompt('Highlight the tricky parts and common pitfalls students face.')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <span>Common student mistakes &amp; tricky spots</span>
+        </button>
+      `;
+    } else if (mode === 'summary') {
+      promptCards.innerHTML = `
+        <button type="button" class="tarika-prompt-btn" onclick="window.sendTarikaQuickPrompt('Summarize key definitions, laws, and formulas into bullet points.')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          <span>Key definitions, laws &amp; formula cheat-sheet</span>
+        </button>
+        <button type="button" class="tarika-prompt-btn" onclick="window.sendTarikaQuickPrompt('What are the high-probability exam questions likely to appear?')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
+          <span>High-probability recurring exam questions</span>
+        </button>
+      `;
+    } else {
+      promptCards.innerHTML = `
+        <button type="button" class="tarika-prompt-btn" onclick="window.sendTarikaQuickPrompt('Explain the key concepts and formulas from this document.')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+          <span>Explain key concepts &amp; formulas</span>
+        </button>
+        <button type="button" class="tarika-prompt-btn" onclick="window.sendTarikaQuickPrompt('Solve the numerical problems step-by-step with formulas.')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>Solve numerical questions step-by-step</span>
+        </button>
+        <button type="button" class="tarika-prompt-btn" onclick="window.sendTarikaQuickPrompt('Give me a 5-minute revision summary of high-yield exam topics.')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          <span>5-minute exam revision summary</span>
+        </button>
+      `;
+    }
+  };
+
+  window.startNewTarikaChat = function() {
+    chatHistory = [];
+    if (chatStream) {
+      chatStream.innerHTML = '';
+      if (welcomeBox) chatStream.appendChild(welcomeBox);
+    }
+    if (inputEl) inputEl.value = '';
+    refreshDailyQuota();
+  };
+
+  window.sendTarikaQuickPrompt = function(promptText) {
+    if (inputEl) inputEl.value = promptText;
+    handleSend();
+  };
+
+  function appendMessage(role, text) {
+    if (welcomeBox && welcomeBox.parentNode) {
+      welcomeBox.remove();
+    }
+    const wrap = document.createElement('div');
+    wrap.className = `tarika-msg-wrap ${role}`;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'tarika-msg-bubble';
+
+    // Simple markdown escape and formatting
+    if (role === 'user') {
+      bubble.textContent = text;
+    } else {
+      bubble.innerHTML = renderSimpleMarkdown(text);
+    }
+
+    wrap.appendChild(bubble);
+    chatStream.appendChild(wrap);
+    chatStream.scrollTop = chatStream.scrollHeight;
+  }
+
+  function renderSimpleMarkdown(raw) {
+    let out = String(raw || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    // Bold
+    out = out.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    // Italic
+    out = out.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    // Inline code
+    out = out.replace(/`([^`]+)`/g, '<code>$1</code>');
+    // Line breaks
+    out = out.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
+    return out;
+  }
+
+  async function handleSend() {
+    if (isSubmitting) return;
+    const text = (inputEl.value || '').trim();
+    if (!text) return;
+
+    inputEl.value = '';
+    appendMessage('user', text);
+    chatHistory.push({ role: 'user', content: text });
+
+    isSubmitting = true;
+    if (sendBtn) sendBtn.disabled = true;
+    if (typingIndicator) typingIndicator.style.display = 'block';
+    chatStream.scrollTop = chatStream.scrollHeight;
+
+    const ctx = getActiveDocContext();
+
+    try {
+      const res = await fetch('/api/ai/assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: text,
+          doc_id: ctx.docId,
+          doc_title: ctx.docTitle,
+          history: chatHistory.slice(-6),
+          model: 'mercury-3'
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        const errorMsg = data.message || "I'm having trouble connecting right now. Please try again!";
+        appendMessage('assistant', errorMsg);
+        if (data.daily_limit_reached && quotaPill) {
+          quotaPill.textContent = `⚡ 0/${data.limit} left`;
+        }
+      } else {
+        const reply = data.reply || data.answer || "Here's what I found!";
+        appendMessage('assistant', reply);
+        chatHistory.push({ role: 'assistant', content: reply });
+
+        if (data.daily_usage && quotaPill) {
+          quotaPill.textContent = `⚡ ${data.daily_usage.remaining}/${data.daily_usage.limit} left`;
+        }
       }
+    } catch(err) {
+      appendMessage('assistant', "Network connection error. Please verify your internet and try again.");
+    } finally {
+      isSubmitting = false;
+      if (sendBtn) sendBtn.disabled = false;
+      if (typingIndicator) typingIndicator.style.display = 'none';
+      chatStream.scrollTop = chatStream.scrollHeight;
     }
-  }, { passive: true });
+  }
 
-  window.addEventListener('touchmove', function(e) {
-    if (!isTrackingEdgeSwipe && !isTrackingDrawerSwipe) return;
-    if (!e.touches || e.touches.length !== 1) return;
-    const t = e.touches[0];
-    const dy = Math.abs(t.clientY - touchStartY);
-    const dx = t.clientX - touchStartX;
+  if (sendBtn) {
+    sendBtn.addEventListener('click', handleSend);
+  }
 
-    if (dy > 35 && dy > Math.abs(dx)) {
-      isTrackingEdgeSwipe = false;
-      isTrackingDrawerSwipe = false;
-    }
-  }, { passive: true });
-
-  window.addEventListener('touchend', function(e) {
-    if (!isTrackingEdgeSwipe && !isTrackingDrawerSwipe) return;
-    const t = e.changedTouches ? e.changedTouches[0] : null;
-    if (!t) {
-      isTrackingEdgeSwipe = false;
-      isTrackingDrawerSwipe = false;
-      return;
-    }
-    const dx = t.clientX - touchStartX;
-    const dy = Math.abs(t.clientY - touchStartY);
-
-    if (isTrackingEdgeSwipe) {
-      if (dx > 50 && dy < 60) {
-        window.openAbhiAiDrawer();
+  if (inputEl) {
+    inputEl.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
       }
-      isTrackingEdgeSwipe = false;
-    } else if (isTrackingDrawerSwipe) {
-      if (dx < -50 && dy < 60) {
-        window.closeAbhiAiDrawer();
-      }
-      isTrackingDrawerSwipe = false;
-    }
-  }, { passive: true });
+    });
+  }
+
+  // Global helper to trigger Tarika from anywhere (resource pages, app-shell, etc.)
+  window.askAiAboutFile = function(promptText) {
+    window.openTarikaDrawer(promptText);
+  };
 })();
 </script>
-
-<!-- KaTeX & Marked Assets -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" media="print" onload="this.media='all'">
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
-<script src="/static/js/ai/ai_router.js" defer></script>
-<script src="/static/js/ai/render.js" defer></script>
-<script src="/static/js/ai/history.js" defer></script>
-<script src="/static/js/ai/chat.js" defer></script>

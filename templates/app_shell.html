@@ -17,7 +17,7 @@
         })();
     </script>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#2563eb">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -103,12 +103,12 @@
                 </button>
 
                 <!-- Shell Search Icon -->
-                <a href="/search" id="shellSearchBtn" class="shell-search-btn" aria-label="Search library" title="Search library & papers" style="text-decoration:none;">
+                <button type="button" id="shellSearchBtn" class="shell-search-btn" aria-label="Search library" title="Search library & papers" style="background:none; border:none; padding:0; cursor:pointer;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="11" cy="11" r="8"></circle>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                     </svg>
-                </a>
+                </button>
 
                 <!-- Shell Account & Notification Button -->
                 <div id="shellNotifWrap" class="shell-notif-wrap">
@@ -282,6 +282,9 @@
 
     <!-- Persistent Global Tarika AI Assistant (Lives outside iframe across all tab & document transitions) -->
     {% include 'includes/ai_assistant.html' %}
+
+    <!-- Persistent Global Search & Filter Drawer (30% Right Docked / Swipeable) -->
+    {% include 'includes/_search_drawer.html' ignore missing %}
 
     <!-- Shell Controller Script -->
     <script src="{{ url_for('static', filename='js/app-shell.js') }}?v=2026" defer></script>

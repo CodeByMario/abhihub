@@ -301,7 +301,7 @@
     </div>
 
     <div class="rnf-search-box">
-      <form class="rnf-search-form" action="{{ url_for('library.search_page') }}" method="GET">
+      <form class="rnf-search-form" onsubmit="event.preventDefault(); const val=this.querySelector('input').value; if(window.openSearchDrawer){window.openSearchDrawer(val);} else {location.href='/home?q='+encodeURIComponent(val);}" action="{{ url_for('app_pages.home') }}" method="GET">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#86868b;margin-right:6px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
         <input class="rnf-search-input" type="search" name="q" placeholder="Search other papers, subjects, or notes..." autocomplete="off">
         <button class="rnf-search-btn" type="submit">Search</button>

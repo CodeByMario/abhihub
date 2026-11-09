@@ -420,7 +420,7 @@
     </div>
     <div style="display:flex; gap:0.5rem; align-items:center;">
       <span class="live-pill" id="realtimeStatus"><span class="live-dot"></span> Live 0-Latency</span>
-      <a href="/admin/api/audit/export" class="pay-btn pay-btn-primary" style="text-decoration:none; display:inline-flex; align-items:center; gap:0.4rem;" title="Download Multi-Tab Financial Audit Excel (.xlsx)">
+      <a href="/api/admin/audit/export" class="pay-btn pay-btn-primary" style="text-decoration:none; display:inline-flex; align-items:center; gap:0.4rem;" title="Download Multi-Tab Financial Audit Excel (.xlsx)">
         <i class="fas fa-file-excel"></i> Export Audit (Excel)
       </a>
       <button type="button" class="pay-btn pay-btn-outline" onclick="refreshAllPaymentData()">
@@ -1125,20 +1125,20 @@
     }
 
     try {
-      const res = await fetch(`/admin/api/kyc/${kycId}/verify`, {
+      const res = await fetch(`/api/admin/kyc/${kycId}/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: action, reason: reason })
       });
-      const data = await res.json();
-      if (data.success) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
         alert(data.message || `KYC ${action}d successfully`);
         loadKycSubmissions();
       } else {
-        alert(`Error: ${data.error}`);
+        alert(`Error: ${data.error || 'Failed to update KYC application'}`);
       }
     } catch (e) {
-      alert('Network error updating KYC status.');
+      alert('Network error updating KYC status: ' + (e.message || e));
     }
   }
 

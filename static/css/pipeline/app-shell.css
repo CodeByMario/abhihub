@@ -13,7 +13,8 @@
 }
 
 /* ── Header ── */
-header {
+body > header,
+header.site-header {
     width: 100%;
     height: fit-content;
     display: flex;
@@ -27,7 +28,8 @@ header {
     transition: top 0.3s ease, background-color 0.25s ease;
 }
 
-[data-theme="dark"] header {
+[data-theme="dark"] body > header,
+[data-theme="dark"] header.site-header {
     background: rgba(0, 0, 0, 0.8);
     border-bottom-color: rgba(255, 255, 255, 0.08);
 }

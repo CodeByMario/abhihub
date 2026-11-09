@@ -1,0 +1,1298 @@
+<!-- AbhiHub Apple Spotlight Search & Filter Drawer (Universal Mobile & Laptop Experience) -->
+<style>
+  /* ── Mobile Dimming Backdrop ── */
+  .search-drawer-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.42);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 9998;
+    opacity: 0;
+    transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .search-drawer-backdrop.active {
+    display: block;
+    opacity: 1;
+  }
+
+  /* ── Right-Side Spotlight Drawer Panel (Apple HIG) ── */
+  #abhiSearchDrawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: auto;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(28px) saturate(190%);
+    -webkit-backdrop-filter: blur(28px) saturate(190%);
+    color: #1d1d1f;
+    border-left: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: -12px 0 40px rgba(0, 0, 0, 0.12);
+    z-index: 10000;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+    transform: translateX(100%);
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.28s ease;
+    visibility: hidden;
+    pointer-events: none;
+    box-sizing: border-box;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  #abhiSearchDrawer.open {
+    transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  [data-theme="dark"] #abhiSearchDrawer {
+    background: rgba(20, 20, 26, 0.95);
+    color: #f5f5f7;
+    border-left-color: rgba(255, 255, 255, 0.1);
+    box-shadow: -12px 0 48px rgba(0, 0, 0, 0.65);
+  }
+
+  /* ── Laptop / Desktop Docked Mode (30vw Right Dock, 70% App with Zero Reload) ── */
+  @media (min-width: 769px) {
+    #abhiSearchDrawer {
+      width: 32vw !important;
+      min-width: 380px !important;
+      max-width: 480px !important;
+      right: 0 !important;
+      left: auto !important;
+      top: 0 !important;
+      bottom: 0 !important;
+      height: 100vh !important;
+      height: 100dvh !important;
+    }
+
+    body {
+      transition: margin-left 0.28s cubic-bezier(0.16, 1, 0.3, 1), margin-right 0.28s cubic-bezier(0.16, 1, 0.3, 1), width 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Single dock: Search takes right dock, app takes remaining width */
+    body.search-docked-open {
+      margin-right: 32vw !important;
+      width: 68vw !important;
+      max-width: 68vw !important;
+      box-sizing: border-box !important;
+      overflow-x: hidden !important;
+    }
+
+    /* Dual dock: Tarika (30% left) + Search (32% right) + App in center */
+    body.tarika-docked-open.search-docked-open {
+      margin-left: 30vw !important;
+      margin-right: 32vw !important;
+      width: 38vw !important;
+      max-width: 38vw !important;
+      box-sizing: border-box !important;
+      overflow-x: hidden !important;
+    }
+
+    body.search-docked-open .app-shell-viewport,
+    body.search-docked-open .shell-main-area,
+    body.search-docked-open .shell-iframe,
+    body.search-docked-open .apple-shell,
+    body.search-docked-open .apple-container,
+    body.search-docked-open .container,
+    body.search-docked-open main,
+    body.search-docked-open header,
+    body.search-docked-open .main-nav,
+    body.search-docked-open .site-header,
+    body.search-docked-open .shell-header {
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+    }
+
+    body.search-docked-open:not(.tarika-docked-open) .navbar--bottom {
+      left: 34vw !important;
+      transform: translateX(-50%) !important;
+      max-width: calc(68vw - 2rem) !important;
+      transition: left 0.28s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    body.tarika-docked-open.search-docked-open .navbar--bottom {
+      left: calc(30vw + 19vw) !important;
+      transform: translateX(-50%) !important;
+      max-width: calc(38vw - 1rem) !important;
+      transition: left 0.28s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .search-drawer-backdrop {
+      display: none !important;
+    }
+  }
+
+  /* ── Mobile View: Native iOS Sheet Presentation ── */
+  @media (max-width: 768px) {
+    #abhiSearchDrawer {
+      width: 100vw !important;
+      max-width: 100vw !important;
+      left: 0 !important;
+      right: 0 !important;
+      border: none !important;
+      border-radius: 16px 16px 0 0;
+      box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.2);
+    }
+  }
+
+  /* Grab handle for iOS sheet */
+  .sd-grab-bar {
+    display: none;
+    width: 36px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.16);
+    margin: 8px auto 2px;
+    flex-shrink: 0;
+  }
+  [data-theme="dark"] .sd-grab-bar {
+    background: rgba(255, 255, 255, 0.22);
+  }
+  @media (max-width: 768px) {
+    .sd-grab-bar {
+      display: block;
+    }
+  }
+
+  /* ── Apple Spotlight Top Bar ── */
+  .sd-spotlight-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px 8px;
+    flex-shrink: 0;
+  }
+
+  .sd-spotlight-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .sd-spotlight-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #0071E3;
+    box-shadow: 0 0 8px rgba(0, 113, 227, 0.5);
+  }
+
+  .sd-spotlight-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: inherit;
+  }
+
+  .sd-count-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: #86868b;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 1px 7px;
+    border-radius: 999px;
+  }
+  [data-theme="dark"] .sd-count-badge {
+    background: rgba(255, 255, 255, 0.08);
+    color: #a1a1a6;
+  }
+
+  .sd-spotlight-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .sd-kbd-hint {
+    display: none;
+    font-family: inherit;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: #86868b;
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    padding: 2px 6px;
+    border-radius: 5px;
+  }
+  [data-theme="dark"] .sd-kbd-hint {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #a1a1a6;
+  }
+  @media (min-width: 769px) {
+    .sd-kbd-hint {
+      display: inline-block;
+    }
+  }
+
+  .sd-close-pill {
+    background: rgba(0, 0, 0, 0.06);
+    border: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #86868b;
+    transition: all 0.15s ease;
+  }
+  .sd-close-pill:hover {
+    background: rgba(0, 0, 0, 0.12);
+    color: #1d1d1f;
+  }
+  [data-theme="dark"] .sd-close-pill {
+    background: rgba(255, 255, 255, 0.08);
+    color: #a1a1a6;
+  }
+  [data-theme="dark"] .sd-close-pill:hover {
+    background: rgba(255, 255, 255, 0.16);
+    color: #f5f5f7;
+  }
+
+  /* ── Apple Spotlight Search Input Bar ── */
+  .sd-input-container {
+    padding: 2px 14px 6px;
+    flex-shrink: 0;
+  }
+
+  .sd-input-capsule {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    padding: 0 12px;
+    height: 38px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  [data-theme="dark"] .sd-input-capsule {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  .sd-input-capsule:focus-within {
+    background: var(--surface, #ffffff);
+    border-color: #0071E3;
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.18);
+  }
+  [data-theme="dark"] .sd-input-capsule:focus-within {
+    background: #1c1c24;
+  }
+
+  .sd-search-icon {
+    color: #86868b;
+    flex-shrink: 0;
+  }
+  .sd-input-capsule:focus-within .sd-search-icon {
+    color: #0071E3;
+  }
+
+  .sd-spotlight-input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 500;
+    color: inherit;
+    outline: none;
+    line-height: 1.4;
+  }
+  .sd-spotlight-input::placeholder {
+    color: #86868b;
+    font-weight: 400;
+  }
+
+  .sd-input-clear {
+    background: rgba(0, 0, 0, 0.08);
+    border: none;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #86868b;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  [data-theme="dark"] .sd-input-clear {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  /* ── Smart Category Segmented Chips (SVG Vector Icons Only) ── */
+  .sd-chips-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 2px 14px 6px;
+    flex-shrink: 0;
+  }
+
+  .sd-quick-chips {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sd-quick-chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sd-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #55555c;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+  }
+  [data-theme="dark"] .sd-chip {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #a1a1a6;
+  }
+  .sd-chip svg {
+    flex-shrink: 0;
+  }
+  .sd-chip:hover {
+    background: rgba(0, 0, 0, 0.08);
+    color: #1d1d1f;
+  }
+  [data-theme="dark"] .sd-chip:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #f5f5f7;
+  }
+  .sd-chip.active {
+    background: #0071E3 !important;
+    border-color: #0071E3 !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    box-shadow: 0 1px 4px rgba(0, 113, 227, 0.35);
+  }
+
+  .sd-filter-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 999px;
+    padding: 3px 9px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #55555c;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+  }
+  [data-theme="dark"] .sd-filter-toggle-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #a1a1a6;
+  }
+  .sd-filter-toggle-btn.has-active-filters,
+  .sd-filter-toggle-btn.is-expanded {
+    background: rgba(0, 113, 227, 0.1);
+    border-color: #0071E3;
+    color: #0071E3;
+  }
+
+  .sd-active-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #0071E3;
+  }
+
+  .sd-chevron-icon {
+    transition: transform 0.2s ease;
+  }
+  .sd-filter-toggle-btn.is-expanded .sd-chevron-icon {
+    transform: rotate(180deg);
+  }
+
+  /* ── Collapsible Advanced Filters Drawer ── */
+  .sd-filter-drawer-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    padding: 6px 14px 10px;
+    background: rgba(0, 0, 0, 0.02);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    flex-shrink: 0;
+    animation: sdSlideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  [data-theme="dark"] .sd-filter-drawer-grid {
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+  }
+
+  @keyframes sdSlideDown {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .sd-grid-select-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .sd-filter-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #86868b;
+    padding-left: 2px;
+  }
+
+  .sd-grid-select {
+    width: 100%;
+    height: 28px;
+    padding: 0 8px;
+    font-size: 11px;
+    font-weight: 500;
+    color: inherit;
+    background: var(--surface, #ffffff);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 7px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+  }
+  [data-theme="dark"] .sd-grid-select {
+    background: #1c1c24;
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+  .sd-grid-select:focus,
+  .sd-grid-select.has-value {
+    border-color: #0071E3;
+    color: #0071E3;
+    font-weight: 600;
+  }
+
+  .sd-reset-all-btn {
+    width: 100%;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .sd-reset-all-btn:hover {
+    background: rgba(239, 68, 68, 0.15);
+  }
+
+  /* ── Apple List Results Section ── */
+  .sd-results-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 4px 14px 16px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .sd-results-body::-webkit-scrollbar {
+    width: 4px;
+  }
+  .sd-results-body::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .sd-results-body::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 999px;
+  }
+  [data-theme="dark"] .sd-results-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  /* ── Improved Apple HIG Card Design ── */
+  #abhiSearchDrawer .arch-apple-card {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    padding: 9px 12px !important;
+    border-radius: 12px !important;
+    margin-bottom: 6px !important;
+    background: var(--surface, #ffffff) !important;
+    border: 1px solid rgba(0, 0, 0, 0.06) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+    gap: 11px !important;
+    text-decoration: none !important;
+    transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    color: inherit !important;
+    cursor: pointer !important;
+  }
+  [data-theme="dark"] #abhiSearchDrawer .arch-apple-card {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-color: rgba(255, 255, 255, 0.06) !important;
+  }
+  #abhiSearchDrawer .arch-apple-card:hover {
+    background: rgba(0, 113, 227, 0.05) !important;
+    border-color: rgba(0, 113, 227, 0.28) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
+  }
+  [data-theme="dark"] #abhiSearchDrawer .arch-apple-card:hover {
+    background: rgba(255, 255, 255, 0.07) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+  }
+
+  #abhiSearchDrawer .arch-doc-icon-wrap {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    transition: transform 0.15s ease !important;
+  }
+  #abhiSearchDrawer .arch-apple-card:hover .arch-doc-icon-wrap {
+    transform: scale(1.05);
+  }
+
+  #abhiSearchDrawer .arch-card-body {
+    padding: 0 !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+  }
+
+  .arch-card-top-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  #abhiSearchDrawer .arch-card-title {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    color: inherit !important;
+    letter-spacing: -0.01em;
+  }
+
+  .arch-category-tag {
+    font-size: 9.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 1px 6px;
+    border-radius: 999px;
+    flex-shrink: 0;
+    line-height: 1.3;
+  }
+
+  #abhiSearchDrawer .arch-card-desc {
+    font-size: 11px !important;
+    color: #86868b !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    margin: 0 !important;
+    font-weight: 450 !important;
+  }
+
+  .arch-card-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  #abhiSearchDrawer .arch-price-tag {
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    padding: 2px 7px !important;
+    border-radius: 980px !important;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+
+  .arch-chevron-icon {
+    color: #c7c7cc;
+    transition: transform 0.15s ease, color 0.15s ease;
+  }
+  #abhiSearchDrawer .arch-apple-card:hover .arch-chevron-icon {
+    color: #0071E3;
+    transform: translateX(2px);
+  }
+
+  /* ── Minimal Apple Footer ── */
+  .sd-drawer-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    background: rgba(0, 0, 0, 0.02);
+    flex-shrink: 0;
+  }
+  [data-theme="dark"] .sd-drawer-footer {
+    border-top-color: rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .sd-footer-link {
+    font-size: 11.5px;
+    color: #0071E3;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .sd-footer-close-btn {
+    background: none;
+    border: none;
+    color: #86868b;
+    font-size: 11.5px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 2px 6px;
+  }
+  .sd-footer-close-btn:hover {
+    color: inherit;
+  }
+</style>
+
+<!-- Mobile Dimming Backdrop -->
+<div id="searchDrawerBackdrop" class="search-drawer-backdrop" onclick="window.closeSearchDrawer && window.closeSearchDrawer()"></div>
+
+<!-- Right Search Panel (Apple Spotlight Mechanics & Docking) -->
+<div id="abhiSearchDrawer" role="dialog" aria-modal="true" aria-label="Academic Search and Filters">
+  <!-- Mobile Grab Bar -->
+  <div class="sd-grab-bar" aria-hidden="true"></div>
+
+  <!-- Spotlight Top Bar -->
+  <div class="sd-spotlight-header">
+    <div class="sd-spotlight-brand">
+      <span class="sd-spotlight-dot"></span>
+      <span class="sd-spotlight-title">Spotlight Search</span>
+      <span id="searchResultCount" class="sd-count-badge">0 papers</span>
+    </div>
+    <div class="sd-spotlight-actions">
+      <kbd class="sd-kbd-hint" aria-hidden="true">Esc</kbd>
+      <button type="button" class="sd-close-pill" onclick="window.closeSearchDrawer && window.closeSearchDrawer()" aria-label="Close search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Search Input Bar -->
+  <div class="sd-input-container">
+    <div class="sd-input-capsule">
+      <svg class="sd-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input type="text" id="searchFileName" class="sd-spotlight-input" placeholder="Search by subject name, code, topic..." autocomplete="off" spellcheck="false" aria-label="Search documents">
+      <button id="searchClearBtn" class="sd-input-clear" type="button" aria-label="Clear search" title="Clear search" style="display:none;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Category Chips (Zero Emojis, Crisp SVG Icons) & Filter Toggle -->
+  <div class="sd-chips-bar">
+    <div class="sd-quick-chips">
+      <button type="button" class="sd-chip active" data-type-chip="">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+        <span>All</span>
+      </button>
+      <button type="button" class="sd-chip" data-type-chip="PYQ">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+        <span>PYQ</span>
+      </button>
+      <button type="button" class="sd-chip" data-type-chip="Notes">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+        <span>Notes</span>
+      </button>
+      <button type="button" class="sd-chip" data-type-chip="Syllabus">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+        <span>Syllabus</span>
+      </button>
+    </div>
+    <button type="button" id="toggleFilterAccordionBtn" class="sd-filter-toggle-btn" aria-expanded="false" title="Filter by College, Branch, Semester, Year">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+      <span>Filters</span>
+      <span id="activeFiltersBadge" class="sd-active-dot" style="display:none;"></span>
+      <svg class="sd-chevron-icon" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </button>
+  </div>
+
+  <!-- Collapsible Filter Sheet -->
+  <div id="sdFilterAccordion" class="sd-filter-drawer-grid" style="display:none;">
+    <div class="sd-grid-select-wrap">
+      <label class="sd-filter-label" for="searchCollege">College</label>
+      <select id="searchCollege" class="sd-grid-select">
+        <option value="">All Colleges</option>
+      </select>
+    </div>
+    <div class="sd-grid-select-wrap">
+      <label class="sd-filter-label" for="searchBranch">Branch</label>
+      <select id="searchBranch" class="sd-grid-select">
+        <option value="">All Branches</option>
+      </select>
+    </div>
+    <div class="sd-grid-select-wrap">
+      <label class="sd-filter-label" for="searchSemester">Semester</label>
+      <select id="searchSemester" class="sd-grid-select">
+        <option value="">All Semesters</option>
+        <option value="1">Semester 1</option>
+        <option value="2">Semester 2</option>
+        <option value="3">Semester 3</option>
+        <option value="4">Semester 4</option>
+        <option value="5">Semester 5</option>
+        <option value="6">Semester 6</option>
+        <option value="7">Semester 7</option>
+        <option value="8">Semester 8</option>
+      </select>
+    </div>
+    <div class="sd-grid-select-wrap">
+      <label class="sd-filter-label" for="searchYear">Year</label>
+      <select id="searchYear" class="sd-grid-select">
+        <option value="">All Years</option>
+      </select>
+    </div>
+    <div class="sd-grid-select-wrap">
+      <label class="sd-filter-label" for="searchSort">Sort By</label>
+      <select id="searchSort" class="sd-grid-select">
+        <option value="relevance">Top Relevance</option>
+        <option value="date_desc">Latest Uploads</option>
+        <option value="views_desc">Most Viewed</option>
+        <option value="likes_desc">Most Endorsed</option>
+      </select>
+    </div>
+    <!-- Hidden sync element for searchType -->
+    <select id="searchType" style="display:none;">
+      <option value=""></option>
+      <option value="PYQ">PYQ</option>
+      <option value="Notes">Notes</option>
+      <option value="Syllabus">Syllabus</option>
+    </select>
+    <div class="sd-grid-select-wrap" style="align-self:flex-end;">
+      <button id="searchResetBtn" type="button" class="sd-reset-all-btn">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        <span>Reset Filters</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Scrollable Search Results Area -->
+  <div class="sd-results-body">
+    <div id="loader" class="ss-loader" role="status" aria-label="Loading" style="display:none; text-align:center; padding:1.5rem; color:#0071e3;">
+      <div style="display:inline-block; width:20px; height:20px; border:2.5px solid rgba(0,113,227,0.2); border-top-color:#0071e3; border-radius:50%; animation:sdSpin 0.6s linear infinite;"></div>
+      <style>@keyframes sdSpin { to { transform: rotate(360deg); } }</style>
+    </div>
+
+    <div id="searchResults" class="ss-results" aria-live="polite"></div>
+
+    <div id="noResults" class="ss-empty" style="display:none; padding:2rem 0.5rem; text-align:center;">
+      <div style="width:40px; height:40px; border-radius:12px; background:rgba(0,0,0,0.04); display:inline-flex; align-items:center; justify-content:center; color:#86868b; margin-bottom:8px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+      </div>
+      <h4 style="margin:0 0 4px; font-size:13px; font-weight:700;">No papers found</h4>
+      <p style="margin:0 0 1rem; font-size:11.5px; color:#86868b;">Try adjusting your keywords or clearing active filters.</p>
+    </div>
+  </div>
+
+  <!-- Minimal Drawer Footer (Zero Emojis, Pure SVG) -->
+  <div class="sd-drawer-footer">
+    <a href="/store-room" class="sd-footer-link" onclick="if(window.navigateTo){event.preventDefault();window.closeSearchDrawer();window.navigateTo('/store-room');}">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M3 10h18M5 10v11M19 10v11M9 10v11M15 10v11M12 3l9 7H3z"></path></svg>
+      <span>Store Room Archive</span>
+    </a>
+    <button type="button" onclick="window.closeSearchDrawer && window.closeSearchDrawer()" class="sd-footer-close-btn">
+      Close Esc
+    </button>
+  </div>
+</div>
+
+<script>
+(function() {
+  // If inside an iframe (e.g. inside app_shell), delegate commands directly to parent shell
+  if (window.parent && window.parent !== window) {
+    window.openSearchDrawer = function(query) {
+      window.parent.postMessage({ type: 'SEARCH_OPEN', query: query || '' }, '*');
+    };
+    window.closeSearchDrawer = function() {
+      window.parent.postMessage({ type: 'SEARCH_CLOSE' }, '*');
+    };
+    window.toggleSearchDrawer = function(query) {
+      window.parent.postMessage({ type: 'SEARCH_TOGGLE', query: query || '' }, '*');
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+      ['headerSearchBtn', 'shellSearchBtn', 'navbarSearchIcon'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn && !btn.dataset.searchWired) {
+          btn.dataset.searchWired = 'true';
+          btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.toggleSearchDrawer();
+          });
+        }
+      });
+    });
+    return;
+  }
+
+  let _searchOpen = false;
+  let _abortCtrl = null;
+  let _debounceTimer = null;
+
+  window.openSearchDrawer = function(query) {
+    if (typeof window.closeTarikaDrawer === 'function') { window.closeTarikaDrawer(); }
+    const drw = document.getElementById('abhiSearchDrawer');
+    if (!drw) return;
+    _searchOpen = true;
+
+    // Close notif panel if open
+    try {
+      const shellNotif = document.getElementById('shellNotifPanel');
+      if (shellNotif) shellNotif.style.display = 'none';
+      if (typeof notifOpen !== 'undefined') {
+        notifOpen = false;
+      }
+    } catch(e) {}
+
+    drw.classList.add('open');
+    drw.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('search-docked-open');
+    document.documentElement.classList.add('search-docked-open');
+
+    // On mobile, show backdrop
+    const backdrop = document.getElementById('searchDrawerBackdrop');
+    if (backdrop && window.innerWidth <= 768) {
+      backdrop.style.display = 'block';
+      requestAnimationFrame(() => backdrop.classList.add('active'));
+    }
+
+    const inp = document.getElementById('searchFileName');
+    if (inp) {
+      if (typeof query === 'string' && query.length > 0) {
+        inp.value = query;
+      }
+      setTimeout(() => inp.focus(), 120);
+      runLiveSearch();
+    }
+  };
+
+  window.closeSearchDrawer = function() {
+    const drw = document.getElementById('abhiSearchDrawer');
+    if (!drw) return;
+    _searchOpen = false;
+
+    drw.classList.remove('open');
+    drw.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('search-docked-open');
+    document.documentElement.classList.remove('search-docked-open');
+
+    const backdrop = document.getElementById('searchDrawerBackdrop');
+    if (backdrop) {
+      backdrop.classList.remove('active');
+      setTimeout(() => { backdrop.style.display = 'none'; }, 200);
+    }
+  };
+
+  let _lastToggleTime = 0;
+  window.toggleSearchDrawer = function(query) {
+    const now = Date.now();
+    if (now - _lastToggleTime < 160) return;
+    _lastToggleTime = now;
+
+    const drw = document.getElementById('abhiSearchDrawer');
+    if (drw && drw.classList.contains('open')) {
+      window.closeSearchDrawer();
+    } else {
+      window.openSearchDrawer(query);
+    }
+  };
+
+  // Sync active filters indicator badge
+  function updateFilterBadge() {
+    const college = document.getElementById('searchCollege')?.value || '';
+    const branch = document.getElementById('searchBranch')?.value || '';
+    const sem = document.getElementById('searchSemester')?.value || '';
+    const year = document.getElementById('searchYear')?.value || '';
+    const sort = document.getElementById('searchSort')?.value || 'relevance';
+    const hasActive = Boolean(college || branch || sem || year || (sort && sort !== 'relevance'));
+
+    const badge = document.getElementById('activeFiltersBadge');
+    const toggleBtn = document.getElementById('toggleFilterAccordionBtn');
+    if (badge) badge.style.display = hasActive ? 'inline-block' : 'none';
+    if (toggleBtn) toggleBtn.classList.toggle('has-active-filters', hasActive);
+  }
+
+  // Live Search Query Engine
+  async function runLiveSearch() {
+    const inp = document.getElementById('searchFileName');
+    const q = inp ? inp.value.trim() : '';
+    const college = document.getElementById('searchCollege')?.value || '';
+    const branch = document.getElementById('searchBranch')?.value || '';
+    const sem = document.getElementById('searchSemester')?.value || '';
+    const type = document.getElementById('searchType')?.value || '';
+    const year = document.getElementById('searchYear')?.value || '';
+    const sort = document.getElementById('searchSort')?.value || 'relevance';
+
+    const clearBtn = document.getElementById('searchClearBtn');
+    if (clearBtn) clearBtn.style.display = q ? 'inline-flex' : 'none';
+
+    updateFilterBadge();
+
+    const loader = document.getElementById('loader');
+    const noResults = document.getElementById('noResults');
+    const resultsContainer = document.getElementById('searchResults');
+    const countEl = document.getElementById('searchResultCount');
+
+    if (loader) loader.style.display = 'block';
+    if (noResults) noResults.style.display = 'none';
+
+    if (_abortCtrl) _abortCtrl.abort();
+    _abortCtrl = new AbortController();
+
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (college) params.set('college_id', college);
+    if (branch) params.set('branch', branch);
+    if (sem) params.set('sem', sem);
+    if (type) params.set('type', type);
+    if (year) params.set('year', year);
+    if (sort) params.set('sort', sort);
+
+    try {
+      const res = await fetch(`/api/v2/search?${params.toString()}`, { signal: _abortCtrl.signal });
+      const data = await res.json();
+      if (loader) loader.style.display = 'none';
+
+      const results = data.results || [];
+      const total = results.length;
+
+      if (countEl) countEl.textContent = `${total} paper${total !== 1 ? 's' : ''}`;
+
+      if (!resultsContainer) return;
+      resultsContainer.innerHTML = '';
+
+      if (total === 0) {
+        if (noResults) noResults.style.display = 'block';
+        return;
+      }
+
+      if (noResults) noResults.style.display = 'none';
+
+      const fragment = document.createDocumentFragment();
+      results.slice(0, 35).forEach(file => {
+        const a = document.createElement('a');
+        a.className = 'arch-apple-card';
+        const docId = file.record_id || file.id || '';
+        const docUrl = docId ? `/resource/${encodeURIComponent(docId)}` : '#';
+        a.href = docUrl;
+
+        // Display subject name prominently instead of raw file name
+        const subjName = file.subject || file.subject_name;
+        const displaySubject = (subjName && subjName !== 'General') ? subjName : (file['file-name'] || file.title || 'Academic Resource');
+
+        const rawCat = (file.type || file.document_category || 'Paper').trim();
+        const categoryBadge = rawCat.replace(/s$/i, '').toUpperCase();
+
+        // Clean breadcrumb subtitle: College • Branch • Sem X • Year
+        const subParts = [];
+        if (file.college) subParts.push(file.college);
+        if (file.branch) subParts.push(file.branch);
+        if (file.semester) subParts.push(`Sem ${file.semester}`);
+        if (file.year) subParts.push(file.year);
+        const sub = subParts.length > 0 ? subParts.join(' • ') : 'Verified Academic Resource';
+
+        const isPaid = Boolean(file.is_paid && parseFloat(file.price) > 0);
+        const priceLabel = isPaid ? `₹${parseFloat(file.price)}` : 'Free';
+        const priceStyle = isPaid ? 'color:#d97706; background:rgba(217,119,6,0.1);' : 'color:#059669; background:rgba(5,150,105,0.1);';
+
+        const catLower = rawCat.toLowerCase();
+        // Exact Apple Color System matching Recently Viewed cards:
+        // PYQ: Apple Amber (#d97706)
+        // Notes: Apple System Blue (#0071E3)
+        // Practical/Lab: Apple Indigo/Violet (#6366f1)
+        // Syllabus: Apple Purple (#8b5cf6)
+        let iconBg = 'rgba(0, 113, 227, 0.08)';
+        let iconColor = '#0071E3';
+        let borderTint = 'rgba(0, 113, 227, 0.2)';
+        let iconSvg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>';
+
+        if (catLower.includes('pyq') || catLower.includes('paper') || catLower.includes('exam')) {
+          iconBg = 'rgba(217, 119, 6, 0.09)';
+          iconColor = '#d97706';
+          borderTint = 'rgba(217, 119, 6, 0.24)';
+          iconSvg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>';
+        } else if (catLower.includes('practical') || catLower.includes('lab')) {
+          iconBg = 'rgba(99, 102, 241, 0.09)';
+          iconColor = '#6366f1';
+          borderTint = 'rgba(99, 102, 241, 0.24)';
+          iconSvg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31"></path><path d="M14 9.3V2"></path><path d="M8.5 2h7"></path><path d="M14 9.3a6.5 6.5 0 1 1-4 0"></path></svg>';
+        } else if (catLower.includes('syllab') || catLower.includes('book') || catLower.includes('curriculum')) {
+          iconBg = 'rgba(139, 92, 246, 0.09)';
+          iconColor = '#8b5cf6';
+          borderTint = 'rgba(139, 92, 246, 0.24)';
+          iconSvg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>';
+        } else {
+          iconBg = 'rgba(0, 113, 227, 0.08)';
+          iconColor = '#0071E3';
+          borderTint = 'rgba(0, 113, 227, 0.22)';
+          iconSvg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>';
+        }
+
+        a.innerHTML = `
+          <div class="arch-doc-icon-wrap" style="background:${iconBg}; color:${iconColor}; border:1px solid ${borderTint};" aria-hidden="true">
+            ${iconSvg}
+          </div>
+          <div class="arch-card-body">
+            <div class="arch-card-top-line">
+              <h4 class="arch-card-title">${escapeHtml(displaySubject)}</h4>
+              <span class="arch-category-tag" style="background:${iconBg}; color:${iconColor}; border:1px solid ${borderTint};">${escapeHtml(categoryBadge)}</span>
+            </div>
+            <p class="arch-card-desc">${escapeHtml(sub)}</p>
+          </div>
+          <div class="arch-card-right">
+            <span class="arch-price-tag" style="${priceStyle}">${priceLabel}</span>
+            <svg class="arch-chevron-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </div>
+        `;
+
+        a.addEventListener('click', function(e) {
+          e.preventDefault();
+          window.closeSearchDrawer();
+          if (typeof window.navigateTo === 'function') {
+            window.navigateTo(docUrl);
+          } else if (window.parent && typeof window.parent.navigateTo === 'function') {
+            window.parent.navigateTo(docUrl);
+          } else {
+            window.location.href = docUrl;
+          }
+        });
+
+        fragment.appendChild(a);
+      });
+
+      resultsContainer.appendChild(fragment);
+    } catch(err) {
+      if (err.name === 'AbortError') return;
+      if (loader) loader.style.display = 'none';
+    }
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // Populate Colleges dynamically
+  async function populateFilterDropdowns() {
+    try {
+      const colEl = document.getElementById('searchCollege');
+      if (colEl && colEl.options.length <= 1) {
+        const resp = await fetch('/api/colleges');
+        const data = await resp.json();
+        const list = data.colleges || [];
+        list.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.id || c.name;
+          opt.textContent = c.abbreviation ? `${c.abbreviation} - ${c.name}` : c.name;
+          colEl.appendChild(opt);
+        });
+      }
+    } catch(e) {}
+  }
+
+  // Wire Inputs & Filter Triggers
+  document.addEventListener('DOMContentLoaded', function() {
+    const inp = document.getElementById('searchFileName');
+    if (inp) {
+      inp.addEventListener('input', function() {
+        clearTimeout(_debounceTimer);
+        _debounceTimer = setTimeout(runLiveSearch, 260);
+      });
+      inp.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          clearTimeout(_debounceTimer);
+          runLiveSearch();
+        }
+      });
+    }
+
+    const clearBtn = document.getElementById('searchClearBtn');
+    if (clearBtn && inp) {
+      clearBtn.addEventListener('click', function() {
+        inp.value = '';
+        clearBtn.style.display = 'none';
+        inp.focus();
+        runLiveSearch();
+      });
+    }
+
+    // Quick Type Category Chips
+    document.querySelectorAll('.sd-chip').forEach(chip => {
+      chip.addEventListener('click', function() {
+        document.querySelectorAll('.sd-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        const hiddenType = document.getElementById('searchType');
+        if (hiddenType) {
+          hiddenType.value = chip.dataset.typeChip || '';
+        }
+        runLiveSearch();
+      });
+    });
+
+    // Accordion Toggle for Deeper Filters
+    const toggleBtn = document.getElementById('toggleFilterAccordionBtn');
+    const accordion = document.getElementById('sdFilterAccordion');
+    if (toggleBtn && accordion) {
+      toggleBtn.addEventListener('click', function() {
+        const isExp = accordion.style.display !== 'none';
+        accordion.style.display = isExp ? 'none' : 'grid';
+        toggleBtn.classList.toggle('is-expanded', !isExp);
+        toggleBtn.setAttribute('aria-expanded', String(!isExp));
+        if (!isExp) {
+          populateFilterDropdowns();
+        }
+      });
+    }
+
+    // Grid Select filter changes trigger search & active highlight
+    document.querySelectorAll('.sd-grid-select').forEach(sel => {
+      sel.addEventListener('change', function() {
+        sel.classList.toggle('has-value', Boolean(sel.value && sel.value !== 'relevance'));
+        runLiveSearch();
+      });
+    });
+
+    // Reset filters
+    const resetBtn = document.getElementById('searchResetBtn');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', function() {
+        document.querySelectorAll('.sd-grid-select').forEach(sel => {
+          sel.selectedIndex = 0;
+          sel.classList.remove('has-value');
+        });
+        document.querySelectorAll('.sd-chip').forEach(c => c.classList.remove('active'));
+        const allChip = document.querySelector('.sd-chip[data-type-chip=""]');
+        if (allChip) allChip.classList.add('active');
+        const hiddenType = document.getElementById('searchType');
+        if (hiddenType) hiddenType.value = '';
+        if (inp) inp.value = '';
+        if (clearBtn) clearBtn.style.display = 'none';
+        updateFilterBadge();
+        runLiveSearch();
+      });
+    }
+
+    // Header buttons in both p_struct & app_shell
+    ['headerSearchBtn', 'shellSearchBtn', 'navbarSearchIcon'].forEach(id => {
+      const btn = document.getElementById(id);
+      if (btn && !btn.dataset.searchWired) {
+        btn.dataset.searchWired = 'true';
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          window.toggleSearchDrawer();
+        });
+      }
+    });
+
+    // Close on Escape
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && _searchOpen) {
+        window.closeSearchDrawer();
+      }
+    });
+
+    // Auto-open if query parameter exists
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const qParam = urlParams.get('q');
+      const openParam = urlParams.get('open_search');
+      if (qParam || openParam === '1') {
+        window.openSearchDrawer(qParam || '');
+      }
+    } catch(e) {}
+  });
+
+  // Mobile edge swipe triggers
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let isTrackingRightEdge = false;
+
+  window.addEventListener('touchstart', function(e) {
+    if (!e.touches || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    touchStartX = t.clientX;
+    touchStartY = t.clientY;
+    const winW = window.innerWidth;
+    if (winW <= 860 && touchStartX >= winW - 55 && !_searchOpen) {
+      isTrackingRightEdge = true;
+    } else {
+      isTrackingRightEdge = false;
+    }
+  }, { passive: true });
+
+  window.addEventListener('touchmove', function(e) {
+    if (!isTrackingRightEdge || !e.touches || e.touches.length !== 1) return;
+    const dy = Math.abs(e.touches[0].clientY - touchStartY);
+    if (dy > 45) isTrackingRightEdge = false;
+  }, { passive: true });
+
+  window.addEventListener('touchend', function(e) {
+    if (!isTrackingRightEdge || !e.changedTouches) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = Math.abs(e.changedTouches[0].clientY - touchStartY);
+    if (dx < -45 && dy < 55) {
+      window.openSearchDrawer();
+    }
+    isTrackingRightEdge = false;
+  }, { passive: true });
+})();
+</script>

@@ -171,6 +171,23 @@ def setup_jobs(scheduler):
     )
     logging.info("📅 Scheduled job: Tarika Catalog Sync (every 1 hour)")
 
+    # Job 7: Periodic search Trie rebuild (every 30 minutes)
+    def _rebuild_search_trie():
+        try:
+            from jobs.build_search_trie import build_search_indexes
+            build_search_indexes()
+        except Exception as e:
+            logging.error(f"[TRIE] Search index rebuild error: {e}")
+
+    scheduler.add_job(
+        func=_rebuild_search_trie,
+        trigger=IntervalTrigger(minutes=30),
+        id='search_trie_rebuilder',
+        name='Rebuild Autocomplete Trie & Inverted Index',
+        replace_existing=True
+    )
+    logging.info("📅 Scheduled job: Autocomplete Trie Rebuilder (every 30 minutes)")
+
 
 
 def shutdown_scheduler():

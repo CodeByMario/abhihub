@@ -218,7 +218,7 @@
             <h6 class="app-footer__col-title">Navigation</h6>
             <ul class="app-footer__list">
                 <li><a href="{{ url_for('site.features') }}" class="app-footer__link">Home</a></li>
-                <li><a href="{{ url_for('library.search_page') }}" class="app-footer__link">Search Materials</a></li>
+                <li><a href="javascript:void(0)" onclick="if(window.openSearchDrawer){event.preventDefault();window.openSearchDrawer();}" class="app-footer__link">Search Materials</a></li>
                 <li><a href="{{ url_for('app_pages.chat_page') }}" class="app-footer__link">Peer Chat</a></li>
                 <li><a href="{{ url_for('library.pyq_landing') }}" class="app-footer__link">PYQ &amp; Question Papers</a></li>
                 <li><a href="{{ url_for('site.contribute_page') }}" class="app-footer__link">Contribute &amp; Perks</a></li>

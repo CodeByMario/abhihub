@@ -439,13 +439,21 @@ let accessLogsData = [];
 
 // Determine open link for a given report
 function getAbhiHubDocLink(r) {
-  // If page_url points to a resource page
-  if (r.page_url && (r.page_url.includes('/resource/') || r.page_url.startsWith('http') || r.page_url.startsWith('/'))) {
-    return r.page_url;
-  }
-  // If doc_id looks like a valid UUID
+  // If doc_id exists, direct canonical resource link
   if (r.doc_id && r.doc_id.length >= 8) {
-    return `/resource/view-${r.doc_id}`;
+    return `/resource/${r.doc_id}`;
+  }
+  // If page_url points to a resource page, use local path
+  if (r.page_url) {
+    try {
+      if (r.page_url.startsWith('http://') || r.page_url.startsWith('https://')) {
+        const u = new URL(r.page_url);
+        return u.pathname + u.search;
+      }
+      return r.page_url;
+    } catch(e) {
+      return r.page_url;
+    }
   }
   // Fallback to file_url
   if (r.file_url) {
@@ -724,7 +732,7 @@ function renderAccessLogs() {
     // Direct link to material in AbhiHub if doc_id or path exists
     let docLink = null;
     if (l.doc_id && l.doc_id.length >= 8) {
-      docLink = `/resource/view-${l.doc_id}`;
+      docLink = `/resource/${l.doc_id}`;
     } else if (l.file_path && l.file_path.startsWith('http')) {
       docLink = l.file_path;
     }

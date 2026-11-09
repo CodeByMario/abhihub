@@ -1284,9 +1284,38 @@ def upload():
             'zip': 'archive', 'rar': 'archive', '7z': 'archive'
         }.get(_ext, 'file')
 
-        # 1. Cloudinary upload
+        # 1. Document scanning, shadow removal, book merge & image watermark
+        back_file = request.files.get('back_side_document') or request.files.get('back_side')
+        has_back_side = bool(back_file and back_file.filename) or (request.form.get('has_back_side') == 'true')
+        scan_mode = request.form.get('scan_mode', 'gray')
+
+        file_to_upload = file
+        if file_type_category == 'image':
+            try:
+                from services.doc_scanner import process_paper_scan
+                file.seek(0)
+                front_bytes = file.read()
+                back_bytes = back_file.read() if (has_back_side and back_file) else None
+
+                processed_bytes = process_paper_scan(
+                    front_bytes=front_bytes,
+                    back_bytes=back_bytes,
+                    is_two_sided=bool(has_back_side and back_bytes),
+                    mode=scan_mode
+                )
+
+                if processed_bytes:
+                    processed_stream = io.BytesIO(processed_bytes)
+                    processed_stream.filename = original_filename
+                    file_size = len(processed_bytes)
+                    file_to_upload = processed_stream
+            except Exception as scan_err:
+                logging.warning(f"[UPLOAD] Document scanning exception, using standard upload: {scan_err}")
+                file.seek(0)
+                file_to_upload = file
+
         upload_result = upload_file_to_cloudinary(
-            file_data=file,
+            file_data=file_to_upload,
             filename=original_filename,
             user_id=user_id or user_name.replace(' ', '_'),
             folder=cloudinary_folder,
@@ -1527,13 +1556,11 @@ def suggest():
 @app_pages_bp.route('/dashboard/search', methods=['POST', 'GET'])
 @auth_required
 def search():
-    """Search entry point — redirects to the SPA search page with query."""
+    """Search entry point — redirects to home where search panel opens."""
     search_query = request.form.get('search') or request.args.get('search', '')
     if not search_query:
         return redirect(url_for('app_pages.home'))
-    # Redirect to SPA search view (frontend reads ?q= and calls /api/v2/search)
-    from urllib.parse import quote_plus
-    return redirect(f"/app-shell?p=/search&q={quote_plus(search_query)}")
+    return redirect(url_for('app_pages.home', q=search_query))
 
 
 @app_pages_bp.route('/dashboard/static/search.json')

@@ -346,6 +346,138 @@ body.zen-active .image-canvas {
 body.zen-active .image-canvas img {
   max-height: calc(100vh - 110px) !important;
 }
+
+/* ── Mobile Apple Design Refinements & Overflow Fixes ── */
+@media (max-width: 768px) {
+  body, html {
+    overflow-x: hidden !important;
+  }
+  .apple-showcase-wrap {
+    padding-bottom: 130px !important;
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Single-line compact Apple Cinema Reader Toolbar */
+  .ap-cinema-toolbar {
+    padding: 6px 10px !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    gap: 6px !important;
+    justify-content: flex-start !important;
+  }
+  .ap-cinema-toolbar::-webkit-scrollbar {
+    display: none !important;
+  }
+  .ap-tool-cluster {
+    gap: 4px !important;
+    flex-shrink: 0 !important;
+  }
+  .ap-tool-btn {
+    height: 30px !important;
+    padding: 0 8px !important;
+    font-size: 11.5px !important;
+    gap: 4px !important;
+    border-radius: 7px !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
+  .ap-tool-btn.iv-btn {
+    width: 30px !important;
+    height: 30px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .ap-theme-segment {
+    padding: 1px !important;
+    border-radius: 7px !important;
+    flex-shrink: 0 !important;
+  }
+  .ap-theme-btn {
+    width: 26px !important;
+    height: 26px !important;
+    border-radius: 5px !important;
+  }
+
+  /* Dynamic Multi-line Subject Search Button */
+  .ap-btn-secondary {
+    height: auto !important;
+    min-height: 40px !important;
+    padding: 8px 18px !important;
+    line-height: 1.35 !important;
+    font-size: 12.5px !important;
+    text-align: center !important;
+    justify-content: center !important;
+    display: inline-flex !important;
+    max-width: 100% !important;
+    word-break: break-word !important;
+    border-radius: 999px !important;
+  }
+
+  /* Metadata Specifications Table */
+  .ap-specs-card {
+    border-radius: 14px !important;
+    overflow: hidden !important;
+  }
+  .ap-spec-row {
+    grid-template-columns: 110px 1fr !important;
+    padding: 0.75rem 1rem !important;
+    gap: 8px !important;
+    font-size: 12.5px !important;
+    word-break: break-word !important;
+  }
+  .ap-spec-label {
+    font-size: 11.5px !important;
+    color: var(--ap-secondary, #64748b) !important;
+    font-weight: 500 !important;
+  }
+  .ap-spec-value {
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+    color: var(--ap-ink, #0f172a) !important;
+  }
+
+  /* Three Pillars Quality Cards */
+  .ap-pillars-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  .ap-pillar-card {
+    padding: 1rem 1.15rem !important;
+    border-radius: 14px !important;
+  }
+  .ap-pillar-h3 {
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    margin-bottom: 4px !important;
+  }
+  .ap-pillar-p {
+    font-size: 12.5px !important;
+    line-height: 1.45 !important;
+    color: var(--ap-secondary, #64748b) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .fs-btn-label,
+  .zen-btn-text {
+    display: none !important;
+  }
+  .fs-toggle-btn,
+  .zen-toolbar-btn {
+    width: 30px !important;
+    padding: 0 !important;
+    justify-content: center !important;
+  }
+}
 </style>
 <!-- Styles consolidated in static/css/pages/p_resource.css -->
 {% endblock %}
@@ -833,7 +965,7 @@ body.zen-active .image-canvas img {
         {% endif %}
       </div>
       <div style="text-align:center; margin-top:1.5rem;">
-        <a href="/search?q={{ subj_name | urlencode }}&category=PYQ" class="ap-btn-secondary" style="margin:0 auto;">
+        <a href="javascript:void(0)" onclick="if(window.openSearchDrawer){event.preventDefault();window.openSearchDrawer('{{ subj_name }}');}" class="ap-btn-secondary" style="margin:0 auto;">
           Search All {{ subj_name }} Exam Papers →
         </a>
       </div>
@@ -856,14 +988,14 @@ body.zen-active .image-canvas img {
           <div style="font-size:0.75rem; font-weight:700; color:var(--ap-blue); margin-bottom:0.35rem;">Formula Sheet</div>
           <div style="font-weight:600; font-size:1rem; color:var(--ap-ink); margin-bottom:0.5rem;">{{ subj_name }} Complete Quick Summary</div>
           <p style="font-size:0.82rem; color:var(--ap-secondary); margin:0 0 0.75rem;">Unit-wise quick formulas, derivations, and definitions.</p>
-          <a href="/search?q={{ subj_name | urlencode }}+notes" style="font-size:0.82rem; color:var(--ap-blue); font-weight:600; text-decoration:none;">Explore Notes →</a>
+          <a href="javascript:void(0)" onclick="if(window.openSearchDrawer){event.preventDefault();window.openSearchDrawer('{{ subj_name }} notes');}" style="font-size:0.82rem; color:var(--ap-blue); font-weight:600; text-decoration:none;">Explore Notes →</a>
         </div>
 
         <div class="ap-pillar-card" style="padding:1.25rem;">
           <div style="font-size:0.75rem; font-weight:700; color:var(--ap-blue); margin-bottom:0.35rem;">High Yield</div>
           <div style="font-weight:600; font-size:1rem; color:var(--ap-ink); margin-bottom:0.5rem;">Important Exam Cheatsheet</div>
           <p style="font-size:0.82rem; color:var(--ap-secondary); margin:0 0 0.75rem;">Curated points for scoring maximum marks in finals.</p>
-          <a href="/search?q={{ subj_name | urlencode }}+cheatsheet" style="font-size:0.82rem; color:var(--ap-blue); font-weight:600; text-decoration:none;">Find Cheatsheets →</a>
+          <a href="javascript:void(0)" onclick="if(window.openSearchDrawer){event.preventDefault();window.openSearchDrawer('{{ subj_name }} cheatsheet');}" style="font-size:0.82rem; color:var(--ap-blue); font-weight:600; text-decoration:none;">Find Cheatsheets →</a>
         </div>
       </div>
     </div>
@@ -885,7 +1017,7 @@ body.zen-active .image-canvas img {
           <div style="font-size:0.75rem; font-weight:700; color:var(--ap-blue); margin-bottom:0.35rem;">Syllabus Reference</div>
           <div style="font-weight:600; font-size:1rem; color:var(--ap-ink); margin-bottom:0.5rem;">Standard Reference Textbook</div>
           <p style="font-size:0.82rem; color:var(--ap-secondary); margin:0 0 0.75rem;">Core textbook prescribed by university curriculum committee for {{ subj_name }}.</p>
-          <a href="/search?q={{ subj_name | urlencode }}+book" style="font-size:0.82rem; color:var(--ap-blue); font-weight:600; text-decoration:none;">Search Library →</a>
+          <a href="javascript:void(0)" onclick="if(window.openSearchDrawer){event.preventDefault();window.openSearchDrawer('{{ subj_name }}');}" style="font-size:0.82rem; color:var(--ap-blue); font-weight:600; text-decoration:none;">Search Library →</a>
         </div>
       </div>
     </div>
@@ -1823,13 +1955,13 @@ body.zen-active .image-canvas img {
         </div>
 
         <div class="inspector-step-card" style="display:flex; flex-direction:column; gap:12px;">
-          <!-- College & University Row -->
+          <!-- College & Department Row (Pure Table Selects matching Upload Form) -->
           <div class="ap-form-grid-2">
             <div class="ap-field-wrap">
               <label class="ap-field-label">College / University</label>
               <div class="ap-select-box">
                 <select id="metaCollegeSelect" data-field="college_id" onchange="syncMetaCollege(this)" class="ap-select">
-                  <option value="">-- Select from Known Colleges --</option>
+                  <option value="">-- Select College --</option>
                   {% for c in all_colleges %}
                   <option value="{{ c.id }}" data-name="{{ c.name }}" data-abbr="{{ c.abbreviation }}"
                     {% if (document.college_id and c.id == document.college_id) or (document.college and c.id == document.college.id) or (c.name|lower == (document.college_name or '')|lower) or (c.abbreviation|lower == (document.college_abbr or '')|lower) %}selected{% endif %}>
@@ -1842,24 +1974,10 @@ body.zen-active .image-canvas img {
             </div>
 
             <div class="ap-field-wrap">
-              <label class="ap-field-label">College Abbreviation</label>
-              <input type="text" id="metaCollegeAbbr" data-field="college_abbr" value="{{ (document.college.abbreviation if document.college and document.college.abbreviation else document.college_abbr) or '' }}" placeholder="e.g. GHRCE" class="ap-input" style="text-transform:uppercase;">
-            </div>
-          </div>
-
-          <!-- Custom College Override -->
-          <div class="ap-field-wrap">
-            <label class="ap-field-label" style="color:var(--ap-secondary);">Custom College Name Override</label>
-            <input type="text" id="metaCollegeName" data-field="college_name" value="{{ (document.college.name if document.college else document.college_name) or '' }}" placeholder="Type custom name if institution is unlisted" class="ap-input">
-          </div>
-
-          <!-- Department / Branch Row -->
-          <div class="ap-form-grid-2" style="margin-top:2px;">
-            <div class="ap-field-wrap">
               <label class="ap-field-label">Department / Branch</label>
               <div class="ap-select-box">
                 <select id="metaDepartmentSelect" data-field="department_id" onchange="syncMetaDepartment(this)" class="ap-select">
-                  <option value="">-- Select from Known Departments --</option>
+                  <option value="">-- Select Department --</option>
                   {% for b in all_branches %}
                   <option value="{{ b.id }}" data-name="{{ b.name }}" data-abbr="{{ b.abbreviation }}"
                     {% if (document.department_id and b.id == document.department_id) or (document.department and b.id == document.department.id) or (b.name|lower == (document.department_name or document.branch or '')|lower) or (b.abbreviation|lower == (document.department_abbr or '')|lower) %}selected{% endif %}>
@@ -1870,17 +1988,6 @@ body.zen-active .image-canvas img {
                 <svg class="ap-select-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
               </div>
             </div>
-
-            <div class="ap-field-wrap">
-              <label class="ap-field-label">Branch Abbreviation</label>
-              <input type="text" id="metaDepartmentAbbr" data-field="department_abbr" value="{{ (document.department.abbreviation if document.department and document.department.abbreviation else document.department_abbr) or '' }}" placeholder="e.g. CSE" class="ap-input" style="text-transform:uppercase;">
-            </div>
-          </div>
-
-          <!-- Custom Department Override -->
-          <div class="ap-field-wrap">
-            <label class="ap-field-label" style="color:var(--ap-secondary);">Custom Department Name Override</label>
-            <input type="text" id="metaDepartmentName" data-field="department_name" value="{{ (document.department.name if document.department else document.department_name or document.branch) or '' }}" placeholder="Type custom branch name" class="ap-input">
           </div>
 
           <!-- Program / Degree Chips -->
@@ -1916,35 +2023,56 @@ body.zen-active .image-canvas img {
             <input type="hidden" id="metaSemesterSelect" data-field="semester" value="{{ cur_sem }}">
           </div>
 
-          <!-- Subject Selection & Inline Creator -->
+          <!-- Subject Selection & Inline Creator (Dropdown Suggestions with Strict Table Selection) -->
           <div class="ap-field-wrap" style="margin-top:4px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
               <label class="ap-field-label" style="margin:0; font-weight:600;">Subject *</label>
-              <button type="button" id="metaToggleAddSubjBtn" onclick="toggleMetaInlineSubjPanel()" class="meta-title-sync-btn" title="Add a new subject if missing">
+              <button type="button" id="metaToggleAddSubjBtn" onclick="toggleMetaInlineSubjPanel()" class="meta-title-sync-btn" title="Create a new subject entry if missing">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 <span>+ Create Subject</span>
               </button>
             </div>
 
-            <div class="ap-form-grid-2">
-              <div class="ap-field-wrap">
-                <input type="hidden" id="metaSubjectId" data-field="subject_id" value="{{ document.subject_id or '' }}">
-                <input type="text" id="metaSubjectName" data-field="subject_name" list="metaSubjectsDataList" oninput="matchMetaSubject(this.value)" value="{{ (document.subject.name if document.subject else document.subject_name) or '' }}" placeholder="Search or type subject..." class="ap-input">
-                <datalist id="metaSubjectsDataList"></datalist>
-              </div>
-              <div class="ap-field-wrap">
-                <input type="text" id="metaSubjectCode" data-field="subject_code" value="{{ (document.subject.subject_code if document.subject and document.subject.subject_code else document.subject_code) or '' }}" placeholder="Code (e.g. CS201)" class="ap-input" style="text-transform:uppercase;">
-              </div>
+            <!-- Suggestion Search Filter Input -->
+            <div style="margin-bottom:6px;">
+              <input type="text" id="metaSubjectFilterInp" oninput="filterMetaSubjectOptions(this.value)" placeholder="Type to filter subject suggestions..." class="ap-input" style="font-size:12.5px; padding:7px 10px; border-radius:8px;">
             </div>
 
-            <!-- Inline Subject Creation Drawer -->
-            <div id="metaInlineSubjPanel" class="inline-add-subj-panel" style="display:none;">
+            <!-- Strict Dropdown Selector -->
+            <div class="ap-select-box">
+              <select id="metaSubjectSelect" data-field="subject_id" onchange="onMetaSubjectSelectChanged(this)" class="ap-select" required>
+                <option value="">-- Select Subject from Dropdown List --</option>
+                {% if document.subject %}
+                <option value="{{ document.subject.id }}" data-name="{{ document.subject.name }}" data-code="{{ document.subject.subject_code or '' }}" selected>
+                  {{ document.subject.name }}{% if document.subject.subject_code %} ({{ document.subject.subject_code }}){% endif %}
+                </option>
+                {% elif document.subject_id %}
+                <option value="{{ document.subject_id }}" data-name="{{ document.subject_name or 'Current Subject' }}" selected>
+                  {{ document.subject_name or 'Current Subject' }}
+                </option>
+                {% endif %}
+              </select>
+              <svg class="ap-select-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+
+            <!-- Subject Not Found In List Alert with Quick Action -->
+            <div id="metaSubjectNotFoundAlert" style="display:none; margin-top:6px; font-size:12px; color:#2563eb; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:6px 10px;">
+              Subject not in database table. <button type="button" onclick="promptNewSubjectFromSearch()" style="background:none; border:none; color:#1d4ed8; font-weight:700; text-decoration:underline; cursor:pointer; padding:0;">＋ Click to create new subject entry</button>
+            </div>
+
+            <!-- Hidden Sync Fields -->
+            <input type="hidden" id="metaSubjectId" value="{{ document.subject_id or (document.subject.id if document.subject else '') }}">
+            <input type="hidden" id="metaSubjectName" value="{{ (document.subject.name if document.subject else document.subject_name) or '' }}">
+            <input type="hidden" id="metaSubjectCode" value="{{ (document.subject.subject_code if document.subject and document.subject.subject_code else document.subject_code) or '' }}">
+
+            <!-- Inline Subject Creation Drawer (if not found in dropdown list) -->
+            <div id="metaInlineSubjPanel" class="inline-add-subj-panel" style="display:none; margin-top:10px; padding:12px; border-radius:10px; background:var(--ap-surface-hover, #f8fafc); border:1px solid var(--ap-border-subtle, #e2e8f0);">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                 <span style="font-size:12px; font-weight:600; color:var(--ap-ink);">Create New Subject Entry</span>
                 <button type="button" onclick="toggleMetaInlineSubjPanel(false)" style="background:none; border:none; color:var(--ap-secondary); cursor:pointer; font-size:16px;">&times;</button>
               </div>
               <div class="ap-form-grid-2" style="gap:8px;">
-                <input type="text" id="newMetaSubjName" placeholder="Subject Name (e.g. Advanced Operating Systems)" class="ap-input">
+                <input type="text" id="newMetaSubjName" placeholder="Subject Name (e.g. Advanced Operating Systems) *" class="ap-input">
                 <input type="text" id="newMetaSubjCode" placeholder="Code (e.g. CS602)" class="ap-input" style="text-transform:uppercase;">
               </div>
               <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:10px;">
@@ -3269,72 +3397,188 @@ body.zen-active .image-canvas img {
 
   // College & Department Sync
   function syncMetaCollege(selectEl) {
-    var opt = selectEl.options[selectEl.selectedIndex];
-    var name = opt.getAttribute('data-name') || '';
-    var abbr = opt.getAttribute('data-abbr') || '';
-    if (abbr) document.getElementById('metaCollegeAbbr').value = abbr;
-    if (name && !document.getElementById('metaCollegeName').value) {
-      document.getElementById('metaCollegeName').value = name;
-    }
     fetchMetaSubjects();
     syncMetaRealTimeTitle();
   }
 
   function syncMetaDepartment(selectEl) {
-    var opt = selectEl.options[selectEl.selectedIndex];
-    var name = opt.getAttribute('data-name') || '';
-    var abbr = opt.getAttribute('data-abbr') || '';
-    if (abbr) document.getElementById('metaDepartmentAbbr').value = abbr;
-    if (name && !document.getElementById('metaDepartmentName').value) {
-      document.getElementById('metaDepartmentName').value = name;
-    }
     fetchMetaSubjects();
     syncMetaRealTimeTitle();
   }
 
-  // Dynamic Subjects Fetch
+  // Dynamic Subjects Fetch with Dropdown Suggestion Engine & Typo-Tolerance
+  var _metaSubjDebounce = null;
+
   async function fetchMetaSubjects() {
     var deptId = document.getElementById('metaDepartmentSelect')?.value;
-    var sem = document.getElementById('metaSemesterSelect')?.value;
-    var dataList = document.getElementById('metaSubjectsDataList');
-    if (!dataList) return;
+    var subjectSelect = document.getElementById('metaSubjectSelect');
+    if (!subjectSelect) return;
 
-    dataList.innerHTML = '';
+    var curSubjId = document.getElementById('metaSubjectId')?.value || '{{ document.subject_id or "" }}';
+    var curSubjName = '{{ (document.subject.name if document.subject else document.subject_name) or "" }}';
+    var curSubjCode = '{{ (document.subject.subject_code if document.subject and document.subject.subject_code else document.subject_code) or "" }}';
+
+    // Fetch all department subjects without semester exclusion so subjects across all semesters remain accessible
     var url = '/api/subjects?';
-    if (deptId) url += 'department_id=' + encodeURIComponent(deptId) + '&';
-    if (sem) url += 'semester=' + encodeURIComponent(sem);
+    if (deptId) url += 'department_id=' + encodeURIComponent(deptId);
 
     try {
       var res = await fetch(url);
       var json = await res.json();
-      var list = json.subjects || [];
+      var list = json.subjects || json.data || [];
       window.__META_SUBJECTS__ = list;
 
+      subjectSelect.innerHTML = '<option value="">-- Select Subject from Dropdown List --</option>';
+
+      var foundCurrent = false;
       list.forEach(function(s) {
         var opt = document.createElement('option');
-        opt.value = s.name;
-        opt.label = s.subject_code ? (s.name + ' (' + s.subject_code + ')') : s.name;
-        dataList.appendChild(opt);
+        opt.value = s.id;
+        opt.setAttribute('data-name', s.name);
+        opt.setAttribute('data-code', s.subject_code || '');
+        opt.setAttribute('data-sem', s.semester || '');
+        var semLabel = s.semester ? (' [Sem ' + s.semester + ']') : '';
+        opt.textContent = (s.subject_code ? (s.name + ' (' + s.subject_code + ')') : s.name) + semLabel;
+        if (curSubjId && String(s.id) === String(curSubjId)) {
+          opt.selected = true;
+          foundCurrent = true;
+        }
+        subjectSelect.appendChild(opt);
       });
+
+      if (curSubjId && !foundCurrent && curSubjName) {
+        var curOpt = document.createElement('option');
+        curOpt.value = curSubjId;
+        curOpt.setAttribute('data-name', curSubjName);
+        curOpt.setAttribute('data-code', curSubjCode);
+        curOpt.textContent = curSubjCode ? (curSubjName + ' (' + curSubjCode + ')') : curSubjName;
+        curOpt.selected = true;
+        subjectSelect.insertBefore(curOpt, subjectSelect.options[1] || null);
+      }
+
+      var notFoundOpt = document.createElement('option');
+      notFoundOpt.value = '__CREATE_NEW__';
+      notFoundOpt.textContent = '＋ Not in list? Click here to add new subject...';
+      notFoundOpt.style.fontWeight = 'bold';
+      notFoundOpt.style.color = '#2563eb';
+      subjectSelect.appendChild(notFoundOpt);
+
+      var filterInp = document.getElementById('metaSubjectFilterInp');
+      if (filterInp && filterInp.value) {
+        filterMetaSubjectOptions(filterInp.value);
+      }
     } catch(e) {
       console.warn('Failed to load subjects', e);
     }
   }
 
-  function matchMetaSubject(typedName) {
-    var list = window.__META_SUBJECTS__ || [];
-    var match = list.find(function(s) {
-      return s.name.toLowerCase() === (typedName || '').trim().toLowerCase();
-    });
-    if (match) {
-      document.getElementById('metaSubjectId').value = match.id;
-      if (match.subject_code) {
-        document.getElementById('metaSubjectCode').value = match.subject_code;
+  function onMetaSubjectSelectChanged(sel) {
+    if (sel.value === '__CREATE_NEW__') {
+      sel.value = document.getElementById('metaSubjectId')?.value || '';
+      toggleMetaInlineSubjPanel(true);
+      return;
+    }
+
+    var opt = sel.options[sel.selectedIndex];
+    if (sel.value && opt) {
+      var sId = sel.value;
+      var sName = opt.getAttribute('data-name') || opt.text || '';
+      var sCode = opt.getAttribute('data-code') || '';
+      var sSem = opt.getAttribute('data-sem') || '';
+
+      document.getElementById('metaSubjectId').value = sId;
+      document.getElementById('metaSubjectName').value = sName;
+      document.getElementById('metaSubjectCode').value = sCode;
+
+      // Auto-sync semester badge if subject carries semester mapping
+      if (sSem && typeof setMetaSemester === 'function') {
+        setMetaSemester(sSem);
       }
     } else {
       document.getElementById('metaSubjectId').value = '';
+      document.getElementById('metaSubjectName').value = '';
+      document.getElementById('metaSubjectCode').value = '';
     }
     syncMetaRealTimeTitle();
+  }
+
+  function filterMetaSubjectOptions(query) {
+    var subjectSelect = document.getElementById('metaSubjectSelect');
+    var alertBox = document.getElementById('metaSubjectNotFoundAlert');
+    if (!subjectSelect) return;
+    var q = (query || '').trim().toLowerCase();
+    var matchCount = 0;
+    var firstMatchIdx = -1;
+
+    for (var i = 1; i < subjectSelect.options.length; i++) {
+      var opt = subjectSelect.options[i];
+      if (opt.value === '__CREATE_NEW__') continue;
+      var text = (opt.textContent || '').toLowerCase();
+      var code = (opt.getAttribute('data-code') || '').toLowerCase();
+      var matches = !q || text.includes(q) || code.includes(q);
+      opt.style.display = matches ? '' : 'none';
+      if (matches) {
+        matchCount++;
+        if (firstMatchIdx === -1) firstMatchIdx = i;
+      }
+    }
+
+    if (matchCount > 0 && q) {
+      if (alertBox) alertBox.style.display = 'none';
+      if (firstMatchIdx > 0 && subjectSelect.selectedIndex !== firstMatchIdx) {
+        subjectSelect.selectedIndex = firstMatchIdx;
+        onMetaSubjectSelectChanged(subjectSelect);
+      }
+    } else if (q && matchCount === 0) {
+      // Trigger debounced server-side typo-tolerant lookup
+      clearTimeout(_metaSubjDebounce);
+      _metaSubjDebounce = setTimeout(async function() {
+        var deptId = document.getElementById('metaDepartmentSelect')?.value || '';
+        try {
+          var res = await fetch('/api/subjects?q=' + encodeURIComponent(q) + '&department_id=' + encodeURIComponent(deptId));
+          var json = await res.json();
+          var list = json.subjects || [];
+          if (list.length > 0) {
+            if (alertBox) alertBox.style.display = 'none';
+            list.forEach(function(s) {
+              var existing = Array.from(subjectSelect.options).find(function(o) { return String(o.value) === String(s.id); });
+              if (!existing) {
+                var o = document.createElement('option');
+                o.value = s.id;
+                o.setAttribute('data-name', s.name);
+                o.setAttribute('data-code', s.subject_code || '');
+                o.setAttribute('data-sem', s.semester || '');
+                var semLabel = s.semester ? (' [Sem ' + s.semester + ']') : '';
+                o.textContent = (s.subject_code ? (s.name + ' (' + s.subject_code + ')') : s.name) + semLabel;
+                subjectSelect.insertBefore(o, subjectSelect.options[1] || null);
+              }
+            });
+            var targetOpt = Array.from(subjectSelect.options).find(function(o) { return String(o.value) === String(list[0].id); });
+            if (targetOpt) {
+              targetOpt.style.display = '';
+              targetOpt.selected = true;
+              onMetaSubjectSelectChanged(subjectSelect);
+            }
+          } else {
+            if (alertBox) alertBox.style.display = 'block';
+          }
+        } catch(e) {
+          if (alertBox) alertBox.style.display = 'block';
+        }
+      }, 200);
+    } else {
+      if (alertBox) alertBox.style.display = 'none';
+    }
+  }
+
+  function promptNewSubjectFromSearch() {
+    var query = document.getElementById('metaSubjectFilterInp')?.value?.trim() || '';
+    toggleMetaInlineSubjPanel(true);
+    var nameInp = document.getElementById('newMetaSubjName');
+    if (nameInp && query) {
+      nameInp.value = query;
+      nameInp.focus();
+    }
   }
 
   function toggleMetaInlineSubjPanel(show) {
@@ -3345,9 +3589,17 @@ body.zen-active .image-canvas img {
     } else {
       p.style.display = (p.style.display === 'none') ? 'block' : 'none';
     }
+    if (p.style.display === 'block') {
+      var nameInp = document.getElementById('newMetaSubjName');
+      if (nameInp && !nameInp.value) {
+        var query = document.getElementById('metaSubjectFilterInp')?.value?.trim() || '';
+        if (query) nameInp.value = query;
+        nameInp.focus();
+      }
+    }
   }
 
-  // Save new subject inline
+  // Save new subject into database table inline
   async function saveMetaNewSubject() {
     var nameInp = document.getElementById('newMetaSubjName');
     var codeInp = document.getElementById('newMetaSubjCode');
@@ -3382,10 +3634,26 @@ body.zen-active .image-canvas img {
       var d = await res.json();
       if (res.ok && (d.success || d.subject)) {
         var created = d.subject || { id: d.id, name: name, subject_code: code };
+        var subjectSelect = document.getElementById('metaSubjectSelect');
+        if (subjectSelect) {
+          var newOpt = document.createElement('option');
+          newOpt.value = created.id;
+          newOpt.setAttribute('data-name', created.name);
+          newOpt.setAttribute('data-code', created.subject_code || code);
+          newOpt.textContent = (created.subject_code || code) ? (created.name + ' (' + (created.subject_code || code) + ')') : created.name;
+          newOpt.selected = true;
+          subjectSelect.insertBefore(newOpt, subjectSelect.options[1] || null);
+          subjectSelect.value = created.id;
+        }
+        document.getElementById('metaSubjectId').value = created.id || '';
         document.getElementById('metaSubjectName').value = created.name;
         document.getElementById('metaSubjectCode').value = created.subject_code || code;
-        document.getElementById('metaSubjectId').value = created.id || '';
         toggleMetaInlineSubjPanel(false);
+        var alertBox = document.getElementById('metaSubjectNotFoundAlert');
+        if (alertBox) alertBox.style.display = 'none';
+        var filterInp = document.getElementById('metaSubjectFilterInp');
+        if (filterInp) filterInp.value = '';
+        filterMetaSubjectOptions('');
         if (nameInp) nameInp.value = '';
         if (codeInp) codeInp.value = '';
         syncMetaRealTimeTitle();

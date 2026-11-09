@@ -533,32 +533,19 @@
         </div>
     </div>
 
-    <!-- Internal View Tabs -->
-    <div class="tabs-bar">
-        <button class="tab-btn active" type="button" onclick="switchAdminTab('overview')" id="tab-overview">
-            <i class="fas fa-chart-line"></i> Overview & Sentiment
-        </button>
-        <button class="tab-btn" type="button" onclick="switchAdminTab('moderation')" id="tab-moderation">
-            <i class="fas fa-circle-check"></i> Moderate Questions (<span id="tabPendingCount">0</span>)
-        </button>
-        <button class="tab-btn" type="button" onclick="switchAdminTab('users')" id="tab-users">
-            <i class="fas fa-user-graduate"></i> Students & Leaderboard
-        </button>
-        <button class="tab-btn" type="button" onclick="switchAdminTab('files')" id="tab-files">
-            <i class="fas fa-folder-tree"></i> Files & Storage
-        </button>
-        <button class="tab-btn" type="button" onclick="switchAdminTab('audit')" id="tab-audit">
-            <i class="fas fa-shield-halved"></i> Audit Logs
-        </button>
-        <button class="tab-btn" type="button" onclick="switchAdminTab('notifications')" id="tab-notifications">
-            <i class="fas fa-paper-plane"></i> Broadcast
-        </button>
-        <button class="tab-btn" type="button" onclick="switchAdminTab('contact')" id="tab-contact">
-            <i class="fas fa-envelope"></i> Feedback
-        </button>
-        <button class="tab-btn" type="button" onclick="switchAdminTab('settings')" id="tab-settings">
-            <i class="fas fa-sliders"></i> Site Settings
-        </button>
+    <!-- Active Section Breadcrumb Indicator (Replaces Cluttered Duplicate Tab Bar) -->
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; padding: 0.6rem 1rem; background: var(--card-item-bg); border: var(--glass-border); border-radius: 12px;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">
+            <i class="fas fa-shield-halved text-indigo-400"></i>
+            <span>Command Center</span>
+            <i class="fas fa-chevron-right" style="font-size: 0.7rem;"></i>
+            <span style="color: var(--text-primary); font-weight: 700;" id="activeSectionBreadcrumb">Overview &amp; Executive Summary</span>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button type="button" class="btn-action btn-indigo" style="padding: 0.35rem 0.75rem; font-size: 0.78rem;" onclick="loadAdminStats()">
+                <i class="fas fa-sync-alt"></i> Sync Live Data
+            </button>
+        </div>
     </div>
 
     <!-- Alert Area -->
@@ -566,37 +553,48 @@
 
     <!-- 1. OVERVIEW & SENTIMENT VIEW -->
     <div id="view-overview" class="admin-view">
-        <!-- Top Metrics KPIs -->
+        <!-- Admin Special High-Priority Notifications Feed -->
+        <div id="adminSpecialNotificationsSection" class="glass-panel" style="margin-bottom: 1.5rem; border-left: 4px solid #f43f5e; display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <h3 style="font-size: 1.05rem; font-weight: 700; color: #f43f5e; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                    <i class="fas fa-shield-virus"></i> High Priority Action Items
+                </h3>
+                <span class="badge badge-warn" id="specialAlertsCount">0 Critical</span>
+            </div>
+            <div id="adminSpecialNotificationsFeed" style="display: flex; flex-direction: column; gap: 0.6rem;"></div>
+        </div>
+
+        <!-- Top Metrics KPIs (Clickable Jump Cards) -->
         <div class="kpi-grid">
-            <div class="kpi-card indigo">
+            <div class="kpi-card indigo" onclick="switchAdminTab('users')" style="cursor: pointer;" title="Jump to Students & Moderation">
                 <div>
                     <div class="kpi-val" id="kpi-users">0</div>
                     <div class="kpi-label">Total Students</div>
                 </div>
                 <div class="kpi-icon-wrap"><i class="fas fa-user-graduate"></i></div>
             </div>
-            <div class="kpi-card emerald">
+            <div class="kpi-card emerald" onclick="switchAdminTab('files')" style="cursor: pointer;" title="Jump to Files & Repository">
                 <div>
                     <div class="kpi-val" id="kpi-docs-approved">0</div>
                     <div class="kpi-label">Approved Docs</div>
                 </div>
                 <div class="kpi-icon-wrap"><i class="fas fa-file-circle-check"></i></div>
             </div>
-            <div class="kpi-card amber">
+            <div class="kpi-card amber" onclick="switchAdminTab('moderation')" style="cursor: pointer;" title="Jump to Moderation Queue">
                 <div>
                     <div class="kpi-val" id="kpi-docs-pending">0</div>
                     <div class="kpi-label">Pending Review</div>
                 </div>
                 <div class="kpi-icon-wrap"><i class="fas fa-file-signature"></i></div>
             </div>
-            <div class="kpi-card sky">
+            <div class="kpi-card sky" onclick="window.location.href='/admin/analytics'" style="cursor: pointer;" title="Jump to Full Analytics">
                 <div>
                     <div class="kpi-val" id="kpi-total-views">0</div>
                     <div class="kpi-label">Total Views</div>
                 </div>
                 <div class="kpi-icon-wrap"><i class="fas fa-eye"></i></div>
             </div>
-            <div class="kpi-card rose">
+            <div class="kpi-card rose" onclick="switchAdminTab('notifications')" style="cursor: pointer;" title="Jump to Broadcast Hub">
                 <div>
                     <div class="kpi-val" id="kpi-subs">0</div>
                     <div class="kpi-label">Push Subscribers</div>
@@ -685,7 +683,7 @@
                             <span>🗄️ Supabase DB</span>
                             <span id="admSbStatus" style="font-weight: 700; color: #34d399;">Active</span>
                         </div>
-                        <div style="font-size: 0.95rem; font-weight: 700; color: #f1f5f9; margin-top: 0.2rem;" id="admSbSize">512 MB Free Tier</div>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-top: 0.2rem;" id="admSbSize">512 MB Free Tier</div>
                         <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.15rem;">PostgreSQL Storage</div>
                     </div>
                 </div>
@@ -700,98 +698,108 @@
             </div>
         </div>
 
-        <!-- Real-Time User Sentiment & Content Preference -->
-        <div class="admin-grid-2">
-            <!-- Top Liked & Viewed Documents -->
-            <div class="glass-panel">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h3 style="font-size: 1.15rem; font-weight: 700;">💚 Top Liked & Viewed Documents</h3>
-                    <span class="badge badge-loved" id="topLikedBadge">0 items</span>
-                </div>
-                <div style="overflow-x: auto; max-height: 360px;">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Document Title</th>
-                                <th>Subject</th>
-                                <th>Views</th>
-                                <th>Likes</th>
-                                <th>Like Ratio</th>
-                                <th>Link</th>
-                            </tr>
-                        </thead>
-                        <tbody id="overviewTopLikedBody">
-                            <tr><td colspan="6" class="loading">Loading preferences...</td></tr>
-                        </tbody>
-                    </table>
+        <!-- Cross-Tab Executive Summaries (No Duplicate Tables) -->
+        <div class="glass-panel" style="margin-top: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                <div>
+                    <h3 style="font-size: 1.2rem; font-weight: 700; margin: 0;">
+                        <i class="fas fa-layer-group text-indigo-400"></i> Platform Segments Summary
+                    </h3>
+                    <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0.25rem 0 0 0;">
+                        Executive cross-tab rollups across all workspaces. Click any card to switch views directly.
+                    </p>
                 </div>
             </div>
 
-            <!-- What Users Dislike / Low-Engagement Items -->
-            <div class="glass-panel">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h3 style="font-size: 1.15rem; font-weight: 700;">💔 High Bounce / Zero Likes</h3>
-                    <span class="badge badge-warn" id="underperformingBadge">0 items</span>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+                <!-- Moderation Segment -->
+                <div style="background: rgba(255,255,255,0.03); border: var(--glass-border); border-radius: 12px; padding: 1.1rem; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);"><i class="fas fa-circle-check text-emerald-400"></i> Moderation Queue</span>
+                            <span class="badge badge-warn" id="summaryPendingBadge">0 Pending</span>
+                        </div>
+                        <div style="font-size: 1.35rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.25rem;" id="summaryPendingCount">0</div>
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">Unverified documents & student uploads awaiting review.</div>
+                    </div>
+                    <button type="button" class="btn-action btn-indigo" style="margin-top: 1rem; width: 100%; justify-content: center;" onclick="switchAdminTab('moderation')">
+                        Open Moderation Hub <i class="fas fa-arrow-right"></i>
+                    </button>
                 </div>
-                <div style="overflow-x: auto; max-height: 360px;">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Document Title</th>
-                                <th>Views</th>
-                                <th>Likes</th>
-                                <th>Status Note</th>
-                                <th>Link</th>
-                            </tr>
-                        </thead>
-                        <tbody id="overviewUnderperformingBody">
-                            <tr><td colspan="5" class="loading">Analyzing low engagement...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
 
-        <!-- Unmet Search Demand & Live Feed -->
-        <div class="admin-grid-2">
-            <div class="glass-panel">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h3 style="font-size: 1.15rem; font-weight: 700;">🔍 Unmet Search Demand (0 Results)</h3>
-                    <span class="badge badge-blue" id="unmetBadge">0 queries</span>
+                <!-- Students & Access Segment -->
+                <div style="background: rgba(255,255,255,0.03); border: var(--glass-border); border-radius: 12px; padding: 1.1rem; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);"><i class="fas fa-user-graduate text-indigo-400"></i> Students & Access</span>
+                            <span class="badge badge-blue">Community</span>
+                        </div>
+                        <div style="font-size: 1.35rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.25rem;" id="summaryStudentsCount">0</div>
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">Registered students across all colleges.</div>
+                    </div>
+                    <button type="button" class="btn-action btn-indigo" style="margin-top: 1rem; width: 100%; justify-content: center;" onclick="switchAdminTab('users')">
+                        Manage Students <i class="fas fa-arrow-right"></i>
+                    </button>
                 </div>
-                <div style="overflow-x: auto; max-height: 280px;">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Student Search Term</th>
-                                <th>Requests</th>
-                                <th>Recommendation</th>
-                            </tr>
-                        </thead>
-                        <tbody id="overviewUnmetBody">
-                            <tr><td colspan="3" class="loading">Analyzing searches...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
 
-            <div class="glass-panel">
-                <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 1rem;">
-                    ⚡ Live Real-Time Interaction Feed
-                </h3>
-                <div style="overflow-x: auto; max-height: 280px;">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Action</th>
-                                <th>Resource</th>
-                                <th>Time</th>
-                            </tr>
-                        </thead>
-                        <tbody id="overviewLiveFeedBody">
-                            <tr><td colspan="3" class="loading">Listening for live activity...</td></tr>
-                        </tbody>
-                    </table>
+                <!-- Files & Storage Segment -->
+                <div style="background: rgba(255,255,255,0.03); border: var(--glass-border); border-radius: 12px; padding: 1.1rem; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);"><i class="fas fa-folder-tree text-sky-400"></i> Files & Repository</span>
+                            <span class="badge badge-loved">Storage</span>
+                        </div>
+                        <div style="font-size: 1.35rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.25rem;" id="summaryFilesCount">0</div>
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">Active approved question papers, notes & syllabi.</div>
+                    </div>
+                    <button type="button" class="btn-action btn-indigo" style="margin-top: 1rem; width: 100%; justify-content: center;" onclick="switchAdminTab('files')">
+                        Inspect Storage <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+
+                <!-- Payments & Payouts Segment -->
+                <div style="background: rgba(255,255,255,0.03); border: var(--glass-border); border-radius: 12px; padding: 1.1rem; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);"><i class="fas fa-credit-card text-emerald-400"></i> Payments & Payouts</span>
+                            <span class="badge badge-warn" id="summaryPayoutsBadge">0 Pending</span>
+                        </div>
+                        <div style="font-size: 1.35rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.25rem;" id="summaryPayoutsAmount">₹0.00</div>
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">Creator payout disbursements & balance status.</div>
+                    </div>
+                    <a href="/admin/payments" class="btn-action btn-emerald" style="margin-top: 1rem; width: 100%; justify-content: center; text-decoration: none;">
+                        Review Payouts <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+
+                <!-- Intelligence & Analytics Segment -->
+                <div style="background: rgba(255,255,255,0.03); border: var(--glass-border); border-radius: 12px; padding: 1.1rem; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);"><i class="fas fa-chart-line text-amber-400"></i> Analytics & Demand</span>
+                            <span class="badge badge-blue">Intelligence</span>
+                        </div>
+                        <div style="font-size: 1.35rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.25rem;" id="summaryViewsCount">0</div>
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">Total reads, downloads & search demand trends.</div>
+                    </div>
+                    <a href="/admin/analytics" class="btn-action btn-amber" style="margin-top: 1rem; width: 100%; justify-content: center; text-decoration: none;">
+                        Open Analytics <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+
+                <!-- Observability & Cloud Health -->
+                <div style="background: rgba(255,255,255,0.03); border: var(--glass-border); border-radius: 12px; padding: 1.1rem; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);"><i class="fas fa-heart-pulse text-rose-400"></i> Observability</span>
+                            <span class="badge badge-loved" id="summaryObsBadge">Healthy</span>
+                        </div>
+                        <div style="font-size: 1.35rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.25rem;">Live Logs & Outages</div>
+                        <div style="font-size: 0.78rem; color: var(--text-muted);">System latency, error traces & API operational state.</div>
+                    </div>
+                    <a href="/admin/observability" class="btn-action btn-indigo" style="margin-top: 1rem; width: 100%; justify-content: center; text-decoration: none;">
+                        Open Observability <i class="fas fa-arrow-right"></i>
+                    </a>
                 </div>
             </div>
         </div>
@@ -800,14 +808,65 @@
     <!-- 2. DOCUMENT MODERATION VIEW (Moderate Questions & Papers) -->
     <div id="view-moderation" class="admin-view" style="display: none;">
         <div class="glass-panel">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
-                <h2 style="font-size: 1.35rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
-                    <i class="fas fa-file-circle-check text-indigo-400"></i> Moderate Questions & Uploads Queue
-                </h2>
-                <button class="btn-action btn-indigo" onclick="loadPendingDocuments()" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
-                    <i class="fas fa-arrows-rotate"></i> Refresh Queue
-                </button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h2 style="font-size: 1.35rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                        <i class="fas fa-file-circle-check text-indigo-400"></i> Moderate Questions & Uploads Queue
+                    </h2>
+                    <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0.25rem 0 0 0;">
+                        Review student-contributed exam papers, lab practicals, and notes before public publishing.
+                    </p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button class="btn-action btn-indigo" onclick="loadPendingDocuments()" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                        <i class="fas fa-arrows-rotate"></i> Refresh Queue
+                    </button>
+                </div>
             </div>
+
+            <!-- Queue Metrics Pills -->
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.25rem;">
+                <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 8px; padding: 0.45rem 0.85rem; font-size: 0.82rem; font-weight: 600; color: #a5b4fc;">
+                    Pending: <span id="modKpiTotal" style="font-weight: 800; color: #fff;">0</span>
+                </div>
+                <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 0.45rem 0.85rem; font-size: 0.82rem; font-weight: 600; color: #6ee7b7;">
+                    PYQs: <span id="modKpiPyqs" style="font-weight: 800; color: #fff;">0</span>
+                </div>
+                <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 0.45rem 0.85rem; font-size: 0.82rem; font-weight: 600; color: #7dd3fc;">
+                    Notes: <span id="modKpiNotes" style="font-weight: 800; color: #fff;">0</span>
+                </div>
+                <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px; padding: 0.45rem 0.85rem; font-size: 0.82rem; font-weight: 600; color: #fcd34d;">
+                    Practicals: <span id="modKpiPracticals" style="font-weight: 800; color: #fff;">0</span>
+                </div>
+            </div>
+
+            <!-- Moderation Search, Filter & Batch Control Bar -->
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.25rem; background: rgba(255,255,255,0.02); border: var(--glass-border); border-radius: 10px; padding: 0.75rem 1rem;">
+                <div style="flex: 1; min-width: 220px;">
+                    <input type="text" id="modSearchInput" class="form-input" placeholder="Search by title, subject or uploader..." oninput="filterPendingDocs()" style="margin: 0; padding: 0.45rem 0.75rem; font-size: 0.85rem;">
+                </div>
+                <div>
+                    <select id="modCategoryFilter" class="form-input" onchange="filterPendingDocs()" style="margin: 0; width: auto; padding: 0.45rem 0.75rem; font-size: 0.85rem;">
+                        <option value="all">All Categories</option>
+                        <option value="pyq">PYQ / Question Papers</option>
+                        <option value="notes">Notes</option>
+                        <option value="practical">Practicals / Lab</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <!-- Batch Actions (visible when items selected) -->
+                <div id="modBatchToolbar" style="display: none; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 0.8rem; font-weight: 700; color: var(--accent-emerald);" id="modSelectedCount">0 selected</span>
+                    <button type="button" class="btn-action btn-emerald" onclick="executeBatchModeration('approve')" style="padding: 0.4rem 0.75rem; font-size: 0.8rem;">
+                        <i class="fas fa-check-double"></i> Batch Approve
+                    </button>
+                    <button type="button" class="btn-action btn-rose" onclick="executeBatchModeration('reject')" style="padding: 0.4rem 0.75rem; font-size: 0.8rem;">
+                        <i class="fas fa-trash-can"></i> Batch Reject
+                    </button>
+                </div>
+            </div>
+
+            <!-- Documents List Container -->
             <div id="pendingDocsList">
                 <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
                     <i class="fas fa-spinner fa-spin fa-2x" style="margin-bottom: 1rem;"></i>
@@ -836,6 +895,12 @@
                     <i class="fas fa-users text-indigo-400"></i> Student Directory (<span id="userTotalCount">0</span>)
                 </h2>
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <select id="userStatusFilter" class="form-input" style="width: auto; padding: 0.5rem 0.75rem;" onchange="filterAdminUsersLocal()">
+                        <option value="all">All Statuses</option>
+                        <option value="verified">Verified Only</option>
+                        <option value="unverified">Unverified Only</option>
+                        <option value="banned">Suspended / Banned</option>
+                    </select>
                     <select id="userDegreeFilter" class="form-input" style="width: auto; padding: 0.5rem 0.75rem;" onchange="loadAdminUsers()">
                         <option value="all">All Degrees</option>
                         <option value="B.Tech">B.Tech / B.E</option>
@@ -890,8 +955,12 @@
                                     </div>
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                                    <span id="userStatStatusBadge" class="badge badge-loved" style="display:none;">Active</span>
                                     <button id="btnToggleVerify" onclick="toggleSelectedUserVerification()" class="btn-action btn-emerald" style="padding: 0.4rem 0.85rem; font-size: 0.82rem;">
                                         <i class="fas fa-check-circle"></i> Verify User
+                                    </button>
+                                    <button id="btnToggleBan" onclick="toggleSelectedUserBan()" class="btn-action btn-rose" style="padding: 0.4rem 0.85rem; font-size: 0.82rem;">
+                                        <i class="fas fa-ban"></i> Suspend User
                                     </button>
                                     <select id="userRoleSelect" class="form-input" style="padding: 0.35rem 0.6rem; font-size: 0.82rem; width: auto;" onchange="updateSelectedUserRole()" title="User Role">
                                         <option value="student">Student</option>
@@ -1090,26 +1159,56 @@
     <!-- 6. FILES & STORAGE MANAGEMENT VIEW -->
     <div id="view-files" class="admin-view" style="display: none;">
         <div class="glass-panel">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
                 <div>
                     <h2 style="font-size: 1.35rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
                         <i class="fas fa-folder-tree text-indigo-400"></i> Files & Multi-Provider Storage
                     </h2>
-                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 4px 0 0;">
+                    <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 4px 0 0;">
                         Inspect, quarantine, and permanently purge uploaded documents across Cloudinary, Firebase & Supabase.
                     </p>
                 </div>
-                <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
-                    <input type="text" id="adminFilesSearch" placeholder="Search file title..." class="form-input" style="width: 220px; padding: 0.5rem 0.85rem;" oninput="debounceFilesSearch()">
-                    <select id="adminFilesStatusFilter" class="form-input" style="width: auto; padding: 0.5rem 0.85rem;" onchange="loadAdminFiles(1)">
-                        <option value="">All Statuses</option>
-                        <option value="approved">Approved</option>
-                        <option value="pending">Pending</option>
-                        <option value="rejected">Rejected</option>
-                        <option value="quarantined">Quarantined</option>
-                    </select>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
                     <button type="button" class="btn-action btn-indigo" onclick="loadAdminFiles(1)" style="padding: 0.5rem 1rem;">
-                        <i class="fas fa-rotate"></i> Refresh
+                        <i class="fas fa-rotate"></i> Refresh Storage
+                    </button>
+                </div>
+            </div>
+
+            <!-- Storage Health & Status Badges -->
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.25rem;">
+                <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 8px; padding: 0.45rem 0.85rem; font-size: 0.82rem; font-weight: 600; color: #a5b4fc;">
+                    Total Documents: <span id="filesKpiTotal" style="font-weight: 800; color: #fff;">0</span>
+                </div>
+                <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 0.45rem 0.85rem; font-size: 0.82rem; font-weight: 600; color: #6ee7b7;">
+                    Approved: <span id="filesKpiApproved" style="font-weight: 800; color: #fff;">0</span>
+                </div>
+                <div style="background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.25); border-radius: 8px; padding: 0.45rem 0.85rem; font-size: 0.82rem; font-weight: 600; color: #fda4af;">
+                    Quarantined: <span id="filesKpiQuarantined" style="font-weight: 800; color: #fff;">0</span>
+                </div>
+                <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px; padding: 0.45rem 0.85rem; font-size: 0.82rem; font-weight: 600; color: #fcd34d;">
+                    Pending: <span id="filesKpiPending" style="font-weight: 800; color: #fff;">0</span>
+                </div>
+            </div>
+
+            <!-- Controls & Batch Toolbar -->
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.25rem; background: rgba(255,255,255,0.02); border: var(--glass-border); border-radius: 10px; padding: 0.75rem 1rem;">
+                <div style="flex: 1; min-width: 220px;">
+                    <input type="text" id="adminFilesSearch" placeholder="Search file title, uploader..." class="form-input" style="margin: 0; padding: 0.45rem 0.75rem; font-size: 0.85rem;" oninput="debounceFilesSearch()">
+                </div>
+                <div>
+                    <select id="adminFilesStatusFilter" class="form-input" style="margin: 0; width: auto; padding: 0.45rem 0.75rem; font-size: 0.85rem;" onchange="loadAdminFiles(1)">
+                        <option value="">All Statuses</option>
+                        <option value="approved">Approved Only</option>
+                        <option value="pending">Pending Only</option>
+                        <option value="rejected">Rejected Only</option>
+                        <option value="quarantined">Quarantined Only</option>
+                    </select>
+                </div>
+                <div id="adminFilesBatchToolbar" style="display: none; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 0.8rem; font-weight: 700; color: var(--accent-rose);" id="adminFilesSelectedCount">0 selected</span>
+                    <button type="button" class="btn-action btn-rose" onclick="executeBatchFilesDelete()" style="padding: 0.4rem 0.75rem; font-size: 0.8rem;">
+                        <i class="fas fa-trash-can"></i> Batch Purge Across Providers
                     </button>
                 </div>
             </div>
@@ -1118,6 +1217,7 @@
                 <table style="width: 100%; border-collapse: collapse; font-size: 0.88rem;">
                     <thead>
                         <tr style="border-bottom: var(--card-item-border); text-align: left; color: var(--text-secondary); font-size: 0.78rem; text-transform: uppercase;">
+                            <th style="padding: 0.75rem; width: 40px;"><input type="checkbox" id="selectAllFilesCb" onchange="toggleSelectAllFiles(this.checked)" style="accent-color: var(--accent-indigo); cursor: pointer;"></th>
                             <th style="padding: 0.75rem;">Document</th>
                             <th style="padding: 0.75rem;">Uploader</th>
                             <th style="padding: 0.75rem;">Provider</th>
@@ -1428,6 +1528,31 @@
         if (view) view.style.display = "block";
         if (btn) btn.classList.add("active");
 
+        const bc = document.getElementById("activeSectionBreadcrumb");
+        if (bc) {
+            const labels = {
+                'overview': 'Overview & Executive Summary',
+                'moderation': 'Moderation Queue & Uploads',
+                'users': 'Student Directory & Moderation',
+                'files': 'Files & Multi-Provider Storage',
+                'audit': 'Compliance & Audit Logs',
+                'notifications': 'Broadcast & Push Notifications',
+                'contact': 'Feedback & Contact Messages',
+                'settings': 'Site Configuration & Settings'
+            };
+            bc.textContent = labels[tabId] || tabId.toUpperCase();
+        }
+
+        // Highlight matching sidebar nav link
+        document.querySelectorAll(".admin-sidebar .nav-link").forEach(l => {
+            const href = l.getAttribute("href") || "";
+            if (href.endsWith("#" + tabId) || (tabId === 'overview' && href === '/admin')) {
+                l.classList.add("active");
+            } else if (href.startsWith("/admin#") || href === '/admin') {
+                l.classList.remove("active");
+            }
+        });
+
         if (window.location.hash !== '#' + tabId) {
             history.replaceState(null, null, '#' + tabId);
         }
@@ -1499,7 +1624,7 @@
                 if (sup.error) errorsSpotted.push(`Supabase: ${sup.error}`);
 
                 const sUsed = cld.storage_bytes || 0;
-                const sLimit = cld.storage_limit || 1;
+                const sLimit = (cld.storage_limit && cld.storage_limit > 1024) ? cld.storage_limit : (25 * 1024 * 1024 * 1024);
                 const sPct = Math.min(100, Math.round((sUsed / sLimit) * 100));
                 document.getElementById('admStoragePct').textContent = `${sPct}%`;
                 document.getElementById('admStorageBar').style.width = `${sPct}%`;
@@ -1507,7 +1632,7 @@
                 document.getElementById('admStorageLimit').textContent = `/ ${formatBytesBrief(sLimit)}`;
 
                 const bUsed = cld.bandwidth_bytes || 0;
-                const bLimit = cld.bandwidth_limit || 1;
+                const bLimit = (cld.bandwidth_limit && cld.bandwidth_limit > 1024) ? cld.bandwidth_limit : (25 * 1024 * 1024 * 1024);
                 const bPct = Math.min(100, Math.round((bUsed / bLimit) * 100));
                 document.getElementById('admBwPct').textContent = `${bPct}%`;
                 document.getElementById('admBwBar').style.width = `${bPct}%`;
@@ -1540,7 +1665,7 @@
                     const icon = isOk ? 'fa-circle-check' : 'fa-circle-exclamation';
                     return `
                         <div style="background: ${badgeBg}; border: 1px solid ${badgeBorder}; border-radius: 8px; padding: 0.4rem 0.6rem; display: flex; align-items: center; justify-content: space-between; font-size: 0.72rem;">
-                            <span style="font-weight: 600; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 85px;">${c.name}</span>
+                            <span style="font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 85px;">${c.name}</span>
                             <span style="color: ${textColor}; display: flex; align-items: center; gap: 0.25rem;">
                                 <i class="fas ${icon}"></i>
                                 <span>${c.latency_ms}ms</span>
@@ -1580,6 +1705,48 @@
                 if (s.total_views !== undefined && s.total_views !== null) {
                     document.getElementById("kpi-total-views").textContent = s.total_views;
                 }
+
+                // Cross-Tab Summaries
+                const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+                setEl("summaryPendingCount", s.pending_documents || 0);
+                setEl("summaryPendingBadge", `${s.pending_documents || 0} Pending`);
+                setEl("summaryStudentsCount", s.total_users || 0);
+                setEl("summaryFilesCount", s.approved_documents || 0);
+                setEl("summaryPayoutsAmount", `₹${(s.pending_payouts_amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`);
+                setEl("summaryPayoutsBadge", `${s.pending_payouts_count || 0} Pending`);
+                setEl("summaryViewsCount", s.total_views || 0);
+
+                // High-Priority Admin Special Notifications (High / Critical ONLY)
+                const notifWrap = document.getElementById("adminSpecialNotificationsSection");
+                const notifFeed = document.getElementById("adminSpecialNotificationsFeed");
+                const notifBadge = document.getElementById("specialAlertsCount");
+                const specialNotifs = data.special_notifications || [];
+
+                if (specialNotifs.length > 0) {
+                    if (notifWrap) notifWrap.style.display = "block";
+                    if (notifBadge) notifBadge.textContent = `${specialNotifs.length} Critical Action(s)`;
+                    if (notifFeed) {
+                        notifFeed.innerHTML = specialNotifs.map(n => `
+                            <div style="background: rgba(244, 63, 94, 0.08); border: 1px solid rgba(244, 63, 94, 0.25); border-radius: 10px; padding: 0.85rem 1.1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                                <div style="display: flex; align-items: center; gap: 0.85rem;">
+                                    <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(244, 63, 94, 0.2); color: #f43f5e; display: flex; align-items: center; justify-content: center; font-size: 1rem;">
+                                        <i class="fas ${n.icon || 'fa-triangle-exclamation'}"></i>
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: 700; font-size: 0.92rem; color: #fecdd3;">${n.title}</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-secondary);">${n.description}</div>
+                                    </div>
+                                </div>
+                                <div>
+                                    ${n.tab ? `<button type="button" class="btn-action btn-indigo" onclick="switchAdminTab('${n.tab}')" style="padding: 0.4rem 0.85rem; font-size: 0.82rem;">${n.action_label} &rarr;</button>` : ''}
+                                    ${n.link ? `<a href="${n.link}" class="btn-action btn-indigo" style="padding: 0.4rem 0.85rem; font-size: 0.82rem; text-decoration: none;">${n.action_label} &rarr;</a>` : ''}
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                } else {
+                    if (notifWrap) notifWrap.style.display = "none";
+                }
             }
 
             const ovRes = await fetch('/api/admin/analytics/overview?days=30');
@@ -1597,6 +1764,7 @@
 
     // 2. Load Content Sentiment Analytics
     async function loadSentimentAnalytics() {
+        if (!document.getElementById('overviewTopLikedBody')) return;
         try {
             const res = await fetch('/api/admin/analytics/sentiment?days=30&limit=15');
             const resData = await res.json();
@@ -1674,66 +1842,163 @@
         }
     }
 
-    // 3. Load Pending Document Moderation Queue
+    // 3. Load Pending Document Moderation Queue & Batch Controls
+    window._pendingDocsCache = [];
+    window._selectedDocIds = new Set();
+
+    function updateBatchToolbar() {
+        const tb = document.getElementById("modBatchToolbar");
+        const count = document.getElementById("modSelectedCount");
+        if (tb && count) {
+            if (window._selectedDocIds.size > 0) {
+                tb.style.display = "flex";
+                count.textContent = `${window._selectedDocIds.size} selected`;
+            } else {
+                tb.style.display = "none";
+            }
+        }
+    }
+
+    function toggleModSelect(docId) {
+        if (window._selectedDocIds.has(docId)) {
+            window._selectedDocIds.delete(docId);
+        } else {
+            window._selectedDocIds.add(docId);
+        }
+        updateBatchToolbar();
+    }
+
+    async function executeBatchModeration(action) {
+        if (!window._selectedDocIds.size) return;
+        const confirmMsg = `Are you sure you want to batch ${action} ${window._selectedDocIds.size} selected documents?`;
+        if (!confirm(confirmMsg)) return;
+
+        try {
+            const res = await fetch('/api/admin/documents/batch-action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    document_ids: Array.from(window._selectedDocIds),
+                    action: action
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                window._selectedDocIds.clear();
+                updateBatchToolbar();
+                loadPendingDocuments();
+                if (typeof loadAdminStats === 'function') loadAdminStats();
+            } else {
+                alert(data.error || "Batch action failed");
+            }
+        } catch (e) {
+            alert("Network error executing batch moderation");
+        }
+    }
+
+    function filterPendingDocs() {
+        const q = (document.getElementById("modSearchInput")?.value || "").toLowerCase().trim();
+        const cat = document.getElementById("modCategoryFilter")?.value || "all";
+
+        const filtered = window._pendingDocsCache.filter(d => {
+            const matchesCat = (cat === 'all') || (d.document_category || '').toLowerCase() === cat;
+            const textCorpus = [
+                d.title, d.uploader_name, d.subject_name, d.college_name, d.department_name, d.file_type
+            ].filter(Boolean).join(' ').toLowerCase();
+            const matchesQuery = !q || textCorpus.includes(q);
+            return matchesCat && matchesQuery;
+        });
+
+        renderPendingDocs(filtered);
+    }
+
+    function renderPendingDocs(docs) {
+        const container = document.getElementById("pendingDocsList");
+        if (!docs || !docs.length) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                    <i class="far fa-folder-open fa-3x" style="margin-bottom: 1rem; color: var(--text-muted);"></i>
+                    <p style="font-weight: 700; font-size: 1.1rem; color: var(--text-primary);">No documents match current filters</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = docs.map(d => {
+            const profile = d.profiles || {};
+            const uploaderName = profile.full_name || d.uploader_name || "Unknown Student";
+            const uploaderEmail = profile.email || "No Email";
+            const catClass = (d.document_category || '').toLowerCase();
+            const badgeClass = catClass === 'notes' ? 'badge-notes' : catClass === 'pyq' ? 'badge-pyq' : catClass === 'practical' ? 'badge-practical' : 'badge-blue';
+            const isPaid = Boolean(d.is_paid && d.price > 0);
+            const college = d.college_name || d.college_abbr || '';
+            const dept = d.department_name || d.department_abbr || '';
+            const subject = d.subject_name || '';
+            const sem = d.semester ? `Sem ${d.semester}` : '';
+            const isChecked = window._selectedDocIds.has(d.id);
+
+            return `
+                <div class="mod-card" id="doc-card-${d.id}" style="position: relative;">
+                    <div style="position: absolute; top: 1rem; right: 1rem;">
+                        <input type="checkbox" onchange="toggleModSelect('${d.id}')" ${isChecked ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent-indigo);">
+                    </div>
+                    <div class="mod-header">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; flex-wrap: wrap;">
+                                <span class="badge ${badgeClass}">${d.document_category || 'Other'}</span>
+                                <span class="badge badge-blue">${(d.file_type || 'PDF').toUpperCase()}</span>
+                                <span class="badge ${isPaid ? 'badge-loved' : 'badge-notes'}">${isPaid ? '₹' + parseFloat(d.price).toFixed(2) : 'FREE'}</span>
+                                ${sem ? `<span class="badge" style="background:rgba(255,255,255,0.08);">${sem}</span>` : ''}
+                            </div>
+                            <div class="mod-title">${d.title}</div>
+                            ${(college || dept || subject) ? `
+                                <div style="font-size: 0.8rem; color: #818cf8; margin-top: 3px;">
+                                    <i class="fas fa-graduation-cap"></i> ${[college, dept, subject].filter(Boolean).join(' • ')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+
+                    <div class="mod-meta">
+                        <span><i class="far fa-user"></i> ${uploaderName} ${uploaderEmail ? `(${uploaderEmail})` : ''}</span>
+                        <span><i class="far fa-calendar-alt"></i> Uploaded: ${new Date(d.created_at).toLocaleString()}</span>
+                    </div>
+
+                    <div class="mod-actions">
+                        <a href="${d.file_url}" target="_blank" class="btn-action btn-indigo" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                            <i class="fas fa-eye"></i> Quick Preview
+                        </a>
+                        <button onclick="openModerationModal('${d.id}', '${(d.title || '').replace(/'/g, "\'")}', '${uploaderName.replace(/'/g, "\'")}', 'approve')" class="btn-action btn-emerald" style="padding: 0.5rem 1rem; font-size: 0.85rem;" id="btn-approve-${d.id}">
+                            <i class="fas fa-check"></i> Approve
+                        </button>
+                        <button onclick="openModerationModal('${d.id}', '${(d.title || '').replace(/'/g, "\'")}', '${uploaderName.replace(/'/g, "\'")}', 'reject')" class="btn-action btn-rose" style="padding: 0.5rem 1rem; font-size: 0.85rem;" id="btn-reject-${d.id}">
+                            <i class="fas fa-trash-can"></i> Reject & Remark
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
     async function loadPendingDocuments() {
         const container = document.getElementById("pendingDocsList");
         try {
             const res = await fetch('/api/admin/pending-documents');
             const data = await res.json();
-            if (data.success && data.documents && data.documents.length > 0) {
-                document.getElementById("tabPendingCount").textContent = data.documents.length;
-                container.innerHTML = data.documents.map(d => {
-                    const profile = d.profiles || {};
-                    const uploaderName = profile.full_name || d.uploader_name || "Unknown Student";
-                    const uploaderEmail = profile.email || "No Email";
-                    const catClass = (d.document_category || '').toLowerCase();
-                    const badgeClass = catClass === 'notes' ? 'badge-notes' : catClass === 'pyq' ? 'badge-pyq' : catClass === 'practical' ? 'badge-practical' : 'badge-blue';
-                    const isPaid = Boolean(d.is_paid && d.price > 0);
-                    const college = d.college_name || d.college_abbr || '';
-                    const dept = d.department_name || d.department_abbr || '';
-                    const subject = d.subject_name || '';
-                    const sem = d.semester ? `Sem ${d.semester}` : '';
+            const docs = data.documents || [];
+            window._pendingDocsCache = docs;
 
-                    return `
-                        <div class="mod-card" id="doc-card-${d.id}">
-                            <div class="mod-header">
-                                <div>
-                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; flex-wrap: wrap;">
-                                        <span class="badge ${badgeClass}">${d.document_category || 'Other'}</span>
-                                        <span class="badge badge-blue">${(d.file_type || 'PDF').toUpperCase()}</span>
-                                        <span class="badge ${isPaid ? 'badge-loved' : 'badge-notes'}">${isPaid ? '₹' + parseFloat(d.price).toFixed(2) : 'FREE'}</span>
-                                        ${sem ? `<span class="badge" style="background:rgba(255,255,255,0.08);">${sem}</span>` : ''}
-                                    </div>
-                                    <div class="mod-title">${d.title}</div>
-                                    ${(college || dept || subject) ? `
-                                        <div style="font-size: 0.8rem; color: #818cf8; margin-top: 3px;">
-                                            <i class="fas fa-graduation-cap"></i> ${[college, dept, subject].filter(Boolean).join(' • ')}
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            </div>
+            // Update Counts
+            const setNum = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+            setNum("tabPendingCount", docs.length);
+            setNum("modKpiTotal", docs.length);
+            setNum("modKpiPyqs", docs.filter(d => (d.document_category || '').toLowerCase() === 'pyq').length);
+            setNum("modKpiNotes", docs.filter(d => (d.document_category || '').toLowerCase() === 'notes').length);
+            setNum("modKpiPracticals", docs.filter(d => (d.document_category || '').toLowerCase() === 'practical').length);
 
-                            <div class="mod-meta">
-                                <span><i class="far fa-user"></i> ${uploaderName} ${uploaderEmail ? `(${uploaderEmail})` : ''}</span>
-                                <span><i class="far fa-calendar-alt"></i> Uploaded: ${new Date(d.created_at).toLocaleString()}</span>
-                            </div>
-
-                            <div class="mod-actions">
-                                <a href="${d.file_url}" target="_blank" class="btn-action btn-indigo" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
-                                    <i class="fas fa-eye"></i> Preview Material
-                                </a>
-                                <button onclick="openModerationModal('${d.id}', '${(d.title || '').replace(/'/g, "\\'")}', '${uploaderName.replace(/'/g, "\\'")}', 'approve')" class="btn-action btn-emerald" style="padding: 0.5rem 1rem; font-size: 0.85rem;" id="btn-approve-${d.id}">
-                                    <i class="fas fa-check"></i> Approve (+3 Pts)
-                                </button>
-                                <button onclick="openModerationModal('${d.id}', '${(d.title || '').replace(/'/g, "\\'")}', '${uploaderName.replace(/'/g, "\\'")}', 'reject')" class="btn-action btn-rose" style="padding: 0.5rem 1rem; font-size: 0.85rem;" id="btn-reject-${d.id}">
-                                    <i class="fas fa-trash-can"></i> Reject & Remark
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
+            if (docs.length > 0) {
+                filterPendingDocs();
             } else {
-                document.getElementById("tabPendingCount").textContent = "0";
                 container.innerHTML = `
                     <div style="text-align: center; padding: 4rem; color: var(--text-secondary);">
                         <i class="far fa-folder-open fa-3x" style="margin-bottom: 1rem; color: var(--text-muted);"></i>
@@ -1942,7 +2207,7 @@
         }).join('');
     }
 
-    function searchAdminUsersLocal() {
+    function searchAdminUsersLocal() { filterAdminUsersLocal(); return; 
         const q = document.getElementById("adminUserSearchInput").value.toLowerCase().trim();
         const filtered = adminUsersList.filter(u =>
             (u.full_name && u.full_name.toLowerCase().includes(q)) ||
@@ -1990,6 +2255,19 @@
         if (btnVerify) {
             btnVerify.className = isVerified ? "btn-action btn-rose" : "btn-action btn-emerald";
             btnVerify.innerHTML = isVerified ? '<i class="fas fa-ban"></i> Unverify User' : '<i class="fas fa-check-circle"></i> Verify User';
+        }
+
+        const isBanned = Boolean(selectedAdminUserObj.is_banned || selectedAdminUserObj.status === 'banned');
+        const statusBadge = document.getElementById("userStatStatusBadge");
+        const btnBan = document.getElementById("btnToggleBan");
+        if (statusBadge) {
+            statusBadge.style.display = "inline-flex";
+            statusBadge.className = isBanned ? "badge badge-warn" : "badge badge-loved";
+            statusBadge.textContent = isBanned ? "BANNED" : "ACTIVE";
+        }
+        if (btnBan) {
+            btnBan.className = isBanned ? "btn-action btn-emerald" : "btn-action btn-rose";
+            btnBan.innerHTML = isBanned ? '<i class="fas fa-user-check"></i> Restore User' : '<i class="fas fa-ban"></i> Suspend User';
         }
 
         // Update role dropdown and badge
@@ -2237,6 +2515,136 @@
             if (btn) btn.disabled = false;
         }
     }
+
+    async function toggleSelectedUserBan() {
+
+        if (!selectedAdminUserId) return;
+
+        const isBanned = Boolean(selectedAdminUserObj && (selectedAdminUserObj.is_banned || selectedAdminUserObj.status === 'banned'));
+
+        const newBanned = !isBanned;
+
+        const actionLabel = newBanned ? 'suspend / ban' : 'unsuspend / unban';
+
+        if (!confirm(`Are you sure you want to ${actionLabel} student ${selectedAdminUserObj?.full_name || selectedAdminUserId}?`)) return;
+
+
+
+        const btn = document.getElementById("btnToggleBan");
+
+        if (btn) btn.disabled = true;
+
+
+
+        try {
+
+            const res = await fetch(`/api/admin/users/${selectedAdminUserId}/ban`, {
+
+                method: 'POST',
+
+                headers: { 'Content-Type': 'application/json' },
+
+                body: JSON.stringify({ banned: newBanned, reason: newBanned ? 'Admin suspended account' : 'Account restored by admin' })
+
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+
+                showAdminAlert(data.message || `User ${newBanned ? 'banned' : 'restored'} successfully`, "success");
+
+                if (selectedAdminUserObj) {
+
+                    selectedAdminUserObj.is_banned = newBanned;
+
+                    selectedAdminUserObj.status = newBanned ? 'banned' : 'active';
+
+                }
+
+                const statusBadge = document.getElementById("userStatStatusBadge");
+
+                if (statusBadge) {
+
+                    statusBadge.style.display = "inline-flex";
+
+                    statusBadge.className = newBanned ? "badge badge-warn" : "badge badge-loved";
+
+                    statusBadge.textContent = newBanned ? "BANNED" : "ACTIVE";
+
+                }
+
+                if (btn) {
+
+                    btn.className = newBanned ? "btn-action btn-emerald" : "btn-action btn-rose";
+
+                    btn.innerHTML = newBanned ? '<i class="fas fa-user-check"></i> Restore User' : '<i class="fas fa-ban"></i> Suspend User';
+
+                }
+
+                renderUserSidebarList(adminUsersList);
+
+            } else {
+
+                showAdminAlert(data.error || "Action failed", "error");
+
+            }
+
+        } catch (e) {
+
+            showAdminAlert("Network error toggling user ban status", "error");
+
+        } finally {
+
+            if (btn) btn.disabled = false;
+
+        }
+
+    }
+
+
+
+    function filterAdminUsersLocal() {
+
+        const q = (document.getElementById("adminUserSearchInput")?.value || "").toLowerCase().trim();
+
+        const statusFilter = document.getElementById("userStatusFilter")?.value || "all";
+
+
+
+        const filtered = adminUsersList.filter(u => {
+
+            const isBanned = Boolean(u.is_banned || u.status === 'banned');
+
+            const isVerified = Boolean(u.is_verified);
+
+            let matchesStatus = true;
+
+            if (statusFilter === 'verified') matchesStatus = isVerified;
+
+            else if (statusFilter === 'unverified') matchesStatus = !isVerified;
+
+            else if (statusFilter === 'banned') matchesStatus = isBanned;
+
+
+
+            const text = [u.full_name, u.email, u.degree].filter(Boolean).join(' ').toLowerCase();
+
+            const matchesQuery = !q || text.includes(q);
+
+
+
+            return matchesStatus && matchesQuery;
+
+        });
+
+
+
+        renderUserSidebarList(filtered);
+
+    }
+
+
 
     async function toggleSelectedUserVerification() {
         if (!selectedAdminUserId) return;
@@ -2514,6 +2922,71 @@
         return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
     }
 
+    window._selectedFilesSet = new Set();
+
+    function updateFilesBatchToolbar() {
+        const tb = document.getElementById("adminFilesBatchToolbar");
+        const count = document.getElementById("adminFilesSelectedCount");
+        if (tb && count) {
+            if (window._selectedFilesSet.size > 0) {
+                tb.style.display = "flex";
+                count.textContent = `${window._selectedFilesSet.size} selected`;
+            } else {
+                tb.style.display = "none";
+            }
+        }
+    }
+
+    function toggleSelectFile(fileId) {
+        if (window._selectedFilesSet.has(fileId)) {
+            window._selectedFilesSet.delete(fileId);
+        } else {
+            window._selectedFilesSet.add(fileId);
+        }
+        updateFilesBatchToolbar();
+    }
+
+    function toggleSelectAllFiles(checked) {
+        const cbs = document.querySelectorAll('.file-row-cb');
+        cbs.forEach(cb => {
+            cb.checked = checked;
+            const fid = cb.getAttribute('data-fid');
+            if (fid) {
+                if (checked) window._selectedFilesSet.add(fid);
+                else window._selectedFilesSet.delete(fid);
+            }
+        });
+        updateFilesBatchToolbar();
+    }
+
+    async function executeBatchFilesDelete() {
+        if (!window._selectedFilesSet.size) return;
+        const confirmMsg = `Permanently delete ${window._selectedFilesSet.size} file(s) across Cloudinary, Firebase, Supabase & Database? This cannot be undone.`;
+        if (!confirm(confirmMsg)) return;
+
+        try {
+            const res = await adminFetch('/api/admin/files/bulk-delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    doc_ids: Array.from(window._selectedFilesSet),
+                    reason: 'Admin batch purge'
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showAdminAlert(`Successfully purged ${data.deleted_count || window._selectedFilesSet.size} files`, "success");
+                window._selectedFilesSet.clear();
+                updateFilesBatchToolbar();
+                loadAdminFiles(1);
+            } else {
+                showAdminAlert(data.error || "Batch delete failed", "error");
+            }
+        } catch (e) {
+            showAdminAlert("Network error executing batch purge", "error");
+        }
+    }
+
     async function loadAdminFiles(page = 1) {
         currentFilesPage = page;
         const tbody = document.getElementById("adminFilesTbody");
@@ -2525,7 +2998,7 @@
         const search = (document.getElementById("adminFilesSearch")?.value || '').trim();
         const status = document.getElementById("adminFilesStatusFilter")?.value || '';
 
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Loading storage records...</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Loading storage records...</td></tr>`;
 
         try {
             const params = new URLSearchParams({ page: page, limit: 25 });
@@ -2544,6 +3017,11 @@
             }
 
             const total = data.total || data.files.length;
+            const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+            setVal("filesKpiTotal", total);
+            setVal("filesKpiApproved", data.approved_count !== undefined ? data.approved_count : data.files.filter(f => f.status === 'approved').length);
+            setVal("filesKpiQuarantined", data.quarantined_count !== undefined ? data.quarantined_count : data.files.filter(f => f.status === 'quarantined').length);
+            setVal("filesKpiPending", data.pending_count !== undefined ? data.pending_count : data.files.filter(f => f.status === 'pending').length);
             if (countText) countText.textContent = `Showing ${(page - 1) * 25 + 1}–${Math.min(page * 25, total)} of ${total} files`;
             if (prevBtn) prevBtn.disabled = page <= 1;
             if (nextBtn) nextBtn.disabled = page * 25 >= total;
@@ -2556,8 +3034,12 @@
                 const sizeStr = formatBytes(f.file_size_bytes);
                 const dateStr = f.created_at ? new Date(f.created_at).toLocaleDateString() : '-';
 
+                const isChecked = window._selectedFilesSet.has(f.id);
                 return `
                     <tr style="border-bottom: var(--card-item-border);">
+                        <td style="padding: 0.75rem;">
+                            <input type="checkbox" class="file-row-cb" data-fid="${f.id}" onchange="toggleSelectFile('${f.id}')" ${isChecked ? 'checked' : ''} style="accent-color: var(--accent-indigo); cursor: pointer;">
+                        </td>
                         <td style="padding: 0.75rem; font-weight: 600; max-width: 240px;">
                             <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${adminEscapeHtml(f.title || 'Untitled')}">
                                 ${adminEscapeHtml(f.title || 'Untitled')}

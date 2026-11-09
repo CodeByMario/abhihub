@@ -105,27 +105,34 @@ def compress_image(file_data: bytes, format: str = 'JPEG', quality: int = 75) ->
         if img.mode != 'RGB':
             img = img.convert('RGB')
 
-        # Add AbhiHub watermark to bottom right corner
+        # Add brand logo image watermark to bottom right corner
         try:
-            from PIL import ImageDraw, ImageFont
-            draw = ImageDraw.Draw(img)
-            w, h = img.size
-            font_size = max(16, int(w * 0.025))
-            try:
-                font = ImageFont.truetype("arial.ttf", font_size)
-            except Exception:
-                font = ImageFont.load_default()
-            text = "AbhiHub"
-            padding = max(12, int(w * 0.015))
-            if hasattr(draw, 'textbbox'):
-                bbox = draw.textbbox((0, 0), text, font=font)
-                tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+            wm_img_path = os.path.join(os.getcwd(), 'static', 'images', 'logo.png')
+            if not os.path.isfile(wm_img_path):
+                wm_img_path = os.path.join(os.getcwd(), 'static', 'premium', 'images', 'logo.png')
+            if os.path.isfile(wm_img_path):
+                wm = Image.open(wm_img_path).convert('RGBA')
+                w, h = img.size
+                target_wm_w = max(28, int(w * 0.12))
+                target_wm_h = int(wm.height * (target_wm_w / wm.width))
+                wm = wm.resize((target_wm_w, target_wm_h), Image.Resampling.LANCZOS)
+                alpha = wm.split()[3].point(lambda p: int(p * 0.45))
+                wm.putalpha(alpha)
+                pad = max(12, int(min(w, h) * 0.02))
+                img.paste(wm, (w - target_wm_w - pad, h - target_wm_h - pad), wm)
             else:
-                tw, th = font_size * 4, font_size
-            x = w - tw - padding
-            y = h - th - padding
-            draw.text((x + 1, y + 1), text, fill=(0, 0, 0), font=font)
-            draw.text((x, y), text, fill=(255, 255, 255), font=font)
+                from PIL import ImageDraw, ImageFont
+                draw = ImageDraw.Draw(img)
+                w, h = img.size
+                font_size = max(16, int(w * 0.025))
+                try: font = ImageFont.truetype("arial.ttf", font_size)
+                except Exception: font = ImageFont.load_default()
+                text = "AbhiHub"
+                padding = max(12, int(w * 0.015))
+                bbox = draw.textbbox((0, 0), text, font=font) if hasattr(draw, 'textbbox') else (0,0,font_size*4,font_size)
+                tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+                draw.text((w - tw - padding + 1, h - th - padding + 1), text, fill=(0, 0, 0), font=font)
+                draw.text((w - tw - padding, h - th - padding), text, fill=(255, 255, 255), font=font)
         except Exception as wm_err:
             logging.warning("Watermark operation failed (error_type=%s)", type(wm_err).__name__)
 

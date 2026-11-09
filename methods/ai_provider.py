@@ -437,6 +437,72 @@ class GeminiAdapter:
 
 # ── OpenAI-Compatible adapter (OpenAI, NVIDIA NIM, Groq, etc.) ────────────────
 
+
+# ── Inception Labs Adapter (Mercury-3 Reasoning Engine) ─────────────────────────
+
+class InceptionLabsAdapter:
+    """Native adapter for Inception Labs Mercury-3 reasoning model."""
+
+    def __init__(self, api_key: str, model: str = "mercury-3") -> None:
+        self._key = api_key
+        self.base_url = "https://api.inceptionlabs.ai/v1"
+        self.provider_name = "inceptionlabs"
+        self.model_name = model or "mercury-3"
+
+    def complete(self, messages: list[dict], max_tokens: int = 1500, temperature: float = 0.2) -> ProviderResponse:
+        url = f"{self.base_url}/chat/completions"
+        payload = {
+            "model": self.model_name,
+            "reasoning_effort": "low",
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+        }
+        resp = requests.post(
+            url,
+            headers={
+                "Authorization": f"Bearer {self._key}",
+                "Content-Type": "application/json"
+            },
+            json=payload,
+            timeout=45
+        )
+        if resp.status_code == 401:
+            raise KeyInvalidError("Inception Labs API key rejected")
+        if resp.status_code == 429:
+            raise RateLimitError("Inception Labs rate limited")
+        if resp.status_code == 400 and ("content_filter" in resp.text or "safety" in resp.text):
+            return ProviderResponse(
+                text="I\'m your dedicated AbhiHub study assistant, so I can only help you with platform features, course notes, exam papers, and syllabus topics. Let\'s get back to studying!",
+                tokens_in=0,
+                tokens_out=25,
+                cost_usd=0.0,
+                model_used=self.model_name,
+                finish_reason="stop"
+            )
+        if not resp.ok:
+            raise ProviderError(f"Inception Labs HTTP {resp.status_code}: {_strip_key(resp.text[:200])}")
+
+        body = resp.json()
+        choice = (body.get("choices") or [{}])[0]
+        msg_obj = choice.get("message") or {}
+        raw_content = msg_obj.get("content") or ""
+        if not raw_content and msg_obj.get("reasoning_summary"):
+            raw_content = msg_obj.get("reasoning_summary")
+        clean_text = str(raw_content).strip()
+        usage = body.get("usage", {})
+        return ProviderResponse(
+            text=clean_text,
+            tokens_in=int(usage.get("prompt_tokens") or 0),
+            tokens_out=int(usage.get("completion_tokens") or 0),
+            cost_usd=0.0,
+            model_used=self.model_name,
+            finish_reason=choice.get("finish_reason", "stop")
+        )
+
+    def validate(self) -> None:
+        self.complete([{"role": "user", "content": "hi"}], max_tokens=5, temperature=0.0)
+
 class OpenAICompatibleAdapter:
     def __init__(self, api_key: str, base_url: str, provider_name: str, model: str) -> None:
         self._key = api_key
@@ -607,6 +673,8 @@ def get_adapter(provider: str, api_key: str, model: str | None = None) -> LLMPro
             provider_name="groq",
             model=model or "llama-3.3-70b-versatile"
         )
+    elif p in ("inceptionlabs", "inception", "mercury"):
+        return InceptionLabsAdapter(api_key=api_key, model=model or "mercury-3")
     elif p == "openai":
         return OpenAICompatibleAdapter(
             api_key=api_key,
@@ -878,6 +946,11 @@ def resolve_provider(ai_profile: dict, preferred_model: str | None = None) -> tu
                 type(exc).__name__,
             )
             raise KeyInvalidError("Could not decrypt stored key — please re-enter it in Settings")
+
+    # Check Inception Labs key first (High performance Mercury-3)
+    inception_key = os.getenv("INCEPTION_API_KEY", "").strip().strip("'\"")
+    if inception_key and (provider in ("openrouter", "inceptionlabs", "default", "inception") or preferred_model in ("mercury-3", None, "auto")):
+        return InceptionLabsAdapter(api_key=inception_key, model=preferred_model or "mercury-3"), None
 
     # Free tier: use platform Gemini key, OpenRouter key, or NVIDIA fallback
     gemini_key = os.getenv("GEMINI_API", "").strip().strip("'\"") or os.getenv("GEMINI_API_KEY", "").strip().strip("'\"")

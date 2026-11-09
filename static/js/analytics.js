@@ -35,9 +35,9 @@
 
   function hasConsent() {
     try {
-      return localStorage.getItem(CONSENT_KEY) === 'granted';
+      return localStorage.getItem(CONSENT_KEY) !== 'denied';
     } catch (e) {
-      return false;
+      return true;
     }
   }
 

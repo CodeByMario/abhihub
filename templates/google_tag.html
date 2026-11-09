@@ -11,7 +11,7 @@
   // 'denied' storage = cookieless traffic modelling (counts visitors even without opt-in)
   // 'granted' storage = full cookie-based analytics after explicit consent
   gtag('consent', 'default', {
-    analytics_storage: 'denied',
+    analytics_storage: 'granted',
     ad_storage: 'denied',
     ad_user_data: 'denied',
     ad_personalization: 'denied',
@@ -21,9 +21,9 @@
 
   function getConsentChoice() {
     try {
-      return localStorage.getItem(CONSENT_KEY) === 'granted';
+      return localStorage.getItem(CONSENT_KEY) !== 'denied';
     } catch (e) {
-      return false;
+      return true;
     }
   }
 
@@ -112,14 +112,12 @@
   // Always initialize GA4 (Consent Mode v2 ensures cookieless modelling even before opt-in)
   initializeAnalytics();
 
-  // Show consent banner only if user hasn't chosen yet
+  // Analytics accepted by default, banner removed
   try {
     if (localStorage.getItem(CONSENT_KEY) === null) {
-      document.addEventListener('DOMContentLoaded', ensureConsentBanner);
+      localStorage.setItem(CONSENT_KEY, 'granted');
     }
-  } catch (e) {
-    document.addEventListener('DOMContentLoaded', ensureConsentBanner);
-  }
+  } catch (e) { }
 </script>
 <style>
   .abhihub-consent-banner {

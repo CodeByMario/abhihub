@@ -72,6 +72,17 @@
   box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.45);
 }
 
+/* Type Syllabus Extension */
+.arch-apple-card.type-syllabus .arch-card-plate {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(139, 92, 246, 0.02) 100%);
+}
+.arch-apple-card.type-syllabus .arch-doc-icon-wrap { color: #8b5cf6; }
+.arch-apple-card.type-syllabus .arch-type-pill {
+  background: rgba(139, 92, 246, 0.08);
+  color: #8b5cf6;
+  border: 1px solid rgba(139, 92, 246, 0.25);
+}
+
 /* Document Visual Plate / Hero Canvas */
 .arch-card-plate {
   position: relative;

@@ -1091,7 +1091,7 @@
   {% set first_name = user_data.get('name', 'Student').split(' ')[0] if user_data and user_data.get('name') else 'Student' %}
 
   <!-- 1. Attention & Outcome Hero Section -->
-  <header class="apple-hero apple-container">
+  <section class="apple-hero apple-container">
   <!-- Celebration Modal (Triggered via ?welcome=1) -->
   <div class="apple-welcome-celebration" id="appleWelcomeCelebration" role="alertdialog" aria-live="assertive">
     <div class="apple-welcome-icon">🎉</div>
@@ -1167,7 +1167,7 @@
         <button type="button" class="apple-segment-btn" onclick="switchHomeTab('uploads', this)">My Uploads ({{ user_data.get('uploads_count', 0) }})</button>
       </div>
     </div>
-  </header>
+  </section>
 
   <div class="apple-container">
 
@@ -1585,13 +1585,35 @@
   }
 
   function executeFirstSearch(term) {
-    const searchForm = document.querySelector('.apple-search-capsule');
-    const input = searchForm?.querySelector('input[name="search"]');
-    if (input && searchForm) {
-      input.value = term;
-      searchForm.submit();
+    if (typeof window.openSearchDrawer === 'function') {
+      window.openSearchDrawer(term);
+    } else if (window.parent && typeof window.parent.openSearchDrawer === 'function') {
+      window.parent.openSearchDrawer(term);
+    } else {
+      const searchForm = document.querySelector('.apple-search-capsule');
+      const input = searchForm?.querySelector('input[name="search"]');
+      if (input && searchForm) {
+        input.value = term;
+        searchForm.submit();
+      }
     }
   }
+
+  // Intercept home search form submit to stay on the page and open side drawer
+  document.addEventListener('DOMContentLoaded', function() {
+    const homeForm = document.getElementById('homeSearchForm');
+    if (homeForm) {
+      homeForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const term = document.getElementById('homeSearchInput')?.value || '';
+        if (typeof window.openSearchDrawer === 'function') {
+          window.openSearchDrawer(term);
+        } else if (window.parent && typeof window.parent.openSearchDrawer === 'function') {
+          window.parent.openSearchDrawer(term);
+        }
+      });
+    }
+  });
 
   function scrollToRecommended() {
     const recSection = document.getElementById('section-recommended');
