@@ -2,7 +2,8 @@
 <html lang="en">
 
 <head>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/site-protection.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/site-protection.css') }}?v=20261110_ext_v2">
+    <script src="{{ url_for('static', filename='js/extension-shield.js') }}?v=20261110_ext_v2"></script>
     {% set is_auth_or_payment = hide_popups or is_auth_page or (request and request.path and (
         request.path.startswith('/login') or
         request.path.startswith('/signup') or
@@ -1345,7 +1346,7 @@
     </script>
 
     <!-- Security Module -->
-    <script src="{{ url_for('static', filename='js/security.js') }}" data-env="{{ 'developer' if (not IS_PRODUCTION or IS_DEVELOPER) else 'production' }}" defer></script>
+    <script src="{{ url_for('static', filename='js/security.js') }}?v=20261110_v2" data-env="{{ 'developer' if (not IS_PRODUCTION or IS_DEVELOPER) else 'production' }}" defer></script>
 
     <!-- Engagement Layer -->
     <script src="{{ url_for('static', filename='js/overlay-manager.js') }}" defer></script>

@@ -1,4 +1,68 @@
 {% extends 'p_struct.html' %}
+
+{% block page_head %}
+  <title>{{ seo_title | default("Creator Channel | AbhiHub") }}</title>
+  <meta name="description" content="{{ seo_description | default("Explore verified study notes and question papers on AbhiHub.") }}">
+  <meta name="keywords" content="{{ seo_keywords | default("notes, papers, AbhiHub") }}">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  {% if canonical_url %}<link rel="canonical" href="{{ canonical_url }}">{% endif %}
+
+  <!-- OpenGraph Metadata (WhatsApp, Twitter, LinkedIn, Facebook, Discord) -->
+  <meta property="og:site_name" content="AbhiHub">
+  <meta property="og:type" content="profile">
+  <meta property="og:title" content="{{ seo_title | default('Creator Channel | AbhiHub') }}">
+  <meta property="og:description" content="{{ seo_description | default('Explore verified study notes and question papers on AbhiHub.') }}">
+  {% if canonical_url %}<meta property="og:url" content="{{ canonical_url }}">{% endif %}
+  {% if og_image %}
+  <meta property="og:image" content="{{ og_image }}">
+  <meta property="og:image:secure_url" content="{{ og_image }}">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="{{ channel.title | default('Creator Channel') }} - AbhiHub">
+  {% elif channel and channel.avatar_url %}
+  <meta property="og:image" content="{{ channel.avatar_url }}">
+  {% endif %}
+
+  <!-- Twitter Card Metadata -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@AbhiHub">
+  <meta name="twitter:title" content="{{ seo_title | default('Creator Channel | AbhiHub') }}">
+  <meta name="twitter:description" content="{{ seo_description | default('Explore verified study notes and question papers on AbhiHub.') }}">
+  {% if og_image %}
+  <meta name="twitter:image" content="{{ og_image }}">
+  {% elif channel and channel.avatar_url %}
+  <meta name="twitter:image" content="{{ channel.avatar_url }}">
+  {% endif %}
+
+  <!-- Schema.org ProfilePage Structured Data for Google Indexing -->
+  {% if channel %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    "mainEntity": {
+      "@type": "Person",
+      "name": {{ channel.title | tojson }},
+      "alternateName": {{ ("@" ~ channel.handle) | tojson }},
+      "description": {{ (channel.bio or seo_description) | tojson }},
+      {% if canonical_url %}"url": {{ canonical_url | tojson }},{% endif %}
+      {% if channel.avatar_url %}"image": {{ channel.avatar_url | tojson }},{% endif %}
+      "sameAs": [
+        {% set socials = [] %}
+        {% for k, v in (channel.social_links or {}).items() %}
+          {% if v %}{% set _ = socials.append(v) %}{% endif %}
+        {% endfor %}
+        {{ socials | tojson | safe }}
+      ]
+    }
+  }
+  </script>
+  {% endif %}
+
+
+
+{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/apple-card.css') }}?v=3.2">
 
@@ -112,6 +176,19 @@
   .social-pill-ig:hover { background: #fbcfe8; }
   .social-pill-edit { background: #f1f5f9; color: #334155; }
   .social-pill-edit:hover { background: #e2e8f0; }
+  .social-pill-share {
+    background: #0071e3;
+    color: #ffffff !important;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 113, 227, 0.25);
+  }
+  .social-pill-share:hover {
+    background: #0077ed;
+    color: #ffffff !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0, 113, 227, 0.38);
+  }
 
   /* Section Title */
   .section-header {
@@ -422,24 +499,38 @@
 
         <!-- Social Links & Action -->
         <div class="social-pills">
+          <button type="button" id="channelShareBtn" class="social-pill social-pill-share" onclick="shareChannel()" aria-label="Share Channel">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="18" cy="5" r="3"></circle>
+              <circle cx="6" cy="12" r="3"></circle>
+              <circle cx="18" cy="19" r="3"></circle>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+            </svg>
+            <span id="channelShareBtnText">Share Channel</span>
+          </button>
           {% if channel.social_links.get('youtube') %}
             <a href="{{ channel.social_links.youtube }}" target="_blank" rel="noopener noreferrer" class="social-pill social-pill-yt">
-              ▶ YouTube
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+              YouTube
             </a>
           {% endif %}
           {% if channel.social_links.get('telegram') %}
             <a href="{{ channel.social_links.telegram }}" target="_blank" rel="noopener noreferrer" class="social-pill social-pill-tg">
-              ✈ Telegram
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.196 1.006.128.832.941z"/></svg>
+              Telegram
             </a>
           {% endif %}
           {% if channel.social_links.get('instagram') %}
             <a href="{{ channel.social_links.instagram }}" target="_blank" rel="noopener noreferrer" class="social-pill social-pill-ig">
-              📷 Instagram
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+              Instagram
             </a>
           {% endif %}
           {% if is_owner %}
             <a href="/channel/studio" class="social-pill social-pill-edit">
-              ⚙ Manage Channel
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+              Manage Channel
             </a>
           {% endif %}
         </div>
@@ -685,5 +776,44 @@
 
   {% endif %}
 </div>
+
+<script>
+  window.shareChannel = async function() {
+    const title = {{ (channel.title if channel else '') | tojson }};
+    const handle = {{ (channel.handle if channel else '') | tojson }};
+    const shareUrl = window.location.href.split('?')[0];
+    const shareData = {
+      title: `${title} (@${handle}) on AbhiHub`,
+      text: `Explore verified notes and question papers from ${title} (@${handle}) on AbhiHub:`,
+      url: shareUrl
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      const textSpan = document.getElementById('channelShareBtnText');
+      if (textSpan) {
+        const orig = textSpan.textContent;
+        textSpan.textContent = 'Link Copied!';
+        const btn = document.getElementById('channelShareBtn');
+        if (btn) btn.style.background = '#10b981';
+        setTimeout(() => {
+          textSpan.textContent = orig;
+          if (btn) btn.style.background = '';
+        }, 2200);
+      }
+    } catch (e) {
+      prompt("Copy channel link:", shareUrl);
+    }
+  };
+</script>
 
 {% endblock %}

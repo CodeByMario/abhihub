@@ -1,4 +1,4 @@
-{% set seo_description = "Join AbhiHub's mission to make engineering study resources, notes, and PYQs accessible to all students across India. Explore open positions, talent pipeline, and legal hiring framework." %}
+{% set seo_description = "Join AbhiHub's mission to make engineering study resources, notes, and PYQs accessible to all students across India. Explore open positions, student internships, and legal hiring framework." %}
 {% set seo_title = "Careers & Open Positions | AbhiHub" %}
 {% extends 'p_struct.html' %}
 
@@ -10,1154 +10,1104 @@
 
 {% block content %}
 <style>
-  /* ─── Apple Physics & Mathematical Smooth Scrolling ───────────── */
-  html {
-    scroll-behavior: smooth;
-    scroll-padding-top: calc(48px + var(--strip-h, 0px) + 1.25rem);
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .apple-scroll-reveal {
-    opacity: 0;
-    transform: translateY(28px);
-    transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
-                transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
-    will-change: opacity, transform;
-  }
-
-  .apple-scroll-reveal.is-visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    html { scroll-behavior: auto; }
-    .apple-scroll-reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
-  }
-
-  /* ─── Edge-to-Edge Full-Screen Reset ────────────────────────────── */
-  body {
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 100% !important;
-    max-width: 100vw !important;
-  }
-
-  main {
-    padding: 0 !important;
-    margin: 0 !important;
-    max-width: 100% !important;
-    width: 100% !important;
-    gap: 0 !important;
-  }
-
-  /* ─── Apple Design Tokens & Variables ──────────────────────────── */
   :root {
-    --apple-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Plus Jakarta Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
-    --apple-blue: #0071E3;
-    --apple-blue-hover: #0077ED;
-    --apple-blue-subtle: rgba(0, 113, 227, 0.08);
-    --apple-dark: #1D1D1F;
-    --apple-gray: #6E6E73;
-    --apple-light-gray: #86868B;
-    --apple-bg: #FFFFFF;
-    --apple-surface: #F5F5F7;
-    --apple-surface-card: #FFFFFF;
-    --apple-border: rgba(0, 0, 0, 0.08);
-    --apple-border-subtle: rgba(0, 0, 0, 0.04);
-    --apple-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-    --apple-shadow-hover: 0 12px 36px rgba(0, 0, 0, 0.08);
-
-    --radius-pill: 980px;
-    --radius-card: 18px;
-    --radius-small: 12px;
+    --cr-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Plus Jakarta Sans", -system-ui, sans-serif;
+    --cr-blue: #0071E3;
+    --cr-blue-hover: #0077ED;
+    --cr-blue-subtle: rgba(0, 113, 227, 0.08);
+    --cr-green: #10B981;
+    --cr-green-subtle: rgba(16, 185, 129, 0.1);
+    --cr-amber: #F59E0B;
+    --cr-amber-subtle: rgba(245, 158, 11, 0.1);
+    --cr-dark: #1D1D1F;
+    --cr-gray: #6E6E73;
+    --cr-light-gray: #86868B;
+    --cr-bg: #FFFFFF;
+    --cr-surface: #F5F5F7;
+    --cr-surface-card: #FFFFFF;
+    --cr-border: rgba(0, 0, 0, 0.08);
+    --cr-border-subtle: rgba(0, 0, 0, 0.04);
+    --cr-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    --cr-shadow-hover: 0 14px 34px rgba(0, 0, 0, 0.08);
+    --cr-radius-card: 18px;
+    --cr-radius-pill: 9999px;
   }
 
   :root[data-theme="dark"], [data-theme="dark"], .dark {
-    --apple-dark: #F5F5F7;
-    --apple-gray: #A1A1A6;
-    --apple-light-gray: #6E6E73;
-    --apple-bg: #000000;
-    --apple-surface: #121214;
-    --apple-surface-card: #1C1C1E;
-    --apple-border: rgba(255, 255, 255, 0.12);
-    --apple-border-subtle: rgba(255, 255, 255, 0.06);
-    --apple-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-    --apple-shadow-hover: 0 16px 40px rgba(0, 0, 0, 0.6);
-    --apple-blue-subtle: rgba(0, 113, 227, 0.18);
+    --cr-dark: #F5F5F7;
+    --cr-gray: #A1A1A6;
+    --cr-light-gray: #6E6E73;
+    --cr-bg: #000000;
+    --cr-surface: #121214;
+    --cr-surface-card: #1C1C1E;
+    --cr-border: rgba(255, 255, 255, 0.12);
+    --cr-border-subtle: rgba(255, 255, 255, 0.06);
+    --cr-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    --cr-shadow-hover: 0 16px 40px rgba(0, 0, 0, 0.6);
+    --cr-blue-subtle: rgba(0, 113, 227, 0.2);
+    --cr-green-subtle: rgba(16, 185, 129, 0.18);
+    --cr-amber-subtle: rgba(245, 158, 11, 0.18);
   }
 
-  /* ─── Global Reset & Structure ─────────────────────────────────── */
-  .apple-shell {
-    font-family: var(--apple-font);
-    background-color: var(--apple-bg);
-    color: var(--apple-dark);
+  .careers-page {
+    font-family: var(--cr-font);
+    background-color: var(--cr-bg);
+    color: var(--cr-dark);
     margin: 0;
     padding: 0;
     width: 100%;
     min-height: 100vh;
-    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
   }
 
-  .apple-container {
+  .cr-container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 1.5rem;
-    width: 100%;
     box-sizing: border-box;
   }
 
-  @media (max-width: 640px) {
-    .apple-container {
-      padding: 0 1rem;
-    }
-  }
-
-  /* ─── Apple Hero Section ───────────────────────────────────────── */
-  .section-hero {
-    padding: 3rem 0 3.5rem;
+  /* ─── Hero Section ─── */
+  .cr-hero {
+    padding: 4rem 0 3.5rem;
     text-align: center;
-    position: relative;
-    background: radial-gradient(circle at 50% 0%, var(--apple-blue-subtle) 0%, transparent 65%), var(--apple-bg);
-    border-bottom: 1px solid var(--apple-border-subtle);
+    background: radial-gradient(circle at 50% 0%, var(--cr-blue-subtle) 0%, transparent 70%), var(--cr-bg);
+    border-bottom: 1px solid var(--cr-border-subtle);
   }
 
-  .hero-badge-pill {
+  .cr-hero-badge {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
     padding: 0.4rem 1.1rem;
-    background: var(--apple-surface);
-    border: 1px solid var(--apple-border);
-    border-radius: var(--radius-pill);
+    background: var(--cr-surface);
+    border: 1px solid var(--cr-border);
+    border-radius: var(--cr-radius-pill);
     font-size: 0.82rem;
     font-weight: 600;
-    color: var(--apple-dark);
+    color: var(--cr-dark);
     margin-bottom: 1.25rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
   }
 
-  .hero-badge-dot {
-    width: 7px;
-    height: 7px;
+  .cr-pulse-dot {
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
-    background: #10B981;
+    background: var(--cr-green);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
   }
 
-  .apple-headline {
-    font-size: clamp(2.5rem, 5.5vw, 4rem);
+  .cr-headline {
+    font-size: clamp(2.3rem, 5vw, 3.8rem);
     font-weight: 800;
-    line-height: 1.08;
-    letter-spacing: -0.028em;
-    color: var(--apple-dark);
+    line-height: 1.1;
+    letter-spacing: -0.03em;
     margin: 0 0 1rem;
   }
 
-  .apple-subhead {
-    font-size: clamp(1.1rem, 2vw, 1.25rem);
-    font-weight: 400;
-    line-height: 1.5;
-    color: var(--apple-gray);
-    max-width: 680px;
-    margin: 0 auto 1.75rem;
+  .cr-subhead {
+    font-size: clamp(1.05rem, 2vw, 1.25rem);
+    line-height: 1.55;
+    color: var(--cr-gray);
+    max-width: 720px;
+    margin: 0 auto 2rem;
   }
 
-  .cr-hero-desk-pill {
+  .cr-hero-stats {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .cr-stat-pill {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.45rem 1.1rem;
-    background: var(--apple-surface-card);
-    border: 1px solid var(--apple-border);
-    border-radius: var(--radius-pill);
-    font-size: 0.84rem;
-    color: var(--apple-gray);
-    box-shadow: var(--apple-shadow);
-  }
-
-  .cr-hero-desk-pill a {
-    color: var(--apple-blue);
+    gap: 0.4rem;
+    padding: 0.45rem 1rem;
+    background: var(--cr-surface-card);
+    border: 1px solid var(--cr-border);
+    border-radius: var(--cr-radius-pill);
+    font-size: 0.82rem;
     font-weight: 600;
-    text-decoration: none;
-    transition: color 0.15s ease;
+    color: var(--cr-dark);
+    box-shadow: var(--cr-shadow);
   }
 
-  .cr-hero-desk-pill a:hover {
-    color: var(--apple-blue-hover);
+  .cr-desk-banner {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 1.25rem;
+    background: var(--cr-surface);
+    border: 1px solid var(--cr-border);
+    border-radius: var(--cr-radius-pill);
+    font-size: 0.85rem;
+    color: var(--cr-gray);
+  }
+
+  .cr-desk-banner a {
+    color: var(--cr-blue);
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .cr-desk-banner a:hover {
     text-decoration: underline;
   }
 
-  /* ─── Apple Values Strip ───────────────────────────────────────── */
-  .cr-values-section {
-    padding: 3rem 0;
-    background: var(--apple-surface);
-    border-bottom: 1px solid var(--apple-border-subtle);
+  /* ─── Culture & Value Cards ─── */
+  .cr-values {
+    padding: 3.5rem 0;
+    background: var(--cr-surface);
+    border-bottom: 1px solid var(--cr-border-subtle);
   }
 
   .cr-values-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 1.25rem;
   }
 
-  .cr-value-card {
-    background: var(--apple-surface-card);
-    border: 1px solid var(--apple-border);
-    border-radius: var(--radius-card);
-    padding: 1.5rem;
-    box-shadow: var(--apple-shadow);
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  .cr-val-card {
+    background: var(--cr-surface-card);
+    border: 1px solid var(--cr-border);
+    border-radius: var(--cr-radius-card);
+    padding: 1.6rem;
+    box-shadow: var(--cr-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
 
-  .cr-value-card:hover {
+  .cr-val-card:hover {
     transform: translateY(-3px);
-    box-shadow: var(--apple-shadow-hover);
+    box-shadow: var(--cr-shadow-hover);
   }
 
-  .cr-value-icon {
+  .cr-val-icon {
     width: 44px;
     height: 44px;
     border-radius: 12px;
-    background: var(--apple-blue-subtle);
-    color: var(--apple-blue);
+    background: var(--cr-blue-subtle);
+    color: var(--cr-blue);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.35rem;
-    flex-shrink: 0;
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
   }
 
-  .cr-value-title {
+  .cr-val-title {
     font-size: 1.05rem;
     font-weight: 700;
-    color: var(--apple-dark);
-    margin: 0 0 0.35rem;
+    margin: 0 0 0.4rem;
     letter-spacing: -0.015em;
   }
 
-  .cr-value-desc {
+  .cr-val-desc {
     font-size: 0.86rem;
-    line-height: 1.48;
-    color: var(--apple-gray);
+    line-height: 1.5;
+    color: var(--cr-gray);
     margin: 0;
   }
 
-  /* ─── Vacancy Filter Pills ─────────────────────────────────────── */
-  .cr-filter-bar {
-    padding: 2.5rem 0 1rem;
-    display: flex;
-    justify-content: center;
+  /* ─── Filter Tabs Bar ─── */
+  .cr-filter-section {
+    position: sticky;
+    top: 60px;
+    z-index: 40;
+    background: var(--cr-bg);
+    border-bottom: 1px solid var(--cr-border);
+    padding: 0.85rem 0;
+    backdrop-filter: blur(12px);
   }
 
-  .cr-filter-wrap {
+  .cr-filter-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .cr-tabs {
+    display: flex;
+    gap: 0.4rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding: 0.2rem 0;
+  }
+
+  .cr-tabs::-webkit-scrollbar { display: none; }
+
+  .cr-tab {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    background: var(--apple-surface);
-    border: 1px solid var(--apple-border);
-    padding: 0.35rem;
-    border-radius: var(--radius-pill);
-    overflow-x: auto;
-    max-width: 100%;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .cr-filter-wrap::-webkit-scrollbar {
-    display: none;
-  }
-
-  .cr-filter-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    flex-shrink: 0;
-    background: transparent;
-    border: none;
-    color: var(--apple-gray);
+    padding: 0.48rem 1.1rem;
+    border-radius: var(--cr-radius-pill);
+    border: 1px solid var(--cr-border);
+    background: var(--cr-surface);
+    color: var(--cr-gray);
     font-size: 0.84rem;
     font-weight: 600;
-    padding: 0.45rem 1.1rem;
-    border-radius: var(--radius-pill);
     cursor: pointer;
-    transition: all 0.15s ease;
     white-space: nowrap;
+    transition: all 0.15s ease;
   }
 
-  .cr-filter-btn svg {
-    flex-shrink: 0;
+  .cr-tab:hover, .cr-tab.active {
+    background: var(--cr-surface-card);
+    color: var(--cr-dark);
+    border-color: var(--cr-blue);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   }
 
-  @media (max-width: 640px) {
-    .cr-filter-bar {
-      padding: 1.5rem 0 0.5rem;
-      justify-content: flex-start;
-      overflow-x: auto;
-      scrollbar-width: none;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .cr-filter-bar::-webkit-scrollbar {
-      display: none;
-    }
-
-    .cr-filter-wrap {
-      padding: 0.25rem 0.35rem;
-      gap: 0.3rem;
-      flex-wrap: nowrap;
-    }
-
-    .cr-filter-btn {
-      padding: 0.38rem 0.85rem;
-      font-size: 0.78rem;
-    }
-  }
-
-  .cr-filter-btn.active,
-  .cr-filter-btn:hover {
-    background: var(--apple-surface-card);
-    color: var(--apple-dark);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  }
-
-  .cr-filter-btn.active {
-    color: var(--apple-blue);
-  }
-
-  /* ─── Role Section & Grid ──────────────────────────────────────── */
-  .cr-role-section {
-    padding: 3.5rem 0;
-    border-bottom: 1px solid var(--apple-border-subtle);
-  }
-
-  .apple-section-header {
-    text-align: center;
-    max-width: 720px;
-    margin: 0 auto 2.5rem;
-  }
-
-  .apple-eyebrow {
-    font-size: 0.8rem;
+  .cr-tab.active {
+    color: var(--cr-blue);
     font-weight: 700;
-    color: var(--apple-blue);
-    letter-spacing: 0.08em;
+  }
+
+  .cr-status-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    color: var(--cr-gray);
+  }
+
+  /* ─── Section Headers ─── */
+  .cr-sec-head {
+    text-align: center;
+    max-width: 680px;
+    margin: 3.5rem auto 2.25rem;
+  }
+
+  .cr-eyebrow {
+    font-size: 0.78rem;
+    font-weight: 700;
     text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--cr-blue);
     margin-bottom: 0.5rem;
     display: block;
   }
 
-  .apple-section-title {
-    font-size: clamp(1.85rem, 3.5vw, 2.4rem);
+  .cr-sec-title {
+    font-size: clamp(1.8rem, 3.5vw, 2.3rem);
     font-weight: 800;
     line-height: 1.15;
     letter-spacing: -0.025em;
-    color: var(--apple-dark);
-    margin: 0 0 0.65rem;
+    margin: 0 0 0.5rem;
   }
 
-  .apple-section-desc {
-    font-size: 1rem;
+  .cr-sec-sub {
+    font-size: 0.95rem;
     line-height: 1.5;
-    color: var(--apple-gray);
+    color: var(--cr-gray);
     margin: 0;
   }
 
-  .cr-roles-grid {
+  /* ─── Featured Cohort Banner ─── */
+  .cr-cohort-box {
+    background: linear-gradient(135deg, rgba(0, 113, 227, 0.06) 0%, rgba(16, 185, 129, 0.06) 100%), var(--cr-surface-card);
+    border: 1px solid rgba(0, 113, 227, 0.2);
+    border-radius: var(--cr-radius-card);
+    padding: 2rem 2.25rem;
+    margin-bottom: 2.5rem;
+    box-shadow: var(--cr-shadow);
+  }
+
+  .cr-cohort-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .cr-cohort-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--cr-border);
+    margin-top: 1.25rem;
+  }
+
+  .cr-cohort-item-label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--cr-blue);
+    margin-bottom: 3px;
+  }
+
+  .cr-cohort-item-val {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--cr-dark);
+  }
+
+  /* ─── Job Cards Grid ─── */
+  .cr-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: 1.5rem;
+    margin-bottom: 4rem;
   }
 
   @media (max-width: 640px) {
-    .cr-roles-grid {
+    .cr-grid {
       grid-template-columns: 1fr;
     }
   }
 
-  /* ─── Apple Job Card ───────────────────────────────────────────── */
   .cr-card {
-    background: var(--apple-surface-card);
-    border: 1px solid var(--apple-border);
-    border-radius: var(--radius-card);
-    padding: 1.75rem 1.6rem;
+    background: var(--cr-surface-card);
+    border: 1px solid var(--cr-border);
+    border-radius: var(--cr-radius-card);
+    padding: 1.8rem 1.6rem;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    box-shadow: var(--apple-shadow);
-    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.22s ease;
+    box-shadow: var(--cr-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   }
 
   .cr-card:hover {
     transform: translateY(-4px);
-    box-shadow: var(--apple-shadow-hover);
-    border-color: var(--apple-blue);
+    box-shadow: var(--cr-shadow-hover);
+    border-color: var(--cr-blue);
   }
 
   .cr-card--filled {
     opacity: 0.72;
-    background: var(--apple-surface);
+    background: var(--cr-surface);
   }
 
   .cr-card--filled:hover {
     transform: none;
-    border-color: var(--apple-border);
-    box-shadow: var(--apple-shadow);
+    border-color: var(--cr-border);
+    box-shadow: var(--cr-shadow);
   }
 
-  .cr-card-badges {
+  .cr-card-meta {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 0.45rem;
-    margin-bottom: 1.15rem;
+    margin-bottom: 1.1rem;
   }
 
   .cr-badge {
     display: inline-flex;
     align-items: center;
+    gap: 0.35rem;
     font-size: 0.72rem;
     font-weight: 700;
     padding: 0.25rem 0.65rem;
-    border-radius: var(--radius-pill);
+    border-radius: var(--cr-radius-pill);
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
 
-  .cr-badge--live {
-    background: rgba(16, 185, 129, 0.1);
-    color: #10B981;
-    border: 1px solid rgba(16, 185, 129, 0.2);
+  .cr-badge-live {
+    background: var(--cr-green-subtle);
+    color: var(--cr-green);
+    border: 1px solid rgba(16, 185, 129, 0.25);
   }
 
-  .cr-badge--soon {
-    background: rgba(245, 158, 11, 0.1);
-    color: #f59e0b;
-    border: 1px solid rgba(245, 158, 11, 0.2);
+  .cr-badge-soon {
+    background: var(--cr-amber-subtle);
+    color: var(--cr-amber);
+    border: 1px solid rgba(245, 158, 11, 0.25);
   }
 
-  .cr-badge--filled {
+  .cr-badge-filled {
     background: rgba(100, 116, 139, 0.1);
-    color: var(--apple-gray);
-    border: 1px solid var(--apple-border);
+    color: var(--cr-gray);
+    border: 1px solid var(--cr-border);
   }
 
-  .cr-badge--pill {
-    background: var(--apple-surface);
-    color: var(--apple-gray);
-    border: 1px solid var(--apple-border);
+  .cr-badge-track {
+    background: var(--cr-surface);
+    color: var(--cr-dark);
+    border: 1px solid var(--cr-border);
   }
 
-  .cr-badge--intern {
-    background: rgba(0, 113, 227, 0.1);
-    color: var(--apple-blue);
-    border: 1px solid rgba(0, 113, 227, 0.25);
-  }
-
-  .cr-program-banner {
-    background: linear-gradient(135deg, rgba(0, 113, 227, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%), var(--apple-surface-card);
-    border: 1px solid rgba(0, 113, 227, 0.18);
-    border-radius: var(--radius-card);
-    padding: 2rem 1.75rem;
-    margin-bottom: 2.25rem;
-    box-shadow: var(--apple-shadow);
-  }
-
-  .cr-program-meta-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1rem;
-    margin-top: 1.25rem;
-    padding-top: 1.25rem;
-    border-top: 1px solid var(--apple-border);
-  }
-
-  .cr-program-meta-item {
-    font-size: 0.85rem;
-    line-height: 1.4;
-  }
-
-  .cr-program-meta-label {
-    font-size: 0.68rem;
-    text-transform: uppercase;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    color: var(--apple-blue);
-    margin-bottom: 3px;
-  }
-
-  .cr-program-meta-val {
-    font-weight: 700;
-    color: var(--apple-dark);
-  }
-
-  .cr-perks-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 1rem;
-  }
-
-  .cr-perk-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.3rem 0.75rem;
-    background: var(--apple-surface);
-    border: 1px solid var(--apple-border);
-    border-radius: var(--radius-pill);
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: var(--apple-dark);
-  }
-
-  .cr-card-title {
-    font-size: 1.35rem;
+  .cr-title {
+    font-size: 1.3rem;
     font-weight: 800;
     line-height: 1.25;
-    letter-spacing: -0.02em;
-    color: var(--apple-dark);
-    margin: 0 0 0.65rem;
+    letter-spacing: -0.015em;
+    margin: 0 0 0.55rem;
   }
 
-  .cr-card-desc {
+  .cr-desc {
     font-size: 0.88rem;
-    line-height: 1.55;
-    color: var(--apple-gray);
+    line-height: 1.5;
+    color: var(--cr-gray);
     margin: 0 0 1.25rem;
   }
 
-  .cr-card-points {
+  .cr-points {
     list-style: none;
     padding: 0;
     margin: 0 0 1.75rem;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.55rem;
   }
 
-  .cr-card-points li {
+  .cr-points li {
     font-size: 0.84rem;
     line-height: 1.45;
-    color: var(--apple-gray);
+    color: var(--cr-gray);
     position: relative;
     padding-left: 1.2rem;
   }
 
-  .cr-card-points li::before {
+  .cr-points li::before {
     content: "•";
     position: absolute;
     left: 0;
-    color: var(--apple-blue);
-    font-weight: 800;
+    color: var(--cr-blue);
     font-size: 1.1rem;
     line-height: 1;
   }
 
-  .cr-btn-apply {
+  .cr-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--cr-border);
+    margin-top: auto;
+  }
+
+  .cr-loc {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--cr-gray);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .cr-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.4rem;
-    background: var(--apple-blue);
-    color: #ffffff !important;
-    text-decoration: none;
-    font-size: 0.875rem;
-    font-weight: 600;
-    padding: 0.65rem 1.4rem;
-    border-radius: var(--radius-pill);
-    transition: background-color 0.15s ease, transform 0.1s ease;
-    text-align: center;
-  }
-
-  .cr-btn-apply:hover {
-    background: var(--apple-blue-hover);
-    transform: scale(1.01);
-  }
-
-  .cr-btn-soon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
-    background: var(--apple-surface);
-    color: var(--apple-dark) !important;
-    border: 1px solid var(--apple-border);
-    text-decoration: none;
-    font-size: 0.875rem;
-    font-weight: 600;
-    padding: 0.65rem 1.4rem;
-    border-radius: var(--radius-pill);
-    transition: all 0.15s ease;
-    text-align: center;
-  }
-
-  .cr-btn-soon:hover {
-    border-color: var(--apple-blue);
-    color: var(--apple-blue) !important;
-  }
-
-  .cr-btn-filled {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    color: var(--apple-light-gray);
     font-size: 0.84rem;
     font-weight: 600;
-    padding: 0.65rem 1.4rem;
-    border-radius: var(--radius-pill);
-    border: 1px solid var(--apple-border-subtle);
-    cursor: not-allowed;
-    text-align: center;
+    padding: 0.6rem 1.25rem;
+    border-radius: var(--cr-radius-pill);
+    text-decoration: none;
+    transition: all 0.15s ease;
+    white-space: nowrap;
   }
 
-  /* ─── Apple Legal Compliance Box ───────────────────────────────── */
-  .section-legal {
+  .cr-btn-primary {
+    background: var(--cr-blue);
+    color: #FFFFFF !important;
+  }
+
+  .cr-btn-primary:hover {
+    background: var(--cr-blue-hover);
+    transform: scale(1.02);
+  }
+
+  .cr-btn-outline {
+    background: var(--cr-surface);
+    color: var(--cr-dark) !important;
+    border: 1px solid var(--cr-border);
+  }
+
+  .cr-btn-outline:hover {
+    border-color: var(--cr-blue);
+    color: var(--cr-blue) !important;
+  }
+
+  .cr-btn-disabled {
+    background: transparent;
+    color: var(--cr-light-gray);
+    border: 1px solid var(--cr-border-subtle);
+    cursor: not-allowed;
+  }
+
+  /* ─── 3-Step Process ─── */
+  .cr-steps-section {
     padding: 4.5rem 0;
-    background: var(--apple-surface);
-    border-bottom: 1px solid var(--apple-border-subtle);
+    background: var(--cr-surface);
+    border-top: 1px solid var(--cr-border-subtle);
+    border-bottom: 1px solid var(--cr-border-subtle);
+  }
+
+  .cr-steps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .cr-step-card {
+    background: var(--cr-surface-card);
+    border: 1px solid var(--cr-border);
+    border-radius: var(--cr-radius-card);
+    padding: 1.8rem;
+    box-shadow: var(--cr-shadow);
+    position: relative;
+  }
+
+  .cr-step-num {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--cr-blue);
+    background: var(--cr-blue-subtle);
+    padding: 0.25rem 0.6rem;
+    border-radius: var(--cr-radius-pill);
+    display: inline-block;
+    margin-bottom: 0.75rem;
+  }
+
+  .cr-step-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem;
+  }
+
+  .cr-step-desc {
+    font-size: 0.86rem;
+    line-height: 1.55;
+    color: var(--cr-gray);
+    margin: 0;
+  }
+
+  /* ─── Legal & Transparency Grid ─── */
+  .cr-legal-sec {
+    padding: 4.5rem 0;
+    border-bottom: 1px solid var(--cr-border-subtle);
   }
 
   .cr-legal-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
-    margin-top: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.25rem;
   }
 
   .cr-legal-card {
-    background: var(--apple-surface-card);
-    border: 1px solid var(--apple-border);
-    border-radius: var(--radius-card);
+    background: var(--cr-surface-card);
+    border: 1px solid var(--cr-border);
+    border-radius: var(--cr-radius-card);
     padding: 1.5rem;
-    box-shadow: var(--apple-shadow);
+    box-shadow: var(--cr-shadow);
   }
 
   .cr-legal-card h4 {
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 700;
-    color: var(--apple-dark);
     margin: 0 0 0.5rem;
-    letter-spacing: -0.015em;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
   }
 
   .cr-legal-card p {
-    font-size: 0.85rem;
-    line-height: 1.55;
-    color: var(--apple-gray);
+    font-size: 0.84rem;
+    line-height: 1.5;
+    color: var(--cr-gray);
     margin: 0;
   }
 
-  /* ─── Apple CTA Banner ─────────────────────────────────────────── */
-  .section-cta-banner {
+  /* ─── Bottom CTA ─── */
+  .cr-cta {
     padding: 5rem 0;
     text-align: center;
-    background: var(--apple-bg);
-  }
-
-  .cta-title {
-    font-size: clamp(2rem, 4vw, 3rem);
-    font-weight: 800;
-    letter-spacing: -0.025em;
-    line-height: 1.15;
-    color: var(--apple-dark);
-    margin: 0 0 0.75rem;
-  }
-
-  .cta-sub {
-    font-size: 1.05rem;
-    line-height: 1.5;
-    color: var(--apple-gray);
-    max-width: 600px;
-    margin: 0 auto 2rem;
+    background: radial-gradient(circle at 50% 100%, var(--cr-blue-subtle) 0%, transparent 65%), var(--cr-bg);
   }
 </style>
 
-<div class="apple-shell">
-  <!-- 1. Apple Hero Section -->
-  <section class="section-hero">
-    <div class="apple-container">
-      <div class="hero-badge-pill">
-        <span class="hero-badge-dot"></span>
-        <span>Join India's Student Peer Ecosystem</span>
+<div class="careers-page">
+  <!-- 1. Hero Section -->
+  <section class="cr-hero">
+    <div class="cr-container">
+      <div class="cr-hero-badge">
+        <span class="cr-pulse-dot"></span>
+        <span>Open Applications &bull; Academic Cohort 2026</span>
       </div>
 
-      <h1 class="apple-headline">
-        Build the future of engineering study.
+      <h1 class="cr-headline">
+        Build the future of student intelligence.
       </h1>
 
-      <p class="apple-subhead">
-        Help us build the most accessible, verified academic platform for engineering question papers, handwritten notes, and campus student tools across India.
+      <p class="cr-subhead">
+        Empowering millions of engineering students across India with verified question papers, peer handwritten notes, and campus academic tools.
       </p>
 
-      <div class="cr-hero-desk-pill">
+      <div class="cr-hero-stats">
+        <div class="cr-stat-pill">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          <span>5–8 hrs/wk Flexible</span>
+        </div>
+        <div class="cr-stat-pill">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+          <span>100% Remote Across India</span>
+        </div>
+        <div class="cr-stat-pill">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
+          <span>Verified Certificates &amp; LORs</span>
+        </div>
+        <div class="cr-stat-pill">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <span>Direct Founder Mentorship</span>
+        </div>
+      </div>
+
+      <div class="cr-desk-banner">
         <span>Official Talent Desk:</span>
         <a href="mailto:careers@abhihub.edu.eu.org">careers@abhihub.edu.eu.org</a>
       </div>
     </div>
   </section>
 
-  <!-- 2. Values & Culture Strip -->
-  <section class="cr-values-section">
-    <div class="apple-container">
+  <!-- 2. Values & Culture -->
+  <section class="cr-values">
+    <div class="cr-container">
       <div class="cr-values-grid">
-        <div class="cr-value-card">
-          <div class="cr-value-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></div>
-          <div>
-            <h3 class="cr-value-title">100% Remote / Hybrid</h3>
-            <p class="cr-value-desc">Built for students to contribute around semester lectures, practicals, and university exams.</p>
+        <div class="cr-val-card">
+          <div class="cr-val-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
           </div>
+          <h3 class="cr-val-title">Semester-First Flexibility</h3>
+          <p class="cr-val-desc">Structured strictly around your university practicals, lab submissions, and semester examinations. Zero burnout culture.</p>
         </div>
 
-        <div class="cr-value-card">
-          <div class="cr-value-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></div>
-          <div>
-            <h3 class="cr-value-title">High Student Impact</h3>
-            <p class="cr-value-desc">Your contributions directly power revision and prep for thousands of peers across autonomous colleges.</p>
+        <div class="cr-val-card">
+          <div class="cr-val-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
           </div>
+          <h3 class="cr-val-title">Tangible Campus Reach</h3>
+          <p class="cr-val-desc">Your features and curated notes power actual preparation for thousands of peers across tier-1, tier-2, and state universities.</p>
         </div>
 
-        <div class="cr-value-card">
-          <div class="cr-value-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg></div>
-          <div>
-            <h3 class="cr-value-title">Formal Credentials & Perks</h3>
-            <p class="cr-value-desc">Official certificates, letters of recommendation, leadership titles, and contributor royalties.</p>
+        <div class="cr-val-card">
+          <div class="cr-val-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
           </div>
+          <h3 class="cr-val-title">Verified Proof of Work</h3>
+          <p class="cr-val-desc">Receive verifiable digital internship credentials, LinkedIn recommendations, and contributor royalty benefits.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- 3. Vacancy Filter Bar -->
-  <div class="apple-container cr-filter-bar">
-    <div class="cr-filter-wrap" role="tablist" aria-label="Vacancy Status Filters">
-      <button class="cr-filter-btn active" data-filter="all">All Positions (11)</button>
-      <button class="cr-filter-btn" data-filter="internship">🎓 Creator Internships (3)</button>
-      <button class="cr-filter-btn" data-filter="live">● Actively Hiring (6)</button>
-      <button class="cr-filter-btn" data-filter="soon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Opening Soon (3)</button>
-      <button class="cr-filter-btn" data-filter="filled"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Position Filled (2)</button>
+  <!-- 3. Filter Navigation Strip -->
+  <nav class="cr-filter-section" id="openings">
+    <div class="cr-container cr-filter-row">
+      <div class="cr-tabs" role="tablist">
+        <button class="cr-tab active" data-filter="all">All Positions (11)</button>
+        <button class="cr-tab" data-filter="creator">🎓 Creator &amp; Campus (4)</button>
+        <button class="cr-tab" data-filter="engineering">💻 Engineering &amp; AI (3)</button>
+        <button class="cr-tab" data-filter="growth">🎨 Content &amp; Design (4)</button>
+      </div>
+      <div class="cr-status-toggle">
+        <span>Showing: <strong id="cr-filter-count">11 roles</strong></span>
+      </div>
     </div>
-  </div>
+  </nav>
 
-  <!-- 3.5 Featured: Creator Partnerships Internship Program -->
-  <section class="cr-role-section cr-internship-program-section" id="creator-internships">
-    <div class="apple-container">
-      <div class="apple-section-header">
-        <span class="apple-eyebrow">Marketing &amp; Business Development</span>
-        <h2 class="apple-section-title">Creator Partnerships Internship Program</h2>
-        <p class="apple-section-desc">
-          Join our 6-week remote learning cohort exploring educational partnerships with YouTube educators, university professors, and independent teachers across India.
-        </p>
-      </div>
-
-      <!-- Program Overview Card -->
-      <div class="cr-program-banner">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
-          <div>
-            <span class="cr-badge cr-badge--intern" style="margin-bottom:0.5rem;">🎓 6-Week Learning Opportunity</span>
-            <h3 style="font-size:1.35rem; font-weight:800; margin:0 0 0.4rem; color:var(--apple-dark);">AbhiHub × Creator Partnerships Cohort</h3>
-            <p style="font-size:0.9rem; color:var(--apple-gray); margin:0; max-width:760px; line-height:1.5;">
-              AbhiHub is organizing academic resources (notes, PYQs, lab manuals) across Indian colleges. We are partnering with educational YouTube creators, professors, and subject toppers to publish and distribute verified study materials. We are welcoming motivated undergraduate students to learn business development, outreach, and creator relations.
-            </p>
-          </div>
-          <div style="text-align:right;">
-            <span style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:var(--apple-gray); display:block;">Applications Status</span>
-            <span style="font-size:1.05rem; font-weight:800; color:#10B981;">Open for Cohort 2026</span>
-          </div>
+  <!-- 4. Featured Program: Creator Partnerships -->
+  <section class="cr-container" style="padding-top: 3rem;">
+    <div class="cr-cohort-box" data-track="creator">
+      <div class="cr-cohort-head">
+        <div>
+          <span class="cr-badge cr-badge-live" style="margin-bottom:0.5rem;">🎓 Featured 6-Week Cohort</span>
+          <h2 style="font-size:1.4rem; font-weight:800; margin:0 0 0.4rem;">Creator Partnerships &amp; Educator Outreach Cohort</h2>
+          <p style="font-size:0.9rem; color:var(--cr-gray); margin:0; max-width:740px; line-height:1.5;">
+            Join our dedicated student BD track connecting with YouTube educators, university professors, and subject toppers to publish verified study materials on AbhiHub. Freshers are warmly welcome.
+          </p>
         </div>
-
-        <div class="cr-program-meta-grid">
-          <div class="cr-program-meta-item">
-            <div class="cr-program-meta-label">Department</div>
-            <div class="cr-program-meta-val">Marketing &amp; BD</div>
-          </div>
-          <div class="cr-program-meta-item">
-            <div class="cr-program-meta-label">Work Mode</div>
-            <div class="cr-program-meta-val">100% Remote</div>
-          </div>
-          <div class="cr-program-meta-item">
-            <div class="cr-program-meta-label">Weekly Hours</div>
-            <div class="cr-program-meta-val">5–8 hrs / week</div>
-          </div>
-          <div class="cr-program-meta-item">
-            <div class="cr-program-meta-label">Duration</div>
-            <div class="cr-program-meta-val">6 Weeks (Initial)</div>
-          </div>
-          <div class="cr-program-meta-item">
-            <div class="cr-program-meta-label">Positions Open</div>
-            <div class="cr-program-meta-val">3 Openings</div>
-          </div>
-          <div class="cr-program-meta-item">
-            <div class="cr-program-meta-label">Experience</div>
-            <div class="cr-program-meta-val">Freshers Welcome</div>
-          </div>
-        </div>
-
-        <div style="margin-top:1.25rem;">
-          <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; color:var(--apple-gray); margin-bottom:0.4rem;">What You Will Receive:</div>
-          <div class="cr-perks-list">
-            <span class="cr-perk-chip">📜 Official Internship Completion Certificate</span>
-            <span class="cr-perk-chip">🚀 Hands-on Early-Stage EdTech Experience</span>
-            <span class="cr-perk-chip">🤝 Direct Mentorship &amp; Feedback from Founder</span>
-            <span class="cr-perk-chip">💼 Verified Professional Portfolio Additions</span>
-            <span class="cr-perk-chip">🎯 Creator Network &amp; Partnership Experience</span>
-          </div>
-        </div>
-
-        <div style="margin-top:1.25rem; padding:0.85rem 1rem; border-radius:10px; background:var(--apple-surface); border:1px solid var(--apple-border); font-size:0.78rem; color:var(--apple-gray); line-height:1.45;">
-          ⚖️ <strong>Legal &amp; Transparency Disclosure:</strong> This is a voluntary learning opportunity. No fees or charges will ever be requested. Interns are never required to make purchases or handle personal funds.
+        <div style="text-align:right;">
+          <span style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:var(--cr-gray); display:block;">Cohort Status</span>
+          <span style="font-size:1rem; font-weight:800; color:var(--cr-green);">● Open for Applications</span>
         </div>
       </div>
 
-      <!-- 3 Positions Grid -->
-      <div class="cr-roles-grid">
-        <!-- Position 1 -->
-        <article class="cr-card" data-status="live" data-category="internship">
-          <div>
-            <div class="cr-card-badges">
-              <span class="cr-badge cr-badge--live">● Actively Hiring</span>
-              <span class="cr-badge cr-badge--intern">1 Opening</span>
-              <span class="cr-badge cr-badge--pill">Remote</span>
-              <span class="cr-badge cr-badge--pill">Freshers Welcome</span>
-            </div>
-            <h3 class="cr-card-title">Creator Research Intern</h3>
-            <p class="cr-card-desc">
-              Discover educational YouTube channels, independent professors, and teachers across India with original notes, PDFs, and exam solutions.
-            </p>
-            <ul class="cr-card-points">
-              <li>Discover educational YouTube creators &amp; faculty across Indian states</li>
-              <li>Identify creators with original notes, question papers, and study guides</li>
-              <li>Find publicly available business contacts and maintain structured databases</li>
-              <li>Categorize creators according to subject, university, and content type</li>
-              <li><strong>Deliverable:</strong> Researched &amp; verified creator partner database with source links</li>
-            </ul>
-          </div>
-          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Creator%20Research%20Intern%20-%20AbhiHub&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Creator%20Research%20Intern%20position%20(Creator%20Partnerships%20Program).%0A%0A1.%20Full%20Name%3A%0A2.%20College%20%26%20Current%20Year%3A%0A3.%20Academic%20Stream%20(e.g.%20BBA%2FB.Tech%2FBCA%2FB.Com)%3A%0A4.%20Short%20Introduction%3A%0A5.%20Relevant%20Skills%20(Research%2C%20Google%20Sheets%2C%20YouTube)%3A%0A6.%20Why%20you%20want%20to%20join%20AbhiHub%3A%0A7.%20Weekly%20Availability%20(approx%205-8%20hrs%2Fweek)%3A%0A%0AThank%20you!" class="cr-btn-apply">
-            Apply for Position 1 →
-          </a>
-        </article>
+      <div class="cr-cohort-grid">
+        <div>
+          <div class="cr-cohort-item-label">Track</div>
+          <div class="cr-cohort-item-val">Marketing &amp; BD</div>
+        </div>
+        <div>
+          <div class="cr-cohort-item-label">Mode</div>
+          <div class="cr-cohort-item-val">100% Remote</div>
+        </div>
+        <div>
+          <div class="cr-cohort-item-label">Commitment</div>
+          <div class="cr-cohort-item-val">5–8 hrs / week</div>
+        </div>
+        <div>
+          <div class="cr-cohort-item-label">Duration</div>
+          <div class="cr-cohort-item-val">6 Weeks</div>
+        </div>
+        <div>
+          <div class="cr-cohort-item-label">Intake</div>
+          <div class="cr-cohort-item-val">3 Openings</div>
+        </div>
+        <div>
+          <div class="cr-cohort-item-label">Eligibility</div>
+          <div class="cr-cohort-item-val">Undergrad Students</div>
+        </div>
+      </div>
+    </div>
 
-        <!-- Position 2 -->
-        <article class="cr-card" data-status="live" data-category="internship">
-          <div>
-            <div class="cr-card-badges">
-              <span class="cr-badge cr-badge--live">● Actively Hiring</span>
-              <span class="cr-badge cr-badge--intern">1 Opening</span>
-              <span class="cr-badge cr-badge--pill">Remote</span>
-              <span class="cr-badge cr-badge--pill">Freshers Welcome</span>
-            </div>
-            <h3 class="cr-card-title">Creator Outreach Intern</h3>
-            <p class="cr-card-desc">
-              Research educator distribution methods, draft personalized partnership messages, and manage professional communication with creators.
-            </p>
-            <ul class="cr-card-points">
-              <li>Draft personalized outreach messages for educators and YouTube teachers</li>
-              <li>Send approved partnership pitches via authorized professional channels</li>
-              <li>Follow up politely, record responses, and track partnership interest</li>
-              <li>Schedule introductory creator discovery calls with founder approval</li>
-              <li><strong>Deliverable:</strong> Updated outreach tracker with responses and qualified partnerships</li>
-            </ul>
+    <!-- Job Cards Grid -->
+    <div class="cr-grid">
+      <!-- 1. Creator Research Intern -->
+      <article class="cr-card" data-category="creator" data-status="live">
+        <div>
+          <div class="cr-card-meta">
+            <span class="cr-badge cr-badge-live">● Actively Hiring</span>
+            <span class="cr-badge cr-badge-track">Creator Track</span>
+            <span class="cr-badge cr-badge-track">1 Opening</span>
           </div>
-          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Creator%20Outreach%20Intern%20-%20AbhiHub&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Creator%20Outreach%20Intern%20position%20(Creator%20Partnerships%20Program).%0A%0A1.%20Full%20Name%3A%0A2.%20College%20%26%20Current%20Year%3A%0A3.%20Academic%20Stream%3A%0A4.%20Short%20Introduction%3A%0A5.%20Relevant%20Skills%20(Outreach%2C%20Copywriting%2C%20Communication)%3A%0A6.%20Why%20you%20want%20to%20join%20AbhiHub%3A%0A7.%20Weekly%20Availability%20(approx%205-8%20hrs%2Fweek)%3A%0A%0AThank%20you!" class="cr-btn-apply">
-            Apply for Position 2 →
-          </a>
-        </article>
+          <h3 class="cr-title">Creator Research Intern</h3>
+          <p class="cr-desc">
+            Discover educational YouTube channels, independent professors, and teachers across India with original notes, PDFs, and exam solutions.
+          </p>
+          <ul class="cr-points">
+            <li>Discover educational YouTube creators &amp; faculty across Indian states</li>
+            <li>Identify creators with original notes, question papers, and study guides</li>
+            <li>Maintain structured databases with source links and subject tags</li>
+            <li><strong>Deliverable:</strong> Researched &amp; verified creator partner database</li>
+          </ul>
+        </div>
+        <div class="cr-footer">
+          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; 5-8h/wk</div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Creator%20Research%20Intern%20-%20AbhiHub&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Creator%20Research%20Intern%20position.%0A%0A1.%20Full%20Name%3A%0A2.%20College%20%26%20Year%3A%0A3.%20Branch%2FStream%3A%0A4.%20Relevant%20Skills%20(Research%2C%20Sheets)%3A%0A5.%20Weekly%20Availability%3A%0A%0AThank%20you!" class="cr-btn cr-btn-primary">Apply Now &rarr;</a>
+        </div>
+      </article>
 
-        <!-- Position 3 -->
-        <article class="cr-card" data-status="live" data-category="internship">
-          <div>
-            <div class="cr-card-badges">
-              <span class="cr-badge cr-badge--live">● Actively Hiring</span>
-              <span class="cr-badge cr-badge--intern">1 Opening</span>
-              <span class="cr-badge cr-badge--pill">Remote</span>
-              <span class="cr-badge cr-badge--pill">Freshers Welcome</span>
-            </div>
-            <h3 class="cr-card-title">Creator Onboarding Intern</h3>
-            <p class="cr-card-desc">
-              Guide onboarded educators on publishing notes, organize educator study resources, gather platform feedback, and support creator channels.
-            </p>
-            <ul class="cr-card-points">
-              <li>Help interested educators understand AbhiHub platform features &amp; studio</li>
-              <li>Collect and organize creator-submitted educational materials and notes</li>
-              <li>Maintain onboarding documentation and identify creator difficulties</li>
-              <li>Coordinate directly with the founder and gather faculty feedback</li>
-              <li><strong>Deliverable:</strong> Creator onboarding tracker, feedback summaries &amp; progress logs</li>
-            </ul>
+      <!-- 2. Creator Outreach Intern -->
+      <article class="cr-card" data-category="creator" data-status="live">
+        <div>
+          <div class="cr-card-meta">
+            <span class="cr-badge cr-badge-live">● Actively Hiring</span>
+            <span class="cr-badge cr-badge-track">Creator Track</span>
+            <span class="cr-badge cr-badge-track">1 Opening</span>
           </div>
-          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Creator%20Onboarding%20Intern%20-%20AbhiHub&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Creator%20Onboarding%20Intern%20position%20(Creator%20Partnerships%20Program).%0A%0A1.%20Full%20Name%3A%0A2.%20College%20%26%20Current%20Year%3A%0A3.%20Academic%20Stream%3A%0A4.%20Short%20Introduction%3A%0A5.%20Relevant%20Skills%20(Communication%2C%20Google%20Drive%2FDocs%2C%20Canva)%3A%0A6.%20Why%20you%20want%20to%20join%20AbhiHub%3A%0A7.%20Weekly%20Availability%20(approx%205-8%20hrs%2Fweek)%3A%0A%0AThank%20you!" class="cr-btn-apply">
-            Apply for Position 3 →
-          </a>
-        </article>
+          <h3 class="cr-title">Creator Outreach Intern</h3>
+          <p class="cr-desc">
+            Research educator distribution methods, draft personalized partnership messages, and manage professional communication with creators.
+          </p>
+          <ul class="cr-points">
+            <li>Draft personalized outreach pitches for educators and YouTube teachers</li>
+            <li>Send approved partnership pitches via authorized channels</li>
+            <li>Follow up courteously, record responses, and track partnership interest</li>
+            <li><strong>Deliverable:</strong> Active creator pipeline with qualified interest</li>
+          </ul>
+        </div>
+        <div class="cr-footer">
+          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; 5-8h/wk</div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Creator%20Outreach%20Intern%20-%20AbhiHub&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Creator%20Outreach%20Intern%20position.%0A%0A1.%20Full%20Name%3A%0A2.%20College%20%26%20Year%3A%0A3.%20Branch%2FStream%3A%0A4.%20Communication%20%2F%20Pitching%20Experience%3A%0A5.%20Weekly%20Availability%3A%0A%0AThank%20you!" class="cr-btn cr-btn-primary">Apply Now &rarr;</a>
+        </div>
+      </article>
+
+      <!-- 3. Creator Onboarding Intern -->
+      <article class="cr-card" data-category="creator" data-status="live">
+        <div>
+          <div class="cr-card-meta">
+            <span class="cr-badge cr-badge-live">● Actively Hiring</span>
+            <span class="cr-badge cr-badge-track">Creator Track</span>
+            <span class="cr-badge cr-badge-track">1 Opening</span>
+          </div>
+          <h3 class="cr-title">Creator Onboarding Intern</h3>
+          <p class="cr-desc">
+            Guide onboarded educators on publishing notes, organize educator study resources, gather platform feedback, and support creator channels.
+          </p>
+          <ul class="cr-points">
+            <li>Walk educators through channel studio setup and note uploading</li>
+            <li>Collect, format, and organize educator notes and exam materials</li>
+            <li>Gather direct creator feedback to share with the engineering team</li>
+            <li><strong>Deliverable:</strong> Creator onboarding checklist &amp; progress logs</li>
+          </ul>
+        </div>
+        <div class="cr-footer">
+          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; 5-8h/wk</div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Creator%20Onboarding%20Intern%20-%20AbhiHub&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Creator%20Onboarding%20Intern%20position.%0A%0A1.%20Full%20Name%3A%0A2.%20College%20%26%20Year%3A%0A3.%20Branch%2FStream%3A%0A4.%20Relevant%20Skills%20(Docs%2C%20Drive%2C%20Coordination)%3A%0A5.%20Weekly%20Availability%3A%0A%0AThank%20you!" class="cr-btn cr-btn-primary">Apply Now &rarr;</a>
+        </div>
+      </article>
+
+      <!-- 4. Campus Growth & Ambassador Lead -->
+      <article class="cr-card" data-category="creator" data-status="live">
+        <div>
+          <div class="cr-card-meta">
+            <span class="cr-badge cr-badge-live">● Actively Hiring</span>
+            <span class="cr-badge cr-badge-track">Campus Track</span>
+            <span class="cr-badge cr-badge-track">Leadership</span>
+          </div>
+          <h3 class="cr-title">Campus Growth &amp; Ambassador Lead</h3>
+          <p class="cr-desc">
+            Lead student outreach, introduce AbhiHub to engineering colleges across regions, and manage peer contributor networks.
+          </p>
+          <ul class="cr-points">
+            <li>Build grassroots awareness across college Telegram/WhatsApp groups</li>
+            <li>Coordinate peer notes contributions and verified exam uploads</li>
+            <li>Organize campus study sessions and resource-sharing drives</li>
+            <li><strong>Perks:</strong> Verified Leadership Credentials &amp; Contributor Royalties</li>
+          </ul>
+        </div>
+        <div class="cr-footer">
+          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Campus &bull; Flexible</div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Campus%20Growth%20Lead&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20would%20like%20to%20apply%20as%20a%20Campus%20Growth%20Lead.%0A%0A1.%20Full%20Name%3A%0A2.%20College%20%26%20City%3A%0A3.%20Branch%20%26%20Semester%3A%0A4.%20Student%20Clubs%20or%20Communities%20Involved%20With%3A%0A%0AThank%20you!" class="cr-btn cr-btn-primary">Apply Now &rarr;</a>
+        </div>
+      </article>
+
+      <!-- 5. Full-Stack Python & Flask Developer -->
+      <article class="cr-card" data-category="engineering" data-status="live">
+        <div>
+          <div class="cr-card-meta">
+            <span class="cr-badge cr-badge-live">● Actively Hiring</span>
+            <span class="cr-badge cr-badge-track">Engineering</span>
+            <span class="cr-badge cr-badge-track">Core / Intern</span>
+          </div>
+          <h3 class="cr-title">Full-Stack Python &amp; Flask Developer</h3>
+          <p class="cr-desc">
+            Develop core web platform features, Supabase integrations, search query caching, and student exam viewing tools.
+          </p>
+          <ul class="cr-points">
+            <li>Python 3.10+, Flask, Jinja2, vanilla JS, and modern responsive CSS</li>
+            <li>PostgreSQL / Supabase schema design &amp; query optimization</li>
+            <li>REST endpoints, performance caching, and offline-first PWA tools</li>
+          </ul>
+        </div>
+        <div class="cr-footer">
+          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; Full / Part-Time</div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Full-Stack%20Python%20Flask%20Developer&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Full-Stack%20Python%20%26%20Flask%20Developer%20position.%0A%0A1.%20Full%20Name%3A%0A2.%20GitHub%20Profile%3A%0A3.%20Portfolio%20%2F%20Live%20Projects%3A%0A4.%20Resume%20Link%3A%0A%0AThank%20you!" class="cr-btn cr-btn-primary">Apply Now &rarr;</a>
+        </div>
+      </article>
+
+      <!-- 6. AI & LLM Specialist -->
+      <article class="cr-card" data-category="engineering" data-status="soon">
+        <div>
+          <div class="cr-card-meta">
+            <span class="cr-badge cr-badge-soon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Opening Soon</span>
+            <span class="cr-badge cr-badge-track">AI Engineering</span>
+          </div>
+          <h3 class="cr-title">AI &amp; LLM Integration Specialist</h3>
+          <p class="cr-desc">
+            Architecting Tarika AI study assistant workflows, vector retrieval pipelines, and automated academic summarization.
+          </p>
+          <ul class="cr-points">
+            <li>LangChain, Gemini API, OpenAI APIs, and vector embeddings</li>
+            <li>Retrieval-Augmented Generation (RAG) over engineering textbooks</li>
+            <li>Prompt engineering and low-latency client-side streaming</li>
+          </ul>
+        </div>
+        <div class="cr-footer">
+          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; Pipeline</div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Expression%20of%20Interest%3A%20AI%20LLM%20Specialist&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20would%20like%20to%20register%20early%20interest%20for%20the%20AI%20%26%20LLM%20Specialist%20role.%0A%0AName%3A%0AGitHub%20%2F%20Portfolio%3A" class="cr-btn cr-btn-outline">Register Interest &rarr;</a>
+        </div>
+      </article>
+
+      <!-- 7. Frontend UI Developer Intern (Filled) -->
+      <article class="cr-card cr-card--filled" data-category="engineering" data-status="filled">
+        <div>
+          <div class="cr-card-meta">
+            <span class="cr-badge cr-badge-filled"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Position Filled</span>
+            <span class="cr-badge cr-badge-track">Engineering</span>
+            <span class="cr-badge cr-badge-track">Cohort 2026</span>
+          </div>
+          <h3 class="cr-title">Frontend UI Developer Intern</h3>
+          <p class="cr-desc">
+            Building client-side responsive components, study tools, and interactive notes views using Tailwind and modern CSS.
+          </p>
+          <ul class="cr-points">
+            <li>Candidate selected and actively onboarded</li>
+            <li>Applications closed for current intake</li>
+          </ul>
+        </div>
+        <div class="cr-footer">
+          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote</div>
+          <span class="cr-btn cr-btn-disabled">Closed</span>
+        </div>
+      </article>
+
+      <!-- 8. Academic Notes & PYQ Curator -->
+      <article class="cr-card" data-category="growth" data-status="live">
+        <div>
+          <div class="cr-card-meta">
+            <span class="cr-badge cr-badge-live">● Actively Hiring</span>
+            <span class="cr-badge cr-badge-track">Academic Operations</span>
+          </div>
+          <h3 class="cr-title">Academic Notes &amp; PYQ Curator</h3>
+          <p class="cr-desc">
+            Review, verify, and categorize university syllabus papers and engineering study resources submitted by contributors.
+          </p>
+          <ul class="cr-points">
+            <li>Engineering or Computer Science student or graduate</li>
+            <li>Strong eye for clarity in handwriting, formulas &amp; diagrams</li>
+            <li>Familiarity with university syllabus patterns (RTMNU, SPPU, AKTU)</li>
+          </ul>
+        </div>
+        <div class="cr-footer">
+          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; Flexible</div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Academic%20Notes%20Curator&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Academic%20Notes%20Curator%20role.%0A%0A1.%20Full%20Name%3A%0A2.%20University%20%2F%20College%3A%0A3.%20Branch%20%26%20Year%3A%0A4.%20LinkedIn%20Profile%3A%0A%0AThank%20you!" class="cr-btn cr-btn-primary">Apply Now &rarr;</a>
+        </div>
+      </article>
+
+      <!-- 9. Product & UI/UX Designer -->
+      <article class="cr-card" data-category="growth" data-status="soon">
+        <div>
+          <div class="cr-card-meta">
+            <span class="cr-badge cr-badge-soon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Opening Soon</span>
+            <span class="cr-badge cr-badge-track">Product Design</span>
+          </div>
+          <h3 class="cr-title">Product &amp; UI/UX Designer</h3>
+          <p class="cr-desc">
+            Crafting mobile-first student experiences, clean study dashboards, reading modes, and dark-mode design systems.
+          </p>
+          <ul class="cr-points">
+            <li>Figma prototyping, component libraries, and design tokens</li>
+            <li>Deep empathy for student workflows during exam preparation</li>
+            <li>Clean Apple/minimalist visual aesthetic sensibilities</li>
+          </ul>
+        </div>
+        <div class="cr-footer">
+          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; Pipeline</div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Expression%20of%20Interest%3A%20UI%2FUX%20Designer&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20would%20like%20to%20register%20early%20interest%20for%20the%20UI%2FUX%20Designer%20role.%0A%0AName%3A%0APortfolio%20Link%3A" class="cr-btn cr-btn-outline">Register Interest &rarr;</a>
+        </div>
+      </article>
+
+      <!-- 10. Technical SEO Specialist -->
+      <article class="cr-card" data-category="growth" data-status="soon">
+        <div>
+          <div class="cr-card-meta">
+            <span class="cr-badge cr-badge-soon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Opening Soon</span>
+            <span class="cr-badge cr-badge-track">Growth &amp; SEO</span>
+          </div>
+          <h3 class="cr-title">Technical SEO &amp; Content Strategist</h3>
+          <p class="cr-desc">
+            Scaling organic discovery for college question papers, syllabus hubs, and academic resource directories across India.
+          </p>
+          <ul class="cr-points">
+            <li>Programmatic SEO, JSON-LD structured data, and crawl efficiency</li>
+            <li>Academic search trend research across Indian technical boards</li>
+            <li>Site speed, Core Web Vitals, and indexation hygiene</li>
+          </ul>
+        </div>
+        <div class="cr-footer">
+          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; Pipeline</div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Expression%20of%20Interest%3A%20Technical%20SEO&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20would%20like%20to%20register%20early%20interest%20for%20the%20SEO%20role.%0A%0AName%3A%0ALinkedIn%3A" class="cr-btn cr-btn-outline">Register Interest &rarr;</a>
+        </div>
+      </article>
+
+      <!-- 11. Student Social Media & Community Creator (Filled) -->
+      <article class="cr-card cr-card--filled" data-category="growth" data-status="filled">
+        <div>
+          <div class="cr-card-meta">
+            <span class="cr-badge cr-badge-filled"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Position Filled</span>
+            <span class="cr-badge cr-badge-track">Community Track</span>
+            <span class="cr-badge cr-badge-track">Cohort 2026</span>
+          </div>
+          <h3 class="cr-title">Student Social Media &amp; Community Creator</h3>
+          <p class="cr-desc">
+            Campus outreach and academic reels/infographics production for exam time tips and PYQ announcements.
+          </p>
+          <ul class="cr-points">
+            <li>Candidate selected and actively onboarded</li>
+            <li>Applications closed for this academic semester</li>
+          </ul>
+        </div>
+        <div class="cr-footer">
+          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote / Nagpur</div>
+          <span class="cr-btn cr-btn-disabled">Closed</span>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- 5. 3-Step Simple Application Flow -->
+  <section class="cr-steps-section">
+    <div class="cr-container">
+      <div class="cr-sec-head" style="margin-top:0;">
+        <span class="cr-eyebrow">Zero Red Tape</span>
+        <h2 class="cr-sec-title">How Our Application Process Works</h2>
+        <p class="cr-sec-sub">Fast, human, and transparent. We review every student submission within 48 hours.</p>
+      </div>
+
+      <div class="cr-steps-grid">
+        <div class="cr-step-card">
+          <span class="cr-step-num">Step 01</span>
+          <h3 class="cr-step-title">Select Your Role</h3>
+          <p class="cr-step-desc">Pick an active role that matches your skills or academic interest. Review the deliverables and weekly hour commitment.</p>
+        </div>
+
+        <div class="cr-step-card">
+          <span class="cr-step-num">Step 02</span>
+          <h3 class="cr-step-title">Send a Quick Email</h3>
+          <p class="cr-step-desc">Click "Apply Now" to open a prefilled email to <code>careers@abhihub.edu.eu.org</code> with your details, college, and portfolio links.</p>
+        </div>
+
+        <div class="cr-step-card">
+          <span class="cr-step-num">Step 03</span>
+          <h3 class="cr-step-title">48-Hour Review &amp; Onboard</h3>
+          <p class="cr-step-desc">We review your submission, conduct a friendly 15-minute introductory video chat, and set up your workspace tools immediately.</p>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- 4. Actively Hiring Positions -->
-  <section class="cr-role-section">
-    <div class="apple-container">
-      <div class="apple-section-header">
-        <span class="apple-eyebrow">Current Openings</span>
-        <h2 class="apple-section-title">Actively Hiring Positions</h2>
-        <p class="apple-section-desc">Apply directly by emailing your resume and portfolio or GitHub profile to our talent inbox.</p>
-      </div>
-
-      <div class="cr-roles-grid">
-        <!-- Role 1 -->
-        <article class="cr-card" data-status="live">
-          <div>
-            <div class="cr-card-badges">
-              <span class="cr-badge cr-badge--live">● Actively Hiring</span>
-              <span class="cr-badge cr-badge--pill">Remote (India)</span>
-              <span class="cr-badge cr-badge--pill">Intern / Core</span>
-            </div>
-            <h3 class="cr-card-title">Full-Stack Python &amp; Flask Developer</h3>
-            <p class="cr-card-desc">
-              Develop core web platform features, Supabase integrations, search query caching, and student exam viewing tools.
-            </p>
-            <ul class="cr-card-points">
-              <li>Python 3.10+, Flask, Jinja2, vanilla CSS &amp; Tailwind</li>
-              <li>PostgreSQL / Supabase schema design &amp; query optimization</li>
-              <li>Git workflows, REST endpoints, and client-side performance</li>
-            </ul>
-          </div>
-          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Full-Stack%20Python%20Flask%20Developer&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20would%20like%20to%20apply%20for%20the%20Full-Stack%20Python%20%26%20Flask%20Developer%20position.%0A%0AFull%20Name%3A%0ALocation%2FCollege%3A%0APortfolio%20%2F%20GitHub%3A%0ALinkedIn%3A%0AResume%20Link%20%2F%20Attachment%3A%0A%0AThank%20you!" class="cr-btn-apply">
-            Apply via Email →
-          </a>
-        </article>
-
-        <!-- Role 2 -->
-        <article class="cr-card" data-status="live">
-          <div>
-            <div class="cr-card-badges">
-              <span class="cr-badge cr-badge--live">● Actively Hiring</span>
-              <span class="cr-badge cr-badge--pill">Remote</span>
-              <span class="cr-badge cr-badge--pill">Flexible</span>
-            </div>
-            <h3 class="cr-card-title">Academic Notes &amp; PYQ Curator</h3>
-            <p class="cr-card-desc">
-              Review, verify, and categorize university syllabus papers and engineering study resources submitted by contributors.
-            </p>
-            <ul class="cr-card-points">
-              <li>Engineering or Computer Science student or graduate</li>
-              <li>Strong eye for clarity in handwriting, equations &amp; diagrams</li>
-              <li>Familiarity with university syllabus patterns (RTMNU, SPPU, AKTU)</li>
-            </ul>
-          </div>
-          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Academic%20Notes%20Curator&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Academic%20Notes%20%26%20PYQ%20Curator%20role.%0A%0AFull%20Name%3A%0AUniversity%20%2F%20College%3A%0ABranch%20%26%20Year%3A%0ALinkedIn%3A%0A%0AThank%20you!" class="cr-btn-apply">
-            Apply via Email →
-          </a>
-        </article>
-
-        <!-- Role 3 -->
-        <article class="cr-card" data-status="live">
-          <div>
-            <div class="cr-card-badges">
-              <span class="cr-badge cr-badge--live">● Actively Hiring</span>
-              <span class="cr-badge cr-badge--pill">Hybrid / Campus</span>
-              <span class="cr-badge cr-badge--pill">Leadership</span>
-            </div>
-            <h3 class="cr-card-title">Campus Growth &amp; Ambassador Lead</h3>
-            <p class="cr-card-desc">
-              Lead student outreach, introduce AbhiHub to engineering colleges across regions, and manage peer contributor networks.
-            </p>
-            <ul class="cr-card-points">
-              <li>Proactive communication, community building &amp; social skills</li>
-              <li>Experience in university clubs, GDG/IEEE/CSI student chapters</li>
-              <li>Eligible for leadership certificates and contributor royalties</li>
-            </ul>
-          </div>
-          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Campus%20Growth%20Lead&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20interested%20in%20leading%20campus%20growth%20at%20my%20college.%0A%0AFull%20Name%3A%0ACollege%20%26%20City%3A%0ABranch%20%26%20Semester%3A%0ALeadership%20%2F%20Club%20Experience%3A%0A%0AThank%20you!" class="cr-btn-apply">
-            Apply via Email →
-          </a>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <!-- 5. Opening Soon Roles -->
-  <section class="cr-role-section">
-    <div class="apple-container">
-      <div class="apple-section-header">
-        <span class="apple-eyebrow">Talent Pipeline</span>
-        <h2 class="apple-section-title">Opening Soon Roles</h2>
-        <p class="apple-section-desc">These positions will be opening shortly. You can submit early interest to receive priority consideration.</p>
-      </div>
-
-      <div class="cr-roles-grid">
-        <!-- Soon 1 -->
-        <article class="cr-card" data-status="soon">
-          <div>
-            <div class="cr-card-badges">
-              <span class="cr-badge cr-badge--soon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Opening Soon</span>
-              <span class="cr-badge cr-badge--pill">AI Engineering</span>
-            </div>
-            <h3 class="cr-card-title">AI &amp; LLM Integration Specialist</h3>
-            <p class="cr-card-desc">
-              Architecting Tarika AI study assistant workflows, vector retrieval pipelines, and automated academic summarization.
-            </p>
-            <ul class="cr-card-points">
-              <li>LangChain, Gemini API, OpenAI APIs, vector embeddings</li>
-              <li>Retrieval-Augmented Generation (RAG) on technical textbooks</li>
-            </ul>
-          </div>
-          <a href="mailto:careers@abhihub.edu.eu.org?subject=Expression%20of%20Interest%3A%20AI%20LLM%20Specialist&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20would%20like%20to%20register%20early%20interest%20for%20the%20AI%20%26%20LLM%20Specialist%20role.%0A%0AName%3A%0AGitHub%2FPortfolio%3A" class="cr-btn-soon">
-            Submit Early Interest →
-          </a>
-        </article>
-
-        <!-- Soon 2 -->
-        <article class="cr-card" data-status="soon">
-          <div>
-            <div class="cr-card-badges">
-              <span class="cr-badge cr-badge--soon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Opening Soon</span>
-              <span class="cr-badge cr-badge--pill">Design &amp; UX</span>
-            </div>
-            <h3 class="cr-card-title">Product &amp; UI/UX Designer</h3>
-            <p class="cr-card-desc">
-              Crafting mobile-first student experiences, clean study dashboards, reading modes, and dark-mode design systems.
-            </p>
-            <ul class="cr-card-points">
-              <li>Figma prototyping and modern component design tokens</li>
-              <li>Understanding student workflows during semester exams</li>
-            </ul>
-          </div>
-          <a href="mailto:careers@abhihub.edu.eu.org?subject=Expression%20of%20Interest%3A%20UI%2FUX%20Designer&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20would%20like%20to%20register%20early%20interest%20for%20the%20UI%2FUX%20Designer%20role.%0A%0AName%3A%0APortfolio%20Link%3A" class="cr-btn-soon">
-            Submit Early Interest →
-          </a>
-        </article>
-
-        <!-- Soon 3 -->
-        <article class="cr-card" data-status="soon">
-          <div>
-            <div class="cr-card-badges">
-              <span class="cr-badge cr-badge--soon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Opening Soon</span>
-              <span class="cr-badge cr-badge--pill">Growth &amp; SEO</span>
-            </div>
-            <h3 class="cr-card-title">Technical SEO &amp; Content Strategist</h3>
-            <p class="cr-card-desc">
-              Scaling organic discovery for college question papers, syllabus hubs, and academic resource directories.
-            </p>
-            <ul class="cr-card-points">
-              <li>Structured data, programmatic SEO, and crawl budget indexing</li>
-              <li>Academic search trend research across Indian universities</li>
-            </ul>
-          </div>
-          <a href="mailto:careers@abhihub.edu.eu.org?subject=Expression%20of%20Interest%3A%20Technical%20SEO&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20would%20like%20to%20register%20early%20interest%20for%20the%20SEO%20role.%0A%0AName%3A%0ALinkedIn%3A" class="cr-btn-soon">
-            Submit Early Interest →
-          </a>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <!-- 6. Filled Positions -->
-  <section class="cr-role-section">
-    <div class="apple-container">
-      <div class="apple-section-header">
-        <span class="apple-eyebrow" style="color:var(--apple-gray);">Hiring Transparency</span>
-        <h2 class="apple-section-title">Filled Positions</h2>
-        <p class="apple-section-desc">These positions have been successfully filled for the current academic session.</p>
-      </div>
-
-      <div class="cr-roles-grid">
-        <!-- Filled 1 -->
-        <article class="cr-card cr-card--filled" data-status="filled">
-          <div>
-            <div class="cr-card-badges">
-              <span class="cr-badge cr-badge--filled"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Position Filled</span>
-              <span class="cr-badge cr-badge--pill">Remote</span>
-              <span class="cr-badge cr-badge--pill">Cohort 2026</span>
-            </div>
-            <h3 class="cr-card-title">Frontend UI Developer Intern</h3>
-            <p class="cr-card-desc">
-              Building client-side responsive components, study tools, and interactive notes views using Tailwind and modern CSS.
-            </p>
-            <ul class="cr-card-points">
-              <li>Candidate selected &amp; onboarded</li>
-              <li>Applications closed for this intake</li>
-            </ul>
-          </div>
-          <span class="cr-btn-filled"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Applications Closed</span>
-        </article>
-
-        <!-- Filled 2 -->
-        <article class="cr-card cr-card--filled" data-status="filled">
-          <div>
-            <div class="cr-card-badges">
-              <span class="cr-badge cr-badge--filled"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Position Filled</span>
-              <span class="cr-badge cr-badge--pill">Nagpur / Hybrid</span>
-              <span class="cr-badge cr-badge--pill">Creator</span>
-            </div>
-            <h3 class="cr-card-title">Student Social Media &amp; Community Creator</h3>
-            <p class="cr-card-desc">
-              Campus outreach and academic reels/infographics production for exam time tips and PYQ announcements.
-            </p>
-            <ul class="cr-card-points">
-              <li>Candidate selected &amp; onboarded</li>
-              <li>Applications closed for this intake</li>
-            </ul>
-          </div>
-          <span class="cr-btn-filled"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Applications Closed</span>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <!-- 7. Official Legal Compliance Standards -->
-  <section class="section-legal">
-    <div class="apple-container">
-      <div class="apple-section-header">
-        <span class="apple-eyebrow">Official Compliance</span>
-        <h2 class="apple-section-title">Legal Standards &amp; Recruitment Policy</h2>
-        <p class="apple-section-desc">AbhiHub strictly adheres to labor guidelines, anti-fraud safeguards, and non-discriminatory hiring ethics.</p>
+  <!-- 6. Legal Standards & Candidate Protection -->
+  <section class="cr-legal-sec">
+    <div class="cr-container">
+      <div class="cr-sec-head" style="margin-top:0;">
+        <span class="cr-eyebrow">Fair-Chance Policy</span>
+        <h2 class="cr-sec-title">Legal Standards &amp; Candidate Protection</h2>
+        <p class="cr-sec-sub">AbhiHub strictly adheres to labor guidelines, anti-fraud safeguards, and student privacy.</p>
       </div>
 
       <div class="cr-legal-grid">
         <div class="cr-legal-card">
-          <h4 style="display:flex;align-items:center;gap:0.4rem;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"></path><rect x="3" y="6" width="6" height="4" rx="1"></rect><rect x="15" y="14" width="6" height="4" rx="1"></rect><path d="M6 3h12"></path></svg> Equal Opportunity Employer</h4>
-          <p>
-            AbhiHub provides equal opportunities to all applicants regardless of race, caste, religion, gender, sexual orientation, disability, age, or socioeconomic status. Hiring decisions are strictly merit and capability based.
-          </p>
+          <h4><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18"></path><rect x="3" y="6" width="6" height="4" rx="1"></rect><rect x="15" y="14" width="6" height="4" rx="1"></rect><path d="M6 3h12"></path></svg> Equal Opportunity</h4>
+          <p>Hiring is strictly merit-based. We do not discriminate on basis of gender, race, caste, college tier, or background.</p>
         </div>
 
         <div class="cr-legal-card">
-          <h4 style="display:flex;align-items:center;gap:0.4rem;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Anti-Fraud &amp; Zero-Fee Guarantee</h4>
-          <p>
-            <strong>AbhiHub NEVER requests any payment, registration fee, software deposit, or training charges</strong> at any stage of hiring. All official communications originate solely from <code>@abhihub.edu.eu.org</code>. Report suspicious claims immediately.
-          </p>
+          <h4><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Zero-Fee Guarantee</h4>
+          <p><strong>AbhiHub NEVER charges any fees</strong> for applications, registration, or software. All official emails come from <code>@abhihub.edu.eu.org</code>.</p>
         </div>
 
         <div class="cr-legal-card">
-          <h4 style="display:flex;align-items:center;gap:0.4rem;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Candidate Data Privacy</h4>
-          <p>
-            All submitted CVs, portfolios, and personal details sent to <code>careers@abhihub.edu.eu.org</code> are handled in strict compliance with applicable Data Protection Regulations and our <a href="{{ url_for('site.privacy') }}" style="color:var(--apple-blue); font-weight:600;">Privacy Policy</a>. Data is never sold or shared with third-party advertisers.
-          </p>
+          <h4><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Student Data Privacy</h4>
+          <p>Your resume and contact information are confidential and handled in accordance with our <a href="{{ url_for('site.privacy') }}" style="color:var(--cr-blue); font-weight:600;">Privacy Policy</a>. Never shared with advertisers.</p>
         </div>
 
         <div class="cr-legal-card">
-          <h4 style="display:flex;align-items:center;gap:0.4rem;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Engagement &amp; Contract Terms</h4>
-          <p>
-            Internship, collaborator, or employment arrangements are governed by mutual written agreements defining responsibilities, intellectual property assignment, non-disclosure (NDA), and applicable compensation or academic credits.
-          </p>
+          <h4><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg> Formal Agreements</h4>
+          <p>All internships include formal offer documentation, non-disclosure (NDA), intellectual property safeguards, and verified completion credentials.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- 8. Apple CTA Banner -->
-  <section class="section-cta-banner">
-    <div class="apple-container">
-      <h2 class="cta-title">Have Questions About Joining Us?</h2>
-      <p class="cta-sub">
-        If your profile doesn't match an active listing or if you want to collaborate as a faculty advisor or student creator, write to us directly.
+  <!-- 7. Bottom CTA -->
+  <section class="cr-cta">
+    <div class="cr-container">
+      <h2 style="font-size:clamp(1.9rem, 4vw, 2.7rem); font-weight:800; letter-spacing:-0.025em; margin:0 0 0.75rem;">
+        Don't See Your Exact Role?
+      </h2>
+      <p style="font-size:1.05rem; color:var(--cr-gray); max-width:580px; margin:0 auto 2rem; line-height:1.5;">
+        We are always excited to collaborate with passionate students, campus leaders, faculty advisors, and open-source contributors.
       </p>
-      <a href="mailto:careers@abhihub.edu.eu.org?subject=General%20Career%20Inquiry" class="cr-btn-apply" style="font-size:1.05rem; padding:0.85rem 2.2rem;">
-        <span style="display:inline-flex;align-items:center;gap:0.4rem;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg> Contact careers@abhihub.edu.eu.org</span>
+      <a href="mailto:careers@abhihub.edu.eu.org?subject=General%20Talent%20Inquiry%20-%20AbhiHub" class="cr-btn cr-btn-primary" style="font-size:1rem; padding:0.85rem 2.2rem;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+        Write to careers@abhihub.edu.eu.org
       </a>
     </div>
   </section>
@@ -1165,58 +1115,38 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // 1. Role Filter Switcher
-    const filterBtns = document.querySelectorAll('.cr-filter-btn');
+    const tabs = document.querySelectorAll('.cr-tab');
     const cards = document.querySelectorAll('.cr-card');
-    const sections = document.querySelectorAll('.cr-role-section');
+    const cohortBox = document.querySelector('.cr-cohort-box');
+    const countEl = document.getElementById('cr-filter-count');
 
-    filterBtns.forEach(btn => {
-      btn.addEventListener('click', function() {
-        filterBtns.forEach(b => b.classList.remove('active'));
+    tabs.forEach(tab => {
+      tab.addEventListener('click', function() {
+        tabs.forEach(t => t.classList.remove('active'));
         this.classList.add('active');
         const filter = this.dataset.filter;
 
+        let visibleCount = 0;
         cards.forEach(card => {
-          const status = card.dataset.status;
           const category = card.dataset.category;
-          if (
-            filter === 'all' ||
-            (filter === 'internship' && category === 'internship') ||
-            (filter === 'live' && status === 'live') ||
-            (filter !== 'internship' && status === filter)
-          ) {
+          if (filter === 'all' || category === filter) {
             card.style.display = 'flex';
+            visibleCount++;
           } else {
             card.style.display = 'none';
           }
         });
 
-        sections.forEach(sec => {
-          const hasVisible = Array.from(sec.querySelectorAll('.cr-card')).some(c => c.style.display !== 'none');
-          sec.style.display = hasVisible ? 'block' : 'none';
-        });
+        // Hide cohort banner if filtering away from creator or all
+        if (cohortBox) {
+          cohortBox.style.display = (filter === 'all' || filter === 'creator') ? 'block' : 'none';
+        }
+
+        if (countEl) {
+          countEl.textContent = visibleCount + (visibleCount === 1 ? ' role' : ' roles');
+        }
       });
     });
-
-    // 2. Apple Mathematical Smooth Scroll & Scroll-Reveal Observer
-    if ('IntersectionObserver' in window) {
-      var revealObserver = new IntersectionObserver(function(entries, observer) {
-        entries.forEach(function(entry) {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('is-visible');
-            observer.unobserve(entry.target);
-          }
-        });
-      }, {
-        threshold: 0.08,
-        rootMargin: '0px 0px -40px 0px'
-      });
-
-      document.querySelectorAll('section, .cr-value-card, .cr-card, .cr-legal-card').forEach(function(el) {
-        el.classList.add('apple-scroll-reveal');
-        revealObserver.observe(el);
-      });
-    }
   });
 </script>
 {% endblock %}

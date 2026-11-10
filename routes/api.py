@@ -2496,6 +2496,19 @@ def view_doc(doc_id, filename=None):
 
     doc_res = get_document_by_id_rich(doc_id)
     if not doc_res.get('success'):
+        try:
+            from observability.alerts import report_critical_incident
+            report_critical_incident(
+                name="File Open Failure",
+                message=f"Document ID '{doc_id}' not found in viewer",
+                route=request.path,
+                cause=f"Database lookup failed or record missing: {doc_res.get('message', 'Document not found')}",
+                account={"uid": current_uid, "email": session.get('user', {}).get('email')},
+                feature="file_open",
+                metadata={"doc_id": doc_id, "user_id": current_uid}
+            )
+        except Exception:
+            pass
         abort(404)
     document = doc_res.get('data', {})
 
@@ -2761,6 +2774,19 @@ def view_doc(doc_id, filename=None):
             msg = json.dumps({"error": "Document not available", "detail": f"No content found for document {doc_id}"})
             return Response(msg, status=404, content_type='application/json', headers=_secure_file_headers())
         if not upstream.ok:
+            try:
+                from observability.alerts import report_critical_incident
+                report_critical_incident(
+                    name="File Open Storage Failure",
+                    message=f"Storage returned HTTP {upstream.status_code} for document '{doc_id}'",
+                    route=request.path,
+                    cause=f"Upstream storage returned HTTP {upstream.status_code} for URL: {str(file_url)[:120]}",
+                    account={"uid": current_uid, "email": session.get('user', {}).get('email')},
+                    feature="file_open",
+                    metadata={"doc_id": doc_id, "status_code": upstream.status_code, "file_url": str(file_url)[:120]}
+                )
+            except Exception:
+                pass
             abort(upstream.status_code if upstream.status_code in (403, 404) else 502)
 
         if is_image_preview:

@@ -665,9 +665,9 @@
       <div class="form-group">
         <label>Adjustment Type</label>
         <select id="adjType" required>
-          <option value="penalty">⚠️ Penalty (Deduct from withdrawable balance)</option>
-          <option value="charge">💸 Platform Charge (Deduct from withdrawable balance)</option>
-          <option value="credit">🎁 Admin Credit / Bonus (Add to withdrawable balance)</option>
+          <option value="penalty">[Penalty] Deduct from withdrawable balance</option>
+          <option value="charge">[Platform Charge] Deduct from withdrawable balance</option>
+          <option value="credit">[Admin Credit] Bonus (Add to withdrawable balance)</option>
         </select>
       </div>
       <div class="form-group">
@@ -1084,9 +1084,9 @@
 
         let statusBadge = '<span style="color:#d97706; font-weight:700;">Pending Review</span>';
         if (k.is_verified) {
-          statusBadge = '<span style="color:#16a34a; font-weight:700;">✓ Verified</span>';
+          statusBadge = '<span style="color:#16a34a; font-weight:700;">Verified</span>';
         } else if (k.rejection_reason) {
-          statusBadge = `<span style="color:#dc2626; font-weight:700;" title="${k.rejection_reason}">✕ Rejected</span>`;
+          statusBadge = `<span style="color:#dc2626; font-weight:700;" title="${k.rejection_reason}">Rejected</span>`;
         }
 
         const dateStr = k.submitted_at ? new Date(k.submitted_at).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : 'N/A';

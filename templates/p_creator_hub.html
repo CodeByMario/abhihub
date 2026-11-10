@@ -1,642 +1,983 @@
 {% extends 'p_struct.html' %}
-{% block title %}Creator Hub • AbhiHub{% endblock %}
+{% block title %}Creator Studio • Earnings & Monetization • AbhiHub{% endblock %}
 
 {% block content %}
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <style>
   :root {
-    --apple-bg: #f5f5f7;
-    --apple-surface: #ffffff;
-    --apple-surface-sub: #fbfbfd;
-    --apple-text: #1d1d1f;
-    --apple-text-secondary: #6e6e73;
-    --apple-text-muted: #86868b;
-    --apple-blue: #0071e3;
-    --apple-blue-hover: #0077ed;
-    --apple-blue-subtle: rgba(0, 113, 227, 0.08);
-    --apple-border: rgba(0, 0, 0, 0.08);
-    --radius-pill: 980px;
-    --radius-card: 18px;
+    --ch-font: 'Inter', system-ui, -apple-system, sans-serif;
+    --ch-bg: #F5F6F9;
+    --ch-card-bg: #FFFFFF;
+    --ch-card-border: #E3E6EC;
+    --ch-row-border: #EEF0F4;
+    --ch-text-main: #14181F;
+    --ch-text-muted: #566070;
+    --ch-primary: #2F4BC0;
+    --ch-primary-hover: #1B2F86;
+    --ch-ok-bg: #E3F4EB;
+    --ch-ok-text: #14633D;
+    --ch-wait-bg: #FFF1D6;
+    --ch-wait-text: #7A4B00;
+    --ch-sch-bg: #E6ECFF;
+    --ch-sch-text: #2338A0;
+    --ch-dark-card: #14181F;
   }
 
   [data-theme="dark"] {
-    --apple-bg: #000000;
-    --apple-surface: #1c1c1e;
-    --apple-surface-sub: #2c2c2e;
-    --apple-text: #f5f5f7;
-    --apple-text-secondary: #a1a1a6;
-    --apple-text-muted: #6e6e73;
-    --apple-blue: #2997ff;
-    --apple-blue-hover: #3ca2ff;
-    --apple-blue-subtle: rgba(41, 151, 255, 0.12);
-    --apple-border: rgba(255, 255, 255, 0.12);
+    --ch-bg: #0D1117;
+    --ch-card-bg: #161B22;
+    --ch-card-border: rgba(255, 255, 255, 0.12);
+    --ch-row-border: rgba(255, 255, 255, 0.08);
+    --ch-text-main: #F0F6FC;
+    --ch-text-muted: #8B949E;
+    --ch-primary: #58A6FF;
+    --ch-primary-hover: #79C0FF;
+    --ch-ok-bg: rgba(35, 134, 54, 0.2);
+    --ch-ok-text: #3FB950;
+    --ch-wait-bg: rgba(210, 153, 34, 0.2);
+    --ch-wait-text: #E3B341;
+    --ch-sch-bg: rgba(88, 166, 255, 0.2);
+    --ch-sch-text: #58A6FF;
+    --ch-dark-card: #0D1117;
   }
 
-  .ch-container {
-    max-width: 1100px;
-    margin: 2rem auto 5rem;
-    padding: 0 1.25rem;
+  .ch-wrapper {
+    font-family: var(--ch-font);
+    color: var(--ch-text-main);
+    background: var(--ch-bg);
+    min-height: calc(100vh - 70px);
+    padding: 0 0 4rem;
   }
 
-  /* ── Apple Hero Banner ────────────────────────────── */
-  .ch-hero {
-    background: var(--apple-surface);
-    border: 1px solid var(--apple-border);
-    border-radius: var(--radius-card);
-    padding: 2.5rem 2.25rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-    margin-bottom: 2rem;
+  /* Sub Header / Local Bar */
+  .ch-subbar {
+    background: var(--ch-card-bg);
+    border-bottom: 1px solid var(--ch-card-border);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  .ch-subbar-inner {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 12px 24px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 20px;
     flex-wrap: wrap;
-    gap: 1.5rem;
-    position: relative;
-    overflow: hidden;
   }
-
-  .ch-hero-content {
-    max-width: 620px;
-  }
-
-  .ch-eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--apple-blue);
-    background: var(--apple-blue-subtle);
-    padding: 4px 12px;
-    border-radius: var(--radius-pill);
-    margin-bottom: 0.85rem;
-  }
-
-  .ch-title {
-    font-size: clamp(1.85rem, 3.2vw, 2.4rem);
+  .ch-studio-brand {
+    font-size: 18px;
     font-weight: 700;
-    letter-spacing: -0.03em;
-    color: var(--apple-text);
-    margin: 0 0 0.65rem;
-    line-height: 1.2;
+    letter-spacing: -0.3px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ch-text-main);
+    text-decoration: none;
   }
-
-  .ch-subtitle {
-    font-size: 15px;
-    color: var(--apple-text-secondary);
-    line-height: 1.55;
-    margin: 0;
+  .ch-nav-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    flex: 1;
   }
-
-  .ch-hero-actions {
+  .ch-nav-tab {
+    padding: 8px 14px;
+    border-radius: 8px;
+    color: var(--ch-text-muted);
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+  .ch-nav-tab:hover {
+    color: var(--ch-primary);
+    background: rgba(47, 75, 192, 0.06);
+  }
+  .ch-nav-tab.active {
+    background: var(--ch-sch-bg);
+    color: var(--ch-sch-text);
+    font-weight: 600;
+  }
+  .ch-header-actions {
     display: flex;
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
   }
 
-  .ch-btn-primary {
-    height: 42px;
-    padding: 0 20px;
-    border-radius: var(--radius-pill);
-    background: var(--apple-blue);
-    color: #ffffff !important;
-    font-size: 13.5px;
-    font-weight: 600;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    border: none;
-    cursor: pointer;
-    transition: all 0.18s ease;
-  }
-
-  .ch-btn-primary:hover {
-    background: var(--apple-blue-hover);
-    transform: scale(1.01);
-  }
-
-  .ch-btn-secondary {
-    height: 42px;
-    padding: 0 18px;
-    border-radius: var(--radius-pill);
-    background: var(--apple-surface-sub);
-    color: var(--apple-text) !important;
-    font-size: 13.5px;
-    font-weight: 600;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--apple-border);
-    cursor: pointer;
-    transition: all 0.18s ease;
-  }
-
-  .ch-btn-secondary:hover {
-    background: var(--apple-border);
-  }
-
-  /* ── 4 Metric Cards Grid ──────────────────────────── */
-  .ch-metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1.25rem;
-    margin-bottom: 2.25rem;
-  }
-
-  .ch-metric-card {
-    background: var(--apple-surface);
-    border: 1px solid var(--apple-border);
-    border-radius: 16px;
-    padding: 1.4rem 1.5rem;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02);
+  /* Main Container */
+  .ch-main {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 28px 24px 56px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    transition: all 0.2s ease;
+    gap: 22px;
   }
 
-  .ch-metric-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
-  }
-
-  .ch-metric-label {
-    font-size: 11.5px;
-    font-weight: 600;
-    color: var(--apple-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-
-  .ch-metric-val {
-    font-size: 1.85rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: var(--apple-text);
-    margin: 0;
-  }
-
-  .ch-metric-sub {
-    font-size: 12px;
-    color: var(--apple-text-muted);
-  }
-
-  /* ── Main Two-Column Layout ──────────────────────── */
-  .ch-main-grid {
-    display: grid;
-    grid-template-columns: 1.55fr 1fr;
-    gap: 1.5rem;
-  }
-
-  @media (max-width: 900px) {
-    .ch-main-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  .ch-panel {
-    background: var(--apple-surface);
-    border: 1px solid var(--apple-border);
-    border-radius: var(--radius-card);
-    padding: 1.6rem;
-    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.02);
-  }
-
-  .ch-panel-header {
+  /* Greeting & Header */
+  .ch-header-row {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    margin-bottom: 1.25rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--apple-border);
+    align-items: flex-end;
+    gap: 16px;
+    flex-wrap: wrap;
   }
-
-  .ch-panel-title {
-    font-size: 1.15rem;
-    font-weight: 650;
-    color: var(--apple-text);
-    letter-spacing: -0.015em;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .ch-panel-badge {
-    font-size: 11.5px;
-    font-weight: 600;
-    color: var(--apple-text-muted);
-    background: var(--apple-surface-sub);
-    padding: 2px 10px;
-    border-radius: var(--radius-pill);
-    border: 1px solid var(--apple-border);
-  }
-
-  /* ── Customer / Supporter Rows ────────────────────── */
-  .ch-customer-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .ch-customer-row {
-    background: var(--apple-surface-sub);
-    border: 1px solid var(--apple-border);
-    border-radius: 14px;
-    padding: 0.95rem 1.1rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    transition: all 0.16s ease;
-  }
-
-  .ch-customer-row:hover {
-    border-color: rgba(0, 113, 227, 0.3);
-    background: var(--apple-surface);
-  }
-
-  .ch-cust-meta {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 0;
-  }
-
-  .ch-cust-rank {
-    font-size: 12px;
+  .ch-greeting {
+    font-size: 26px;
     font-weight: 700;
-    color: var(--apple-text-muted);
-    width: 22px;
-    text-align: center;
-  }
-
-  .ch-cust-avatar {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    background: var(--apple-surface);
-    color: var(--apple-blue);
-    border: 1px solid var(--apple-border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 14px;
-    flex-shrink: 0;
-  }
-
-  .ch-cust-info {
-    min-width: 0;
-  }
-
-  .ch-cust-name {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--apple-text);
-    margin: 0 0 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .ch-cust-sub {
-    font-size: 11.5px;
-    color: var(--apple-text-secondary);
-  }
-
-  .ch-cust-spent {
-    text-align: right;
-  }
-
-  .ch-cust-amount {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--apple-text);
-  }
-
-  .ch-cust-spent-label {
-    font-size: 10.5px;
-    color: var(--apple-text-muted);
-    text-transform: uppercase;
-  }
-
-  .ch-tier-pill {
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 7px;
-    border-radius: var(--radius-pill);
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-  }
-  .tier-vip { background: rgba(245, 158, 11, 0.12); color: #d97706; }
-  .tier-superfan { background: rgba(147, 51, 234, 0.12); color: #9333ea; }
-  .tier-regular { background: var(--apple-blue-subtle); color: var(--apple-blue); }
-
-  /* ── Form & Broadcast Panel ───────────────────────── */
-  .ch-form-group {
-    margin-bottom: 1rem;
-  }
-
-  .ch-form-label {
-    display: block;
-    font-size: 12.5px;
-    font-weight: 600;
-    color: var(--apple-text);
-    margin-bottom: 0.35rem;
-  }
-
-  .ch-input,
-  .ch-textarea,
-  .ch-select {
-    width: 100%;
-    padding: 0.65rem 0.85rem;
-    border: 1px solid var(--apple-border);
-    border-radius: 10px;
-    background: var(--apple-surface-sub);
-    color: var(--apple-text);
-    font-size: 13.5px;
-    font-family: inherit;
-    outline: none;
-    transition: all 0.16s ease;
-  }
-
-  .ch-input:focus,
-  .ch-textarea:focus,
-  .ch-select:focus {
-    border-color: var(--apple-blue);
-    background: var(--apple-surface);
-    box-shadow: 0 0 0 3px var(--apple-blue-subtle);
-  }
-
-  .ch-broadcast-item {
-    background: var(--apple-surface-sub);
-    border: 1px solid var(--apple-border);
-    border-radius: 12px;
-    padding: 0.85rem 1rem;
-    margin-top: 0.85rem;
-  }
-
-  .ch-broadcast-item h5 {
+    letter-spacing: -0.5px;
     margin: 0 0 4px;
+  }
+  .ch-meta-note {
     font-size: 13.5px;
-    font-weight: 600;
-    color: var(--apple-text);
+    color: var(--ch-text-muted);
+    margin: 0;
   }
 
-  .ch-broadcast-item p {
+  /* Cards & Layout */
+  .ch-card {
+    background: var(--ch-card-bg);
+    border: 1px solid var(--ch-card-border);
+    border-radius: 14px;
+    padding: 22px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  }
+  .ch-card-title {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
     margin: 0 0 6px;
-    font-size: 12.5px;
-    color: var(--apple-text-secondary);
+    color: var(--ch-text-main);
+  }
+  .ch-card-sub {
+    font-size: 13px;
+    color: var(--ch-text-muted);
+    margin: 0 0 12px;
     line-height: 1.45;
   }
 
-  .ch-broadcast-meta {
-    font-size: 11px;
-    color: var(--apple-text-muted);
-  }
-
-  .ch-empty-box {
-    text-align: center;
-    padding: 3rem 1.5rem;
-    color: var(--apple-text-secondary);
-  }
-
-  .ch-empty-box h4 {
-    margin: 0 0 0.4rem;
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: var(--apple-text);
-  }
-
-  .ch-empty-box p {
+  .lbl {
     font-size: 13px;
-    color: var(--apple-text-secondary);
-    margin: 0 0 1.25rem;
-    max-width: 340px;
-    margin-inline: auto;
+    font-weight: 500;
+    color: var(--ch-text-muted);
+    margin: 0 0 6px;
+  }
+  .big {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin: 0;
+    color: var(--ch-text-main);
+  }
+  .note {
+    font-size: 13px;
+    color: var(--ch-text-muted);
+    margin: 6px 0 0;
+    line-height: 1.45;
+  }
+
+  /* Grid Layouts */
+  .ch-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 16px;
+  }
+  .ch-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr));
+    gap: 16px;
+  }
+
+  /* Pills */
+  .pill {
+    display: inline-block;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 99px;
+  }
+  .ok { background: var(--ch-ok-bg); color: var(--ch-ok-text); }
+  .wait { background: var(--ch-wait-bg); color: var(--ch-wait-text); }
+  .sch { background: var(--ch-sch-bg); color: var(--ch-sch-text); }
+
+  /* Breakdown Row */
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--ch-row-border);
+    font-size: 14px;
+  }
+
+  /* Buttons */
+  .btn {
+    font: 600 13.5px var(--ch-font);
+    padding: 10px 18px;
+    border-radius: 10px;
+    border: 1px solid #CBD1DB;
+    background: var(--ch-card-bg);
+    color: var(--ch-text-main);
+    cursor: pointer;
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+  .btn:hover {
+    border-color: #94A3B8;
+  }
+  .btn-primary {
+    background: var(--ch-primary);
+    color: #FFFFFF !important;
+    border-color: var(--ch-primary);
+  }
+  .btn-primary:hover {
+    background: var(--ch-primary-hover);
+    border-color: var(--ch-primary-hover);
+  }
+  .btn-sm {
+    min-height: 32px;
+    padding: 6px 12px;
+    font-size: 12.5px;
+    border-radius: 8px;
+  }
+
+  /* Tables */
+  .table-responsive {
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    min-width: 500px;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  th {
+    text-align: left;
+    font-weight: 600;
+    color: var(--ch-text-muted);
+    font-size: 13px;
+    white-space: nowrap;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--ch-card-border);
+  }
+  td {
+    padding: 12px;
+    border-bottom: 1px solid var(--ch-row-border);
+    vertical-align: middle;
+  }
+  .r { text-align: right; }
+  .c { text-align: center; }
+
+  /* Monetize & Grouping Accordions / Cards */
+  .group-header {
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-weight: 600;
+    font-size: 13.5px;
+    margin-top: 14px;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  [data-theme="dark"] .group-header {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .price-input-wrap {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--ch-card-border);
+    border-radius: 8px;
+    padding: 3px 8px;
+    background: var(--ch-card-bg);
+  }
+  .price-input {
+    width: 65px;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--ch-text-main);
+    font-size: 13px;
+    font-weight: 600;
+    text-align: right;
+  }
+
+  /* Switch */
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 36px;
+    height: 20px;
+    vertical-align: middle;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #CBD5E1;
+    transition: .2s;
+    border-radius: 20px;
+  }
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .2s;
+    border-radius: 50%;
+  }
+  input:checked + .slider {
+    background-color: #2F4BC0;
+  }
+  input:checked + .slider:before {
+    transform: translateX(16px);
+  }
+
+  /* Help Dark Card */
+  .ch-dark-banner {
+    background: var(--ch-dark-card);
+    color: #FFFFFF;
+    border: 1px solid #2D3748;
+    border-radius: 14px;
+    padding: 26px;
+  }
+  .ch-dark-banner a {
+    color: #B9C6FF;
+    text-decoration: none;
+  }
+  .ch-dark-banner a:hover {
+    text-decoration: underline;
+  }
+
+  /* Pagination */
+  .pagination-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 0 4px;
+    margin-top: 10px;
+    border-top: 1px solid var(--ch-row-border);
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--ch-text-muted);
+  }
+  .pagination-btns {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .page-btn {
+    padding: 5px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--ch-card-border);
+    background: var(--ch-card-bg);
+    color: var(--ch-text-main);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .page-btn:hover:not(.disabled) {
+    border-color: var(--ch-primary);
+    color: var(--ch-primary);
+  }
+  .page-btn.active {
+    background: var(--ch-primary);
+    color: #FFFFFF !important;
+    border-color: var(--ch-primary);
+    font-weight: 600;
+  }
+  .page-btn.disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  /* Toast Notification */
+  #chToast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #14181F;
+    color: #FFFFFF;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-weight: 500;
+    display: none;
+    z-index: 9999;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   }
 </style>
 
-<div class="ch-container">
-  <!-- Top Apple Hero Banner -->
-  <div class="ch-hero">
-    <div class="ch-hero-content">
-      <span class="ch-eyebrow">Creator Network{% if stats.total_uploads %} &bull; {{ stats.total_uploads }} Material{{ 's' if stats.total_uploads != 1 else '' }} Published{% endif %}</span>
-      <h1 class="ch-title">Monetize your study library.</h1>
-      <p class="ch-subtitle">
-        Share handwritten notes, verified lab reports, and PYQ solutions. Keep <strong>90% of royalties</strong> with direct account payouts in T+9 days.
-        {% if channel and channel.handle %}
-        <br><span style="display: inline-block; margin-top: 6px; font-size: 13.5px; color: var(--apple-blue); font-weight: 550;">Live Channel: @{{ channel.handle }}</span>
-        {% endif %}
-      </p>
-    </div>
-    <div class="ch-hero-actions">
-      {% if channel and channel.handle %}
-      <a href="{{ url_for('channels.public_channel_view', handle=channel.handle) }}" target="_blank" class="ch-btn-secondary">
-        View Live Channel &nearr;
+<div class="ch-wrapper">
+  <!-- Sub Header Nav (Inspired by Reference Design) -->
+  <header class="ch-subbar">
+    <div class="ch-subbar-inner">
+      <a href="{{ url_for('channels.creator_hub') }}" class="ch-studio-brand">
+        <i class="fa-solid fa-chart-line" style="color: var(--ch-primary);"></i>
+        Creator Studio
       </a>
-      {% endif %}
-      <a href="{{ url_for('channels.channel_studio') }}" class="ch-btn-secondary">Channel Studio</a>
-      <a href="{{ url_for('app_pages.upload') }}" class="ch-btn-primary">+ Upload New Material &rarr;</a>
-    </div>
-  </div>
-
-  <!-- 4 Metric Highlight Cards -->
-  <div class="ch-metrics-grid">
-    <div class="ch-metric-card">
-      <div class="ch-metric-label">Total Student Readers</div>
-      <div class="ch-metric-val">{{ stats.total_customers or 0 }}</div>
-      <div class="ch-metric-sub">Unique buyers &amp; unlocks</div>
-    </div>
-    <div class="ch-metric-card">
-      <div class="ch-metric-label">Total Royalties Earned</div>
-      <div class="ch-metric-val">₹{{ '%.2f'|format(stats.total_revenue|float) if stats.total_revenue is defined else '0.00' }}</div>
-      <div class="ch-metric-sub">
-        {% if stats.withdrawable_balance and stats.withdrawable_balance > 0 %}
-          ₹{{ '%.2f'|format(stats.withdrawable_balance|float) }} withdrawable
-        {% elif stats.pending_balance and stats.pending_balance > 0 %}
-          ₹{{ '%.2f'|format(stats.pending_balance|float) }} pending clearance
-        {% else %}
-          Direct peer payouts in T+9d
+      <nav class="ch-nav-tabs">
+        <a href="#overview" class="ch-nav-tab active">Overview</a>
+        <a href="#sales" class="ch-nav-tab">Sales &amp; Monetization</a>
+        <a href="#payouts" class="ch-nav-tab">Payouts</a>
+        <a href="#customers" class="ch-nav-tab">Supporters</a>
+        <a href="#help" class="ch-nav-tab">Help</a>
+      </nav>
+      <div class="ch-header-actions">
+        {% if channel and channel.handle %}
+        <a href="{{ url_for('channels.public_channel_view', handle=channel.handle) }}" target="_blank" class="btn btn-sm">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i> Live Channel
+        </a>
         {% endif %}
+        <a href="{{ url_for('channels.channel_studio') }}" class="btn btn-sm">
+          <i class="fa-solid fa-sliders"></i> Channel Settings
+        </a>
+        <a href="{{ url_for('app_pages.upload') }}" class="btn btn-primary btn-sm">
+          <i class="fa-solid fa-cloud-arrow-up"></i> Upload Material
+        </a>
       </div>
     </div>
-    <div class="ch-metric-card">
-      <div class="ch-metric-label">VIP Supporters</div>
-      <div class="ch-metric-val">{{ stats.vip_count or 0 }}</div>
-      <div class="ch-metric-sub">High-engagement students</div>
-    </div>
-    <div class="ch-metric-card">
-      <div class="ch-metric-label">Repeat Buyer Rate</div>
-      <div class="ch-metric-val">{{ stats.repeat_rate or 0 }}%</div>
-      <div class="ch-metric-sub">Classmates buying 2+ packs</div>
-    </div>
-  </div>
+  </header>
 
-  <!-- Main Grid: Top Customers & Community Broadcasts -->
-  <div class="ch-main-grid">
-    <!-- Left Column: Top Customers -->
-    <div class="ch-panel">
-      <div class="ch-panel-header">
-        <h2 class="ch-panel-title">Top Student Supporters</h2>
-        <span class="ch-panel-badge">Ranked by Engagement</span>
+  <!-- Main Content Space -->
+  <main class="ch-main">
+    <!-- Greeting & Period -->
+    <div class="ch-header-row" id="overview">
+      <div>
+        <h1 class="ch-greeting">Hi {{ user.name or 'Creator' }}, here is your money</h1>
+        <p class="ch-meta-note">
+          Period: Last 30 Days &bull; All amounts in INR (₹) &bull; Sole Income Source: 100% File Sales (No ads / view incentives)
+        </p>
+      </div>
+      <div>
+        <span class="pill ok">
+          <i class="fa-solid fa-bolt"></i> Real-time Sync Active
+        </span>
+      </div>
+    </div>
+
+    <!-- 4 Primary KPI Cards -->
+    <section class="ch-grid-4" aria-label="Key numbers">
+      <div class="ch-card">
+        <p class="lbl">Gross sales</p>
+        <p class="big">₹{{ '%.2f'|format(gross_sales) }}</p>
+        <p class="note">{{ total_sales_count }} sales before platform fees &amp; taxes</p>
+      </div>
+      <div class="ch-card">
+        <p class="lbl">Net earnings</p>
+        <p class="big">₹{{ '%.2f'|format(net_earnings) }}</p>
+        <p class="note">Your 90% royalty share after platform fees</p>
+      </div>
+      <div class="ch-card">
+        <p class="lbl">Available to pay out</p>
+        <p class="big" style="color: #14633D;">₹{{ '%.2f'|format(withdrawable) }}</p>
+        <p class="note">Cleared and ready for transfer</p>
+      </div>
+      <div class="ch-card">
+        <p class="lbl">Pending (T+9 day hold)</p>
+        <p class="big" style="color: #7A4B00;">₹{{ '%.2f'|format(pending) }}</p>
+        <p class="note">Released as 9-day verification window clears</p>
+      </div>
+    </section>
+
+    <!-- Two Column Grid: Next Payout & Calculation Breakdown -->
+    <section class="ch-grid-2" id="payouts">
+      <!-- Your Next Payout Card -->
+      <div class="ch-card">
+        <h2 class="ch-card-title">Your next payout</h2>
+        <p class="big" style="margin-top: 8px;">
+          ₹{{ '%.2f'|format(withdrawable if withdrawable > 0 else pending) }}
+        </p>
+        <p class="note" style="font-size: 14px; margin-top: 6px;">
+          Arrives <strong>{{ next_payout_date }}</strong> via <strong>{{ destination_display }}</strong>
+        </p>
+
+        <!-- 4-Step Lifecycle Tracker -->
+        <ol style="list-style: none; margin: 20px 0 16px; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px; font-size: 13.5px;">
+          <li>
+            <span class="pill ok"><i class="fa-solid fa-check"></i> Done</span><br>
+            <span style="font-weight: 500; font-size: 13px; display: inline-block; margin-top: 4px;">Sale made</span>
+          </li>
+          <li>
+            {% if withdrawable > 0 %}
+              <span class="pill ok"><i class="fa-solid fa-check"></i> Cleared</span>
+            {% else %}
+              <span class="pill wait"><i class="fa-solid fa-clock"></i> In Escrow</span>
+            {% endif %}<br>
+            <span style="font-weight: 500; font-size: 13px; display: inline-block; margin-top: 4px;">T+9 hold cleared</span>
+          </li>
+          <li>
+            <span class="pill sch"><i class="fa-solid fa-calendar-check"></i> Scheduled</span><br>
+            <span style="font-weight: 500; font-size: 13px; display: inline-block; margin-top: 4px;">Cycle: {{ next_payout_date[:6] }}</span>
+          </li>
+          <li>
+            <span class="pill wait"><i class="fa-solid fa-building-columns"></i> Next</span><br>
+            <span style="font-weight: 500; font-size: 13px; display: inline-block; margin-top: 4px;">In your bank/UPI</span>
+          </li>
+        </ol>
+
+        <p class="note" style="margin-bottom: 14px;">
+          UPI &amp; IMPS transfers settle directly into your account on scheduled payout cycles.
+          <a href="#help" style="color: var(--ch-primary);">Why is my payout pending?</a>
+        </p>
+
+        {% if withdrawable >= 5 %}
+        <button class="btn btn-primary btn-sm" onclick="triggerPayoutRequest({{ withdrawable }})">
+          <i class="fa-solid fa-money-bill-transfer"></i> Request Instant Payout (₹{{ '%.2f'|format(withdrawable) }})
+        </button>
+        {% else %}
+        <span style="font-size: 12.5px; color: var(--ch-text-muted);">
+          <i class="fa-solid fa-circle-info"></i> Minimum payout threshold is ₹5.00 for initial withdrawal.
+        </span>
+        {% endif %}
+      </div>
+
+      <!-- How Your Earnings are Calculated Card -->
+      <div class="ch-card">
+        <h2 class="ch-card-title">How your earnings are calculated</h2>
+        <p class="ch-card-sub">Every rupee, from student payment to your account</p>
+
+        <div class="row">
+          <span>Gross sales</span>
+          <strong>₹{{ '%.2f'|format(gross_sales) }}</strong>
+        </div>
+        <div class="row">
+          <span>Platform fee (10% Creator Promotion)</span>
+          <strong style="color: #b91c1c;">&minus; ₹{{ '%.2f'|format(platform_fee) }}</strong>
+        </div>
+        <div class="row">
+          <span>TDS withheld (1% u/s 194-O)</span>
+          <strong style="color: #b91c1c;">&minus; ₹{{ '%.2f'|format(tds_tax) }}</strong>
+        </div>
+        <div class="row">
+          <span>Payment processing &amp; hosting</span>
+          <strong style="color: #14633D;">₹0.00 (Covered by AbhiHub)</strong>
+        </div>
+        <div class="row" style="border: 0; font-size: 16px; padding-top: 14px;">
+          <strong>Net earnings (90% Royalties)</strong>
+          <strong style="color: var(--ch-primary); font-size: 18px;">₹{{ '%.2f'|format(net_earnings) }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- Monetize & Group Files (Sales by Product) -->
+    <section class="ch-card" id="sales">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 12px;">
+        <div>
+          <h2 class="ch-card-title">Sales by Document &amp; Subject Grouping</h2>
+          <p class="ch-card-sub">
+            Organize your materials by subject or course, set individual prices (₹), and toggle free vs paid monetization.
+          </p>
+        </div>
+        <a href="{{ url_for('app_pages.upload') }}" class="btn btn-sm btn-primary">
+          <i class="fa-solid fa-plus"></i> Upload New Material
+        </a>
+      </div>
+
+      {% if grouped_products %}
+        {% for group_name, group_items in grouped_products.items() %}
+        <div class="group-header">
+          <span><i class="fa-solid fa-folder-open" style="color: var(--ch-primary); margin-right: 6px;"></i> <strong>{{ group_name }}</strong> ({{ group_items|length }} file{{ 's' if group_items|length != 1 else '' }})</span>
+          <span style="font-size: 12.5px; color: var(--ch-text-muted);">
+            Group Total Sales: ₹{{ '%.2f'|format(group_items|sum(attribute='gross_revenue')) }}
+          </span>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th style="min-width: 240px;">Material / Document</th>
+                <th>Category</th>
+                <th class="c">Access</th>
+                <th>Price (₹)</th>
+                <th class="r">Sales</th>
+                <th class="r">Gross Revenue</th>
+                <th class="r">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in group_items %}
+              <tr id="doc-row-{{ p.id }}">
+                <td>
+                  <strong style="color: var(--ch-text-main);">{{ p.group or p.title }}</strong>
+                  <div style="font-size: 11.5px; color: var(--ch-text-muted);">Added {{ p.created_at }} &bull; {{ p.views }} views</div>
+                </td>
+                <td>
+                  <span class="pill sch" style="font-size: 11px;">{{ p.category }}</span>
+                </td>
+                <td class="c">
+                  <label class="switch">
+                    <input type="checkbox" id="toggle-{{ p.id }}" {% if p.is_paid %}checked{% endif %} onchange="handlePaidToggle('{{ p.id }}')">
+                    <span class="slider"></span>
+                  </label>
+                  <div id="status-label-{{ p.id }}" style="font-size: 11px; margin-top: 3px; font-weight: 600; color: {% if p.is_paid %}#7A4B00{% else %}#14633D{% endif %};">
+                    {{ 'Paid' if p.is_paid else 'Free' }}
+                  </div>
+                </td>
+                <td>
+                  <div class="price-input-wrap">
+                    <span style="font-size: 13px; font-weight: 600; color: var(--ch-text-muted); margin-right: 2px;">₹</span>
+                    <input type="number" min="0" max="999" step="1" id="price-{{ p.id }}" class="price-input" value="{{ '%.0f'|format(p.price) if p.price else '19' }}" {% if not p.is_paid %}disabled style="opacity: 0.5;"{% endif %}>
+                  </div>
+                </td>
+                <td class="r" style="font-weight: 600;">
+                  {{ p.sales_count }}
+                </td>
+                <td class="r" style="font-weight: 700; color: var(--ch-text-main);">
+                  ₹{{ '%.2f'|format(p.gross_revenue) }}
+                </td>
+                <td class="r">
+                  <button class="btn btn-sm" onclick="saveMonetization('{{ p.id }}')" id="save-btn-{{ p.id }}" style="padding: 4px 10px; font-size: 12px;">
+                    Save
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endfor %}
+
+      {% if total_product_pages and total_product_pages > 1 %}
+      <div class="pagination-bar">
+        <span>Showing Page {{ p_page }} of {{ total_product_pages }} ({{ all_products_count }} total files)</span>
+        <div class="pagination-btns">
+          <a href="?p_page={{ p_page - 1 }}&c_page={{ c_page }}#sales" class="page-btn {% if p_page <= 1 %}disabled{% endif %}">
+            &larr; Prev
+          </a>
+          {% for pg in range(1, total_product_pages + 1) %}
+            {% if pg == p_page or (pg >= p_page - 2 and pg <= p_page + 2) %}
+              <a href="?p_page={{ pg }}&c_page={{ c_page }}#sales" class="page-btn {% if pg == p_page %}active{% endif %}">
+                {{ pg }}
+              </a>
+            {% endif %}
+          {% endfor %}
+          <a href="?p_page={{ p_page + 1 }}&c_page={{ c_page }}#sales" class="page-btn {% if p_page >= total_product_pages %}disabled{% endif %}">
+            Next &rarr;
+          </a>
+        </div>
+      </div>
+      {% endif %}
+      {% else %}
+        <div style="text-align: center; padding: 40px 20px; color: var(--ch-text-muted);">
+          <i class="fa-solid fa-file-invoice" style="font-size: 32px; color: #CBD5E1; margin-bottom: 12px; display: block;"></i>
+          <p style="margin: 0 0 12px; font-size: 14px;">You haven't uploaded any study materials yet.</p>
+          <a href="{{ url_for('app_pages.upload') }}" class="btn btn-primary btn-sm">Upload Your First Note</a>
+        </div>
+      {% endif %}
+    </section>
+
+    <!-- Student Customer Supporters (Strict Privacy - Customer Name ONLY) -->
+    <section class="ch-card" id="customers">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 12px;">
+        <div>
+          <h2 class="ch-card-title">Student Supporters</h2>
+          <p class="ch-card-sub">
+            Classmates and students who purchased your materials (Privacy Protected: Name only, zero contact info).
+          </p>
+        </div>
+        <span class="pill ok">
+          <i class="fa-solid fa-shield-halved"></i> Zero Contact PII Shared
+        </span>
       </div>
 
       {% if customers %}
-      <div class="ch-customer-list">
-        {% for c in customers %}
-        <div class="ch-customer-row">
-          <div class="ch-cust-meta">
-            <span class="ch-cust-rank">#{{ loop.index }}</span>
-            <div class="ch-cust-avatar">{{ c.name[:1]|upper if c.name else 'S' }}</div>
-            <div class="ch-cust-info">
-              <div class="ch-cust-name">
-                {{ c.name }}
-                <span class="ch-tier-pill tier-{{ c.vip_tier }}">{{ c.vip_tier }}</span>
-              </div>
-              <div class="ch-cust-sub">
-                {{ c.total_notes }} note{{ 's' if c.total_notes != 1 else '' }} unlocked &bull; Active {{ c.last_active }}
-              </div>
-            </div>
-          </div>
-          <div class="ch-cust-spent">
-            <div class="ch-cust-amount">₹{{ c.total_spent }}</div>
-            <div class="ch-cust-spent-label">Contributed</div>
-          </div>
-        </div>
-        {% endfor %}
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 48px;" class="c">#</th>
+              <th>Student Name</th>
+              <th>Tier</th>
+              <th class="c">Materials Unlocked</th>
+              <th class="r">Total Contributed</th>
+              <th class="r">Last Active</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in customers %}
+            <tr>
+              <td class="c" style="font-weight: 700; color: var(--ch-text-muted);">
+                {{ loop.index }}
+              </td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--ch-sch-bg); color: var(--ch-primary); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px;">
+                    {{ c.name[:1]|upper if c.name else 'S' }}
+                  </div>
+                  <div>
+                    <!-- STRICT PRIVACY: Customer Name ONLY -->
+                    <strong style="color: var(--ch-text-main); font-size: 14px;">{{ c.name }}</strong>
+                  </div>
+                </div>
+              </td>
+              <td>
+                {% if c.vip_tier == 'superfan' %}
+                  <span class="pill" style="background: rgba(147, 51, 234, 0.12); color: #9333ea;">Superfan</span>
+                {% elif c.vip_tier == 'vip' %}
+                  <span class="pill wait">VIP</span>
+                {% else %}
+                  <span class="pill sch">Supporter</span>
+                {% endif %}
+              </td>
+              <td class="c" style="font-weight: 600;">
+                {{ c.total_notes }} note{{ 's' if c.total_notes != 1 else '' }}
+              </td>
+              <td class="r" style="font-weight: 700; color: var(--ch-text-main);">
+                ₹{{ '%.2f'|format(c.total_spent) }}
+              </td>
+              <td class="r" style="font-size: 12.5px; color: var(--ch-text-muted);">
+                {{ c.last_active or 'Recently' }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
-      {% else %}
-      <div class="ch-empty-box">
-        <h4>No Customer Unlocks Yet</h4>
-        <p>When classmates purchase your paid notes or tip your solutions, their support will appear here.</p>
-        <a href="{{ url_for('app_pages.upload') }}" class="ch-btn-primary" style="display: inline-flex; height: 38px;">
-          Publish Your First Note &rarr;
-        </a>
+
+      {% if total_customer_pages and total_customer_pages > 1 %}
+      <div class="pagination-bar">
+        <span>Showing Page {{ c_page }} of {{ total_customer_pages }} ({{ total_customers_count }} supporters)</span>
+        <div class="pagination-btns">
+          <a href="?c_page={{ c_page - 1 }}&p_page={{ p_page }}#customers" class="page-btn {% if c_page <= 1 %}disabled{% endif %}">
+            &larr; Prev
+          </a>
+          {% for cg in range(1, total_customer_pages + 1) %}
+            {% if cg == c_page or (cg >= c_page - 2 and cg <= c_page + 2) %}
+              <a href="?c_page={{ cg }}&p_page={{ p_page }}#customers" class="page-btn {% if cg == c_page %}active{% endif %}">
+                {{ cg }}
+              </a>
+            {% endif %}
+          {% endfor %}
+          <a href="?c_page={{ c_page + 1 }}&p_page={{ p_page }}#customers" class="page-btn {% if c_page >= total_customer_pages %}disabled{% endif %}">
+            Next &rarr;
+          </a>
+        </div>
       </div>
       {% endif %}
-    </div>
-
-    <!-- Right Column: Community Broadcast -->
-    <div class="ch-panel">
-      <div class="ch-panel-header">
-        <h2 class="ch-panel-title">Community Broadcast</h2>
-        <span class="ch-panel-badge">Direct Reach</span>
+      {% else %}
+      <div style="text-align: center; padding: 40px 20px; color: var(--ch-text-muted);">
+        <i class="fa-solid fa-users" style="font-size: 32px; color: #CBD5E1; margin-bottom: 12px; display: block;"></i>
+        <p style="margin: 0; font-size: 14px;">When classmates purchase your paid notes, their names will appear here.</p>
       </div>
-      <p style="font-size: 13px; color: var(--apple-text-secondary); margin: 0 0 1.25rem; line-height: 1.5;">
-        Share exam updates, Telegram study group links, or newly uploaded formulas directly with your readers.
-      </p>
+      {% endif %}
+    </section>
 
-      <form id="broadcastForm">
-        <div id="bcAlert" style="display: none; padding: 10px 14px; border-radius: 12px; margin-bottom: 1rem; font-size: 13px; font-weight: 550;"></div>
-        <div class="ch-form-group">
-          <label class="ch-form-label">Announcement Title</label>
-          <input type="text" name="title" id="bcTitle" class="ch-input" placeholder="e.g. Unit 3 PYQs with solved answers uploaded!" required />
-        </div>
-        <div class="ch-form-group">
-          <label class="ch-form-label">Message</label>
-          <textarea name="message" id="bcMessage" class="ch-textarea" rows="3" placeholder="Share quick exam tips, new note links, or answer keys..." required></textarea>
-        </div>
-        <div class="ch-form-group">
-          <label class="ch-form-label">Community / Channel Link (Optional)</label>
-          <input type="url" name="channel_url" id="bcChannel" class="ch-input" placeholder="https://t.me/your_study_channel" />
-        </div>
-        <div class="ch-form-group">
-          <label class="ch-form-label">Audience Target</label>
-          <select name="target_tier" id="bcTarget" class="ch-select">
-            <option value="all">All Note Buyers</option>
-            <option value="vip">VIP Supporters Only</option>
-            <option value="superfan">Superfans Only</option>
-          </select>
-        </div>
-        <button type="submit" class="ch-btn-primary" id="btnBroadcast" style="width: 100%;">
-          Publish Broadcast &rarr;
-        </button>
-      </form>
+    <!-- Payout History Table -->
+    <section class="ch-card">
+      <h2 class="ch-card-title">Payout history</h2>
+      <p class="ch-card-sub">Record of completed and pending transfers to your bank account or UPI ID</p>
 
-      <!-- Broadcast History -->
-      <div style="margin-top: 1.75rem;">
-        <h3 style="font-size: 13.5px; font-weight: 650; color: var(--apple-text); margin: 0 0 0.75rem;">Recent Announcements</h3>
-        {% if broadcasts %}
-          {% for b in broadcasts %}
-          <div class="ch-broadcast-item">
-            <h5>{{ b.title }}</h5>
-            <p>{{ b.message }}</p>
-            {% if b.channel_url %}
-            <a href="{{ b.channel_url }}" target="_blank" style="font-size: 12px; color: var(--apple-blue); font-weight: 600; text-decoration: none; display: inline-block; margin-bottom: 4px;">Join Community Link &rarr;</a>
-            <br/>
+      {% if payouts %}
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Method &amp; Destination</th>
+              <th>Status</th>
+              <th class="r">Amount</th>
+              <th class="r">Transaction / UTR</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for po in payouts %}
+            <tr>
+              <td>{{ (po.created_at or '')[:10] }}</td>
+              <td>
+                <strong>{{ po.payout_method|upper if po.payout_method else 'BANK' }}</strong>
+                &bull; {{ po.account_number_masked or po.upi_id or 'Account' }}
+              </td>
+              <td>
+                {% if po.status == 'completed' %}
+                  <span class="pill ok"><i class="fa-solid fa-check"></i> Paid</span>
+                {% elif po.status == 'scheduled' %}
+                  <span class="pill sch"><i class="fa-solid fa-clock"></i> Scheduled</span>
+                {% elif po.status == 'rejected' %}
+                  <span class="pill" style="background: rgba(220, 38, 38, 0.12); color: #dc2626;">Rejected</span>
+                {% else %}
+                  <span class="pill wait"><i class="fa-solid fa-hourglass-half"></i> Processing</span>
+                {% endif %}
+              </td>
+              <td class="r" style="font-weight: 700;">₹{{ '%.2f'|format(po.amount|float) }}</td>
+              <td class="r" style="font-size: 12.5px; color: var(--ch-text-muted);">
+                {{ po.transaction_ref or '&ndash;' }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if total_customer_pages and total_customer_pages > 1 %}
+      <div class="pagination-bar">
+        <span>Showing Page {{ c_page }} of {{ total_customer_pages }} ({{ total_customers_count }} supporters)</span>
+        <div class="pagination-btns">
+          <a href="?c_page={{ c_page - 1 }}&p_page={{ p_page }}#customers" class="page-btn {% if c_page <= 1 %}disabled{% endif %}">
+            &larr; Prev
+          </a>
+          {% for cg in range(1, total_customer_pages + 1) %}
+            {% if cg == c_page or (cg >= c_page - 2 and cg <= c_page + 2) %}
+              <a href="?c_page={{ cg }}&p_page={{ p_page }}#customers" class="page-btn {% if cg == c_page %}active{% endif %}">
+                {{ cg }}
+              </a>
             {% endif %}
-            <div class="ch-broadcast-meta">{{ b.created_at[:10] }} &bull; Target: {{ b.target_tier|upper }}</div>
-          </div>
           {% endfor %}
-        {% else %}
-          <div style="font-size: 12px; color: var(--apple-text-muted); padding: 1rem 0; text-align: center;">No broadcasts sent yet.</div>
-        {% endif %}
+          <a href="?c_page={{ c_page + 1 }}&p_page={{ p_page }}#customers" class="page-btn {% if c_page >= total_customer_pages %}disabled{% endif %}">
+            Next &rarr;
+          </a>
+        </div>
       </div>
-    </div>
-  </div>
+      {% endif %}
+      {% else %}
+      <div style="text-align: center; padding: 36px 20px; color: var(--ch-text-muted);">
+        <i class="fa-solid fa-receipt" style="font-size: 28px; color: #CBD5E1; margin-bottom: 10px; display: block;"></i>
+        <p style="margin: 0; font-size: 14px;">No payouts processed yet. Once your sales clear the T+9 hold, scheduled transfers will be listed here.</p>
+      </div>
+      {% endif %}
+    </section>
+
+    <!-- Help & FAQ Section (Matching Main.dc.html) -->
+    <section class="ch-dark-banner" id="help">
+      <div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+        <div style="max-width: 580px;">
+          <h2 style="font-size: 20px; font-weight: 700; margin: 0 0 8px;">Need help? We are here.</h2>
+          <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #D3D8E0;">
+            Questions about a payout, fee calculations, or verification? Send us a message or review the creator guide. Typical creator support reply time is under 4 hours.
+          </p>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <a href="mailto:support@abhihub.edu.eu.org?subject=Creator%20Support%20Inquiry" class="btn" style="background: #FFFFFF; color: #14181F !important; border-color: #FFFFFF;">
+            <i class="fa-solid fa-envelope"></i> Email Support
+          </a>
+          <a href="{{ url_for('channels.channel_studio') }}" class="btn" style="background: transparent; color: #FFFFFF !important; border-color: #8892A3;">
+            <i class="fa-solid fa-gear"></i> Account &amp; KYC Settings
+          </a>
+        </div>
+      </div>
+      <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.12); display: flex; gap: 12px 28px; flex-wrap: wrap; font-size: 13.5px;">
+        <a href="javascript:void(0)" onclick="alert('Why is my payout pending? AbhiHub protects students and creators through a T+9 day verification window to ensure zero disputed payments and maintain high document quality before releasing funds to your bank.')">
+          Why is my payout pending (T+9)?
+        </a>
+        <a href="javascript:void(0)" onclick="alert('How are fees calculated? Creators retain 90% of royalties under the Launch Creator program. A 10% platform fee supports high-speed CDN delivery and indexing, and 1% TDS is deposited to the Income Tax Department under your PAN.')">
+          How are fees calculated?
+        </a>
+        <a href="{{ url_for('channels.channel_studio') }}">
+          How do I change my UPI / Bank account?
+        </a>
+      </div>
+    </section>
+  </main>
 </div>
 
-<script>
-  document.getElementById('broadcastForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const btn = document.getElementById('btnBroadcast');
-    const alertBox = document.getElementById('bcAlert');
-    btn.disabled = true;
-    btn.textContent = 'Publishing...';
-    if (alertBox) alertBox.style.display = 'none';
+<!-- Toast Box -->
+<div id="chToast"></div>
 
-    const payload = {
-      title: document.getElementById('bcTitle').value.trim(),
-      message: document.getElementById('bcMessage').value.trim(),
-      channel_url: document.getElementById('bcChannel').value.trim(),
-      target_tier: document.getElementById('bcTarget').value
-    };
+<script>
+  function showToast(msg, isError = false) {
+    const t = document.getElementById('chToast');
+    if (!t) return;
+    t.textContent = msg;
+    t.style.background = isError ? '#B91C1C' : '#14181F';
+    t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 3200);
+  }
+
+  function handlePaidToggle(docId) {
+    const chk = document.getElementById(`toggle-${docId}`);
+    const priceInput = document.getElementById(`price-${docId}`);
+    const lbl = document.getElementById(`status-label-${docId}`);
+    if (chk.checked) {
+      priceInput.disabled = false;
+      priceInput.style.opacity = '1';
+      if (!priceInput.value || parseFloat(priceInput.value) <= 0) {
+        priceInput.value = '19';
+      }
+      lbl.textContent = 'Paid';
+      lbl.style.color = '#7A4B00';
+    } else {
+      priceInput.disabled = true;
+      priceInput.style.opacity = '0.5';
+      lbl.textContent = 'Free';
+      lbl.style.color = '#14633D';
+    }
+  }
+
+  async function saveMonetization(docId) {
+    const chk = document.getElementById(`toggle-${docId}`);
+    const priceInput = document.getElementById(`price-${docId}`);
+    const btn = document.getElementById(`save-btn-${docId}`);
+
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    const isPaid = chk.checked;
+    const price = isPaid ? parseFloat(priceInput.value || '19') : 0;
 
     try {
-      const res = await fetch('/api/creator/broadcast', {
+      const res = await fetch('/api/creator/product/monetize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ doc_id: docId, is_paid: isPaid, price: price })
       });
       const data = await res.json();
       if (data.success) {
-        if (alertBox) {
-          alertBox.style.display = 'block';
-          alertBox.style.background = 'rgba(52, 199, 89, 0.12)';
-          alertBox.style.color = '#15803d';
-          alertBox.style.border = '1px solid rgba(52, 199, 89, 0.25)';
-          alertBox.textContent = '✓ Broadcast published successfully!';
-        }
-        document.getElementById('broadcastForm').reset();
-        setTimeout(() => { window.location.reload(); }, 900);
+        showToast('✓ Monetization settings updated.');
+        btn.textContent = 'Saved!';
+        setTimeout(() => { btn.textContent = 'Save'; }, 1500);
       } else {
-        if (alertBox) {
-          alertBox.style.display = 'block';
-          alertBox.style.background = 'rgba(255, 59, 48, 0.12)';
-          alertBox.style.color = '#b91c1c';
-          alertBox.style.border = '1px solid rgba(255, 59, 48, 0.25)';
-          alertBox.textContent = data.error || 'Failed to publish broadcast.';
-        }
+        showToast(data.error || 'Failed to update', true);
+        btn.textContent = 'Save';
       }
-    } catch (err) {
-      if (alertBox) {
-        alertBox.style.display = 'block';
-        alertBox.style.background = 'rgba(255, 59, 48, 0.12)';
-        alertBox.style.color = '#b91c1c';
-        alertBox.style.border = '1px solid rgba(255, 59, 48, 0.25)';
-        alertBox.textContent = 'Network error publishing broadcast.';
-      }
+    } catch (e) {
+      showToast('Network error while saving.', true);
+      btn.textContent = 'Save';
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Publish Broadcast →';
     }
-  });
+  }
+
+  async function triggerPayoutRequest(amount) {
+    if (!confirm(`Confirm request for payout of ₹${amount.toFixed(2)} to your registered UPI / Bank account?`)) {
+      return;
+    }
+    try {
+      const res = await fetch('/api/creator/payout/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: amount })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('✓ Payout request submitted! Processing initiated.');
+        setTimeout(() => { window.location.reload(); }, 1200);
+      } else {
+        alert(data.error || 'Failed to submit payout request.');
+      }
+    } catch (e) {
+      alert('Network error submitting payout request.');
+    }
+  }
 </script>
 {% endblock %}

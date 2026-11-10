@@ -126,7 +126,7 @@
 {% block admin_content %}
   <div class="dash-header">
     <div>
-      <h1 class="dash-title">📊 Real-Time Admin & Sentiment Intelligence</h1>
+      <h1 class="dash-title"><i class="fa-solid fa-chart-simple" style="color:#818cf8;"></i> Real-Time Admin & Sentiment Intelligence</h1>
       <p style="color: var(--dash-muted); font-size: 0.875rem;">Live tracking of content preferences, high-engagement materials, user friction, and demand.</p>
     </div>
     <div class="dash-controls">
@@ -136,7 +136,7 @@
         <option value="30" selected>Last 30 days</option>
         <option value="90">Last 90 days</option>
       </select>
-      <button class="dash-btn dash-btn-primary" onclick="loadAllData()">🔄 Refresh Now</button>
+      <button class="dash-btn dash-btn-primary" onclick="loadAllData()"><i class="fa-solid fa-arrows-rotate"></i> Refresh Now</button>
     </div>
   </div>
   
@@ -176,14 +176,14 @@
 
   <!-- Real-Time Sentiment Analysis Section -->
   <div class="section-title">
-    <span>💡 User Sentiment: What Users Like vs. What They Avoid</span>
+    <span><i class="fa-solid fa-lightbulb" style="color:#fbbf24;"></i> User Sentiment: What Users Like vs. What They Avoid</span>
   </div>
 
   <div class="sentiment-grid">
     <!-- What Users Like (Top Liked & Bookmarked) -->
     <div class="chart-card">
       <div class="chart-title">
-        <span>💚 What Users Love (Top Liked & Bookmarked)</span>
+        <span><i class="fa-solid fa-heart" style="color:#10b981;"></i> What Users Love (Top Liked & Bookmarked)</span>
         <span class="badge badge-loved" id="topLikedBadge">0 items</span>
       </div>
       <div style="overflow-x: auto; max-height: 380px;">
@@ -208,7 +208,7 @@
     <!-- What Users Dislike / Avoid (High Bounce / 0 Likes) -->
     <div class="chart-card">
       <div class="chart-title">
-        <span>💔 What Users Dislike / Low Engagement</span>
+        <span><i class="fa-solid fa-heart-crack" style="color:#f43f5e;"></i> What Users Dislike / Low Engagement</span>
         <span class="badge badge-warn" id="underperformingBadge">0 items</span>
       </div>
       <div style="overflow-x: auto; max-height: 380px;">
@@ -236,7 +236,7 @@
     <!-- Unmet User Demand (Zero-Result Searches) -->
     <div class="chart-card">
       <div class="chart-title">
-        <span>🔍 Unmet Demand (What Students Search But Can't Find)</span>
+        <span><i class="fa-solid fa-magnifying-glass"></i> Unmet Demand (What Students Search But Can't Find)</span>
         <span class="badge badge-blue" id="unmetBadge">0 queries</span>
       </div>
       <div style="overflow-x: auto; max-height: 340px;">
@@ -258,7 +258,7 @@
     <!-- Reported Content & User Complaints -->
     <div class="chart-card">
       <div class="chart-title">
-        <span>🚩 User Reports & Quality Complaints</span>
+        <span><i class="fa-solid fa-flag" style="color:#ef4444;"></i> User Reports & Quality Complaints</span>
         <span class="badge badge-disliked" id="reportsBadge">0 reports</span>
       </div>
       <div style="overflow-x: auto; max-height: 340px;">
@@ -282,11 +282,11 @@
   <!-- Live Activity Stream & Views Chart -->
   <div class="chart-grid">
     <div class="chart-card">
-      <div class="chart-title">📈 Daily Views & Engagement Trend</div>
+      <div class="chart-title"><i class="fa-solid fa-chart-line" style="color:#38bdf8;"></i> Daily Views & Engagement Trend</div>
       <div class="chart-container"><canvas id="dailyViewsChart"></canvas></div>
     </div>
     <div class="chart-card">
-      <div class="chart-title">⚡ Live Real-Time Interaction Feed</div>
+      <div class="chart-title"><i class="fa-solid fa-bolt" style="color:#fbbf24;"></i> Live Real-Time Interaction Feed</div>
       <div style="overflow-x: auto; max-height: 260px;">
         <table class="data-table" id="liveFeedTable">
           <thead>
@@ -307,11 +307,11 @@
   <!-- Charts Row 2 -->
   <div class="chart-grid">
     <div class="chart-card">
-      <div class="chart-title">🏫 Top Colleges by Engagement</div>
+      <div class="chart-title"><i class="fa-solid fa-graduation-cap"></i> Top Colleges by Engagement</div>
       <div class="chart-container"><canvas id="collegesChart"></canvas></div>
     </div>
     <div class="chart-card">
-      <div class="chart-title">📱 Device & Platform Breakdown</div>
+      <div class="chart-title"><i class="fa-solid fa-mobile-screen"></i> Device & Platform Breakdown</div>
       <div class="chart-container"><canvas id="devicesChart"></canvas></div>
     </div>
   </div>
@@ -428,7 +428,7 @@
           <td><strong>${doc.title || 'Untitled'}</strong></td>
           <td><span class="badge badge-blue">${doc.subject || 'General'}</span></td>
           <td>${formatNumber(doc.views)}</td>
-          <td><span style="color: #34d399; font-weight: bold;">❤️ ${doc.likes}</span></td>
+          <td><span style="color: #34d399; font-weight: bold;"><i class="fa-solid fa-heart" style="color:#ec4899;"></i> ${doc.likes}</span></td>
           <td><span class="badge badge-loved">${doc.like_ratio}%</span></td>
           <td><a href="/resource/${doc.id}" target="_blank" class="action-link">View ↗</a></td>
         </tr>
@@ -445,13 +445,13 @@
           <td><strong>${doc.title || 'Untitled'}</strong></td>
           <td><span class="badge badge-blue">${doc.subject || 'General'}</span></td>
           <td>${formatNumber(doc.views)}</td>
-          <td><span style="color: #f87171;">💔 0</span></td>
+          <td><span style="color: #f87171;"><i class="fa-solid fa-heart-crack" style="color:#f43f5e;"></i> 0</span></td>
           <td><span class="badge badge-warn">${doc.status_note}</span></td>
           <td><a href="/resource/${doc.id}" target="_blank" class="action-link">Inspect ↗</a></td>
         </tr>
       `).join('');
     } else {
-      underBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--dash-muted)">No high-bounce content detected 🎉</td></tr>';
+      underBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--dash-muted)">No high-bounce content detected <i class="fa-solid fa-circle-check" style="color:#10b981;"></i></td></tr>';
     }
 
     // 3. Unmet Demand Table
@@ -465,7 +465,7 @@
         </tr>
       `).join('');
     } else {
-      unmetBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--dash-muted)">All search queries found matches 🎉</td></tr>';
+      unmetBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--dash-muted)">All search queries found matches <i class="fa-solid fa-circle-check" style="color:#10b981;"></i></td></tr>';
     }
 
     // 4. Reported Content Table
@@ -480,7 +480,7 @@
         </tr>
       `).join('');
     } else {
-      repBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--dash-muted)">Zero unresolved content reports 🎉</td></tr>';
+      repBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--dash-muted)">Zero unresolved content reports <i class="fa-solid fa-circle-check" style="color:#10b981;"></i></td></tr>';
     }
 
     // 5. Live Interaction Feed
@@ -488,7 +488,7 @@
     if (data.live_feed && data.live_feed.length) {
       feedBody.innerHTML = data.live_feed.map(f => `
         <tr>
-          <td><span class="badge badge-loved">❤️ ${f.type}</span></td>
+          <td><span class="badge badge-loved"><i class="fa-solid fa-heart" style="color:#ec4899;"></i> ${f.type}</span></td>
           <td>${f.title ? f.title.slice(0, 30) : 'Document'}</td>
           <td>${f.timestamp ? f.timestamp.slice(11, 16) : 'Just now'}</td>
         </tr>

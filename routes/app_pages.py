@@ -1132,6 +1132,11 @@ def upload():
                     prof_data = sp_res.get('data')
             except Exception:
                 pass
+        try:
+            from methods.feature_telemetry import log_feature_event
+            log_feature_event(user_id, 'upload_intent', 'page_visit', path='/upload', req=request)
+        except Exception:
+            pass
         return render_template('app/upload.html', profile_data=prof_data)
 
     import app
@@ -1323,9 +1328,23 @@ def upload():
         )
 
         if not upload_result.get('success'):
+            err_msg = upload_result.get('error', 'Unknown storage error')
+            try:
+                from observability.alerts import report_critical_incident
+                report_critical_incident(
+                    name="Upload Storage Failure",
+                    message=f"Upload failed: {original_filename} ({file_size} bytes)",
+                    route="/upload",
+                    cause=f"Cloudinary storage error: {err_msg}",
+                    account={"uid": user_id, "email": user_email, "name": user_name},
+                    feature="upload",
+                    metadata={"filename": original_filename, "size": file_size, "user_id": user_id, "error": str(err_msg)}
+                )
+            except Exception:
+                pass
             return jsonify(
                 success=False,
-                message=f"Upload failed: {upload_result.get('error', 'Unknown error')}"
+                message=f"Upload failed: {err_msg}"
             ), 500
 
         logging.info("[UPLOAD] Upload stored; saving document record")
@@ -1455,8 +1474,8 @@ def upload():
                 trigger_fn = getattr(app, '_trigger_indexnow', None)
                 if trigger_fn:
                     trigger_fn([
-                        f"https://{getattr(app, 'BASE_DOMAIN', 'abhihub.com')}/pyq",
-                        f"https://{getattr(app, 'BASE_DOMAIN', 'abhihub.com')}/resource/{d_id}" if d_id else None,
+                        f"https://{getattr(app, 'BASE_DOMAIN', 'www.abhihub.edu.eu.org')}/pyq",
+                        f"https://{getattr(app, 'BASE_DOMAIN', 'www.abhihub.edu.eu.org')}/resource/{d_id}" if d_id else None,
                     ])
             except Exception:
                 pass
@@ -1525,6 +1544,19 @@ def upload():
 
     except Exception as e:
         logging.error(f"[UPLOAD EXCEPTION] Upload error: {e}")
+        try:
+            from observability.alerts import report_critical_incident
+            report_critical_incident(
+                name="Upload Exception",
+                message=f"Critical server error during upload: {str(e)}",
+                route="/upload",
+                cause=f"Unhandled exception {type(e).__name__}: {str(e)}",
+                account={"uid": session.get('user', {}).get('uid'), "email": session.get('user', {}).get('email')},
+                feature="upload",
+                metadata={"error": str(e)}
+            )
+        except Exception:
+            pass
         return jsonify(
             success=False,
             message=f"Upload failed: {str(e)}"

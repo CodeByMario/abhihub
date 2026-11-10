@@ -127,6 +127,7 @@ def sitemap():
         {'loc': f"{base_url}/sitemap-pages.xml", 'lastmod': now_iso},
         {'loc': f"{base_url}/sitemap-colleges.xml", 'lastmod': now_iso},
         {'loc': f"{base_url}/sitemap-documents.xml", 'lastmod': now_iso},
+        {'loc': f"{base_url}/sitemap-channels.xml", 'lastmod': now_iso},
     ]
     xml_content = _build_sitemap_index_xml(sitemaps)
     response = make_response(xml_content)
@@ -263,6 +264,45 @@ def sitemap_documents():
             if lastmod:
                 entry['lastmod'] = str(lastmod)[:10]
             urls.append(entry)
+
+    xml_content = _build_urlset_xml(urls)
+    response = make_response(xml_content)
+    response.headers['Content-Type'] = 'application/xml; charset=utf-8'
+    response.headers['Cache-Control'] = 'public, max-age=3600'
+    return response
+
+
+@seo_bp.route('/sitemap-channels.xml')
+def sitemap_channels():
+    """Sitemap module for creator channels (/c/<handle>) for Google indexing."""
+    urls = []
+    seen = set()
+    base_url = f"https://{BASE_DOMAIN}"
+    now_iso = datetime.utcnow().strftime('%Y-%m-%d')
+
+    try:
+        from methods.channel_service import get_all_channel_handles
+        channels = get_all_channel_handles()
+        for ch in channels:
+            h = ch.get('handle')
+            if not h:
+                continue
+            loc = f"{base_url}/c/{h}"
+            if loc not in seen:
+                seen.add(loc)
+                lastmod = ch.get('updated_at')
+                if lastmod and isinstance(lastmod, str):
+                    lastmod = str(lastmod)[:10]
+                else:
+                    lastmod = now_iso
+                urls.append({
+                    'loc': loc,
+                    'lastmod': lastmod,
+                    'priority': '0.85',
+                    'changefreq': 'weekly'
+                })
+    except Exception as e:
+        logger.error(f"[SEO] sitemap_channels generation error: {e}")
 
     xml_content = _build_urlset_xml(urls)
     response = make_response(xml_content)

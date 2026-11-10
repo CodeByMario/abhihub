@@ -1479,15 +1479,15 @@ def get_all_files_merged(include_file_records=True, current_user_id=None) -> Dic
             'id, title, storage_provider, file_url, view_count, status, '
             'college_id, subject_id, department_id, exam_type, created_at, '
             'updated_at, bookmark_count, uploader_id, price, '
-            'profiles!documents_uploader_id_fkey(full_name, email), '
-            'subjects(name, subject_code), colleges(name, abbreviation)',
-            'id, title, storage_provider, file_url, view_count, status, '
-            'college_id, subject_id, department_id, exam_type, created_at, '
-            'updated_at, bookmark_count, uploader_id, price, '
             'subjects(name, subject_code), colleges(name, abbreviation)',
             'id, title, storage_provider, file_url, view_count, status, '
             'college_id, subject_id, department_id, exam_type, created_at, '
             'updated_at, is_bookmarked, uploader_id, price',
+            'id, title, storage_provider, file_url, view_count, status, '
+            'college_id, subject_id, department_id, exam_type, created_at, '
+            'updated_at, bookmark_count, uploader_id, price, '
+            'profiles!documents_uploader_id_fkey(full_name, email), '
+            'subjects(name, subject_code), colleges(name, abbreviation)',
         )
         res = None
         last_error = None

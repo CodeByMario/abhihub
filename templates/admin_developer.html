@@ -97,20 +97,20 @@
 <div class="dev-wrap">
   <div class="dev-header">
     <div class="dev-title">
-      🛠️ Developer <span>Panel</span>
+      <i class="fa-solid fa-wrench"></i> Developer <span>Panel</span>
       <div class="badge-admin">ADMIN ONLY</div>
     </div>
     <nav class="dev-nav">
-      <button class="tab-btn active" onclick="switchTab('cloud',this)">☁️ Cloud Usage</button>
-      <button class="tab-btn" onclick="switchTab('health',this)">🩺 Feature Health</button>
-      <button class="tab-btn" onclick="switchTab('logs',this)">📋 Logs</button>
+      <button class="tab-btn active" onclick="switchTab('cloud',this)"><i class="fa-solid fa-cloud"></i> Cloud Usage</button>
+      <button class="tab-btn" onclick="switchTab('health',this)"><i class="fa-solid fa-stethoscope"></i> Feature Health</button>
+      <button class="tab-btn" onclick="switchTab('logs',this)"><i class="fa-solid fa-clipboard-list"></i> Logs</button>
     </nav>
   </div>
 
   <!-- ═══ TAB 1: CLOUD ═══ -->
   <section id="tab-cloud" class="tab-section active">
     <div class="sec-head">
-      <div class="sec-title">☁️ Cloud Storage &amp; Bandwidth</div>
+      <div class="sec-title"><i class="fa-solid fa-cloud"></i> Cloud Storage &amp; Bandwidth</div>
       <div style="display:flex;gap:.75rem;align-items:center;">
         <label class="auto-refresh-label"><input type="checkbox" id="cloud-auto-refresh" onchange="toggleCloudAuto()"> Auto (60s)</label>
         <button class="refresh-btn" id="cloud-refresh-btn" onclick="loadCloudStats()">
@@ -121,7 +121,7 @@
     <div id="cloud-errors"></div>
     <div class="cloud-grid">
       <div class="card">
-        <div class="card-title">📦 Cloudinary — Storage</div>
+        <div class="card-title"><i class="fa-solid fa-hard-drive"></i> Cloudinary — Storage</div>
         <div class="cloud-chart-wrap"><canvas id="storageDonut"></canvas>
           <div class="chart-center-label"><div class="val" id="storageCenterVal">—</div><div class="sub">used</div></div>
         </div>
@@ -133,7 +133,7 @@
         <div class="stat-row"><span class="stat-label">Plan</span><span class="stat-val" id="cloudPlan" style="color:var(--accent)">—</span></div>
       </div>
       <div class="card">
-        <div class="card-title">📡 Cloudinary — Bandwidth</div>
+        <div class="card-title"><i class="fa-solid fa-network-wired"></i> Cloudinary — Bandwidth</div>
         <div class="cloud-chart-wrap"><canvas id="bandwidthDonut"></canvas>
           <div class="chart-center-label"><div class="val" id="bwCenterVal">—</div><div class="sub">used</div></div>
         </div>
@@ -143,7 +143,7 @@
         <div class="stat-row"><span class="stat-label">Transforms</span><span class="stat-val" id="cloudTransforms">—</span></div>
       </div>
       <div class="card">
-        <div class="card-title">⚡ Cloudinary — Credits</div>
+        <div class="card-title"><i class="fa-solid fa-bolt" style="color:#fbbf24;"></i> Cloudinary — Credits</div>
         <div class="cloud-chart-wrap"><canvas id="creditsDonut"></canvas>
           <div class="chart-center-label"><div class="val" id="creditsCenterVal">—</div><div class="sub">used</div></div>
         </div>
@@ -152,7 +152,7 @@
         <div class="stat-row"><span class="stat-label">Limit</span><span class="stat-val" id="creditsLimit">—</span></div>
       </div>
       <div class="card">
-        <div class="card-title">🗄️ Supabase — DB Size</div>
+        <div class="card-title"><i class="fa-solid fa-database"></i> Supabase — DB Size</div>
         <div class="cloud-chart-wrap"><canvas id="supabaseGauge"></canvas>
           <div class="chart-center-label"><div class="val" id="sbSize">—</div><div class="sub">DB size</div></div>
         </div>
@@ -166,7 +166,7 @@
   <!-- ═══ TAB 2: HEALTH ═══ -->
   <section id="tab-health" class="tab-section">
     <div class="sec-head">
-      <div class="sec-title">🩺 Feature Health Checks</div>
+      <div class="sec-title"><i class="fa-solid fa-stethoscope"></i> Feature Health Checks</div>
       <div style="display:flex;gap:.75rem;align-items:center;">
         <span id="health-ts" style="font-size:.75rem;color:var(--muted)"></span>
         <button class="refresh-btn" id="health-refresh-btn" onclick="loadFeatureHealth()">
@@ -183,21 +183,21 @@
   <!-- ═══ TAB 3: LOGS ═══ -->
   <section id="tab-logs" class="tab-section">
     <div class="sec-head">
-      <div class="sec-title">📋 Application Logs</div>
+      <div class="sec-title"><i class="fa-solid fa-clipboard-list"></i> Application Logs</div>
       <div style="display:flex;gap:.75rem;align-items:center;">
         <label class="auto-refresh-label"><input type="checkbox" id="log-auto-refresh" onchange="toggleLogAuto()"> Auto (30s)</label>
         <button class="refresh-btn" id="log-refresh-btn" onclick="loadLogs()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Refresh
         </button>
-        <button class="refresh-btn" onclick="copyLogs()">📋 Copy</button>
+        <button class="refresh-btn" onclick="copyLogs()"><i class="fa-solid fa-clipboard-list"></i> Copy</button>
       </div>
     </div>
     <div class="log-controls">
       <button class="log-level-btn active" onclick="setLogLevel('all',this)">All</button>
-      <button class="log-level-btn L-ERROR" onclick="setLogLevel('error',this)">❌ ERROR</button>
-      <button class="log-level-btn L-WARNING" onclick="setLogLevel('warning',this)">⚠️ WARNING</button>
+      <button class="log-level-btn L-ERROR" onclick="setLogLevel('error',this)"><i class="fa-solid fa-circle-xmark" style="color:#ef4444;"></i> ERROR</button>
+      <button class="log-level-btn L-WARNING" onclick="setLogLevel('warning',this)"><i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i> WARNING</button>
       <button class="log-level-btn L-INFO" onclick="setLogLevel('info',this)">ℹ️ INFO</button>
-      <input type="search" class="log-search" id="log-search-input" placeholder="🔍 Filter messages…" oninput="filterLogs()">
+      <input type="search" class="log-search" id="log-search-input" placeholder="<i class="fa-solid fa-magnifying-glass"></i> Filter messages…" oninput="filterLogs()">
       <select id="log-n-select" onchange="loadLogs()" style="padding:.35rem .7rem;border-radius:7px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:.8rem;">
         <option value="100">Last 100</option>
         <option value="200" selected>Last 200</option>
@@ -220,7 +220,7 @@ function pct(u,l){if(!u||!l)return 0;return Math.min(100,Math.round(u/l*100));}
 function pctColor(p){if(p>=90)return'#ef4444';if(p>=70)return'#f59e0b';return'#10b981';}
 function toast(m){const t=document.getElementById('dev-toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 function spin(id,on){const b=document.getElementById(id);if(b)on?b.classList.add('spinning'):b.classList.remove('spinning');}
-function showError(cid,msg){document.getElementById(cid).innerHTML+=`<div class="error-alert"><div class="error-alert-icon">🚨</div><div class="error-alert-msg">${msg}</div></div>`;}
+function showError(cid,msg){document.getElementById(cid).innerHTML+=`<div class="error-alert"><div class="error-alert-icon"><i class="fa-solid fa-bell text-rose-500"></i></div><div class="error-alert-msg">${msg}</div></div>`;}
 
 // ── Tabs ──────────────────────────────────────────────────────
 let _tabsLoaded={cloud:false,health:false,logs:false};
@@ -292,10 +292,10 @@ async function loadCloudStats(){
     const sbP=sbB?pct(sbB,512*1024*1024):0;
     makeGauge('supabaseGauge',sbP,pctColor(sbP));
     document.getElementById('sbSize').textContent=sbB?fmtBytes(sbB):'—';
-    document.getElementById('sbStatus').textContent=s.error?'⚠️ Error':'✅ Connected';
+    document.getElementById('sbStatus').textContent=s.error?'<i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i> Error':'<i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Connected';
     document.getElementById('sbStatus').style.color=s.error?'var(--red)':'var(--green)';
     _tabsLoaded.cloud=true;
-    toast('☁️ Cloud stats refreshed');
+    toast('<i class="fa-solid fa-cloud"></i> Cloud stats refreshed');
   }catch(e){showError('cloud-errors','Failed: '+e.message);}
   finally{spin('cloud-refresh-btn',false);}
 }
@@ -309,7 +309,7 @@ async function loadFeatureHealth(){
   spin('health-refresh-btn',true);
   document.getElementById('health-errors').innerHTML='';
   const grid=document.getElementById('features-grid');
-  grid.innerHTML=Array(10).fill(0).map(()=>`<div class="feature-card loading"><div class="feat-status-dot loading">⏳</div><div class="feat-info"><div class="feat-name" style="color:var(--muted)">Checking…</div></div></div>`).join('');
+  grid.innerHTML=Array(10).fill(0).map(()=>`<div class="feature-card loading"><div class="feat-status-dot loading"><i class="fa-solid fa-hourglass-half"></i></div><div class="feat-info"><div class="feat-name" style="color:var(--muted)">Checking…</div></div></div>`).join('');
   try{
     const r=await fetch('/api/admin/feature-health');
     const d=await r.json();
@@ -322,7 +322,7 @@ async function loadFeatureHealth(){
       const latPct=Math.min(100,Math.round(c.latency_ms/maxLat*100));
       const latColor=!ok?'var(--red)':c.latency_ms>800?'var(--yellow)':'var(--green)';
       return `<div class="feature-card ${ok?'ok':'error'}">
-        <div class="feat-status-dot ${ok?'ok':'error'}">${ok?'✅':'❌'}</div>
+        <div class="feat-status-dot ${ok?'ok':'error'}">${ok?'<i class="fa-solid fa-circle-check" style="color:#10b981;"></i>':'<i class="fa-solid fa-circle-xmark" style="color:#ef4444;"></i>'}</div>
         <div class="feat-info">
           <div class="feat-name">${c.name}</div>
           <div class="feat-meta ${!ok?'err':''}">${!ok?(c.error||'Error'):'Operational'}</div>
@@ -334,7 +334,7 @@ async function loadFeatureHealth(){
     d.checks.filter(c=>c.status!=='ok').forEach(e=>showError('health-errors',`<strong>${e.name}</strong> — ${e.error||'failed'}`));
     _tabsLoaded.health=true;
     const errs=d.checks.filter(c=>c.status!=='ok').length;
-    toast(`🩺 ${d.checks.length} checks — ${errs} error(s)`);
+    toast(`<i class="fa-solid fa-stethoscope"></i> ${d.checks.length} checks — ${errs} error(s)`);
   }catch(e){
     showError('health-errors','Health check failed: '+e.message);
     grid.innerHTML=`<div style="color:var(--muted);padding:2rem;grid-column:1/-1">Could not run checks: ${e.message}</div>`;
@@ -352,10 +352,10 @@ async function loadLogs(){
     const d=await r.json();
     if(!d.success)throw new Error('Failed');
     _allLogs=d.logs||[];
-    document.getElementById('log-file-info').textContent=d.log_file?'📁 '+d.log_file:'📁 No log file — in-memory data only';
+    document.getElementById('log-file-info').textContent=d.log_file?'<i class="fa-solid fa-folder"></i> '+d.log_file:'<i class="fa-solid fa-folder"></i> No log file — in-memory data only';
     renderLogs();
     _tabsLoaded.logs=true;
-    toast('📋 Logs: '+_allLogs.length+' entries');
+    toast('<i class="fa-solid fa-clipboard-list"></i> Logs: '+_allLogs.length+' entries');
   }catch(e){
     showError('log-errors','Log fetch failed: '+e.message);
     document.getElementById('log-terminal').innerHTML=`<span style="color:var(--red)">Error: ${e.message}</span>`;
@@ -385,7 +385,7 @@ function setLogLevel(lvl,el){
 }
 function copyLogs(){
   const lines=_allLogs.map(l=>`[${l.ts||'—'}] ${l.level} ${l.msg}`).join('\n');
-  navigator.clipboard.writeText(lines).then(()=>toast('📋 Copied!'));
+  navigator.clipboard.writeText(lines).then(()=>toast('<i class="fa-solid fa-clipboard-list"></i> Copied!'));
 }
 function toggleLogAuto(){
   if(_logTimer){clearInterval(_logTimer);_logTimer=null;}

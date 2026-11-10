@@ -353,13 +353,13 @@ def get_creator_wallet(creator_id):
             wallet = w_res.data[0]
 
         is_verified = is_creator_verified(creator_id)
-        total_views, raw_view_earnings = get_creator_views_and_earnings(creator_id)
-        # Only verified users receive view earnings & view rate
-        view_earnings = raw_view_earnings if is_verified else 0.0
-        view_rate = VIEW_EARNING_RATE_INR if is_verified else 0.0
+        total_views, _ = get_creator_views_and_earnings(creator_id)
+        # Sole income source is file sales (100% file selling earnings)
+        view_earnings = 0.0
+        view_rate = 0.0
         comm_info = get_creator_commission_pct(creator_id)
 
-        # 1. Calculate unlocked and pending note sales from ledger
+        # 1. Calculate unlocked and pending note sales from ledger (file sales only)
         credits_res = supabase.table('wallet_ledger').select('amount, order_id, status').eq('creator_id', str(creator_id)).eq('type', 'credit').execute()
         unlocked_sales = sum(
             float(c.get('amount') or 0.0)
@@ -379,9 +379,9 @@ def get_creator_wallet(creator_id):
         total_payouts_deducted = sum(float(p.get('amount') or 0.0) for p in active_payouts)
         total_completed_withdrawn = sum(float(p.get('amount') or 0.0) for p in active_payouts if p.get('status') == 'completed')
 
-        # 3. Exact Lifetime Earned and Net Withdrawable Balance
-        total_lifetime_earned = round(view_earnings + unlocked_sales, 2)
-        effective_withdrawable = max(0.0, round(total_lifetime_earned - total_payouts_deducted, 2))
+        # 3. Exact Lifetime Earned and Net Withdrawable Balance (100% from file selling)
+        total_lifetime_earned = round(unlocked_sales, 2)
+        effective_withdrawable = max(0.0, round(unlocked_sales - total_payouts_deducted, 2))
 
         # Reconcile sales breakdown and total withdrawn
         sales_withdrawn = min(unlocked_sales, total_payouts_deducted)
@@ -400,7 +400,59 @@ def get_creator_wallet(creator_id):
         except Exception:
             pass
 
-        ledger = supabase.table('wallet_ledger').select('*').eq('creator_id', str(creator_id)).order('created_at', desc=True).limit(20).execute().data or []
+        ledger = supabase.table('wallet_ledger').select('*').eq('creator_id', str(creator_id)).order('created_at', desc=True).limit(50).execute().data or []
+        doc_ids = list({e['doc_id'] for e in ledger if e.get('doc_id')})
+        docs_map = {}
+        if doc_ids:
+            try:
+                d_res = supabase.table('documents').select('id, title, document_category, price').in_('id', doc_ids[:50]).execute()
+                docs_map = {d['id']: d for d in (d_res.data or [])}
+            except Exception:
+                pass
+
+        now_utc = datetime.now(timezone.utc)
+        for item in ledger:
+            doc = docs_map.get(item.get('doc_id'), {})
+            item['doc_title'] = doc.get('title') or (f"Document #{item.get('doc_id')}" if item.get('doc_id') else 'Note Sale')
+            item['doc_category'] = doc.get('document_category') or 'Study Material'
+            amt = float(item.get('amount') or 0.0)
+            item['amount'] = amt
+            item['creator_amount'] = amt
+            status = str(item.get('status') or 'locked').lower()
+
+            c_at_str = item.get('created_at') or now_utc.isoformat()
+            try:
+                sale_dt = datetime.fromisoformat(c_at_str.replace('Z', '+00:00'))
+                if sale_dt.tzinfo is None:
+                    sale_dt = sale_dt.replace(tzinfo=timezone.utc)
+            except Exception:
+                sale_dt = now_utc
+
+            unlock_dt = sale_dt + timedelta(days=HOLDING_DAYS)
+            sec_left = (unlock_dt - now_utc).total_seconds()
+            is_matured = sec_left <= 0 or status in ('available', 'paid')
+            days_left = max(0, int(sec_left // 86400))
+            hours_left = max(0, int((sec_left % 86400) // 3600))
+            minutes_left = max(0, int((sec_left % 3600) // 60))
+            seconds_rem = max(0, int(sec_left % 60))
+
+            item['unlock_at'] = unlock_dt.isoformat()
+            item['is_matured'] = is_matured
+            item['seconds_left'] = max(0, int(sec_left))
+            item['days_left'] = days_left
+            item['hours_left'] = hours_left
+            item['minutes_left'] = minutes_left
+            item['progress_pct'] = 100 if is_matured else max(0, min(100, int(((HOLDING_DAYS * 86400 - sec_left) / (HOLDING_DAYS * 86400)) * 100)))
+
+            if status == 'paid':
+                item['timer_display'] = 'Paid Out'
+                item['status_badge'] = 'paid'
+            elif is_matured:
+                item['timer_display'] = 'Matured (Ready to Withdraw)'
+                item['status_badge'] = 'available'
+            else:
+                item['timer_display'] = f"T+{days_left}d {hours_left}h left"
+                item['status_badge'] = 'escrow'
         payouts = supabase.table('creator_payout_requests').select('*').eq('creator_id', str(creator_id)).order('created_at', desc=True).limit(10).execute().data or []
 
         # Determine gamified minimum withdrawal threshold:

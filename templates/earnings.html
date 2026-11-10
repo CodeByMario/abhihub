@@ -217,13 +217,13 @@
       <!-- Category 3: Pending (30-day Lock) -->
       <div class="wallet-cat-card" id="earnCardPending" onclick="toggleEarnWalletCategory('pending')">
         <div class="wallet-cat-header">
-          <span class="wallet-cat-badge" style="background:#fffbeb; color:#b45309;">30-Day Escrow</span>
+          <span class="wallet-cat-badge" style="background:#fffbeb; color:#b45309;">T+9 Days Escrow</span>
           <span style="font-size:1.1rem;">⏳</span>
         </div>
         <div id="wallPending" style="font-size:1.4rem; font-weight:800; color:#d97706; margin-top:0.15rem;">₹0.00</div>
-        <div style="font-size:0.72rem; color:#b45309; margin-top:0.25rem;">Holding period (sales)</div>
+        <div style="font-size:0.72rem; color:#b45309; margin-top:0.25rem;">T+9 Maturation (sales)</div>
         <div class="wallet-cat-indicator">
-          <span>Locked Ledger</span>
+          <span>T+9 Escrow Schedule</span>
           <span class="wallet-chevron" id="earnChevronPending">▼</span>
         </div>
       </div>
@@ -307,9 +307,9 @@
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:0.75rem; margin-bottom:0.85rem;">
           <div>
             <h4 style="margin:0; font-size:0.95rem; color:#b45309; display:flex; align-items:center; gap:0.4rem;">
-              <span>⏳</span> 30-Day Escrow Ledger &amp; Unlocking Schedule
+              <span>⏳</span> T+9 Days Escrow Ledger &amp; Unlocking Schedule
             </h4>
-            <div style="font-size:0.76rem; color:#64748b; margin-top:2px;">Study note sales are safeguarded in 30-day buyer protection escrow before shifting to Withdrawable.</div>
+            <div style="font-size:0.76rem; color:#64748b; margin-top:2px;">Study note sales are safeguarded in T+9 days buyer protection escrow before shifting to Withdrawable.</div>
           </div>
           <button type="button" class="earn-btn-secondary" style="padding:4px 10px; font-size:0.75rem; border-radius:8px;" onclick="toggleEarnWalletCategory('pending')">✕ Close</button>
         </div>
@@ -409,6 +409,35 @@
           </thead>
           <tbody id="monetizedNotesTbody">
             <tr><td colspan="4" style="padding:0.6rem; text-align:center; color:#94a3b8;">No monetized files found.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Real-time Sold Files & T+9 Days Escrow Maturity Monitor -->
+    <div id="creatorSoldEscrowWrap" style="margin-top:1.25rem; border-top:1px solid #e2e8f0; padding-top:0.85rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem; flex-wrap:wrap; gap:0.5rem;">
+        <div>
+          <div style="font-size:0.88rem; font-weight:700; color:#1e293b; display:flex; align-items:center; gap:0.4rem;">
+            <span>⏱️</span> Your Sold Files &amp; T+9 Days Escrow Maturity Tracker
+          </div>
+          <div style="font-size:0.75rem; color:#64748b;">See whose file got sold, what amount you get, and the live T+9 days timer until withdrawal.</div>
+        </div>
+        <span class="earn-badge" style="background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; font-size:0.75rem;">🛡️ T+9 Days Escrow Policy</span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:0.82rem;">
+          <thead>
+            <tr style="text-align:left; border-bottom:1px solid #e2e8f0; color:#64748b; background:#f8fafc;">
+              <th style="padding:0.5rem 0.6rem;">Sold File</th>
+              <th style="padding:0.5rem 0.6rem;">Order ID</th>
+              <th style="padding:0.5rem 0.6rem;">What You Get</th>
+              <th style="padding:0.5rem 0.6rem;">T+9 Escrow Timer</th>
+              <th style="padding:0.5rem 0.6rem;">Escrow Status</th>
+            </tr>
+          </thead>
+          <tbody id="creatorSoldEscrowTbody">
+            <tr><td colspan="5" style="padding:0.8rem; text-align:center; color:#94a3b8;">Loading sold file orders...</td></tr>
           </tbody>
         </table>
       </div>
@@ -634,10 +663,35 @@
           if (eDrawerViewsWith) eDrawerViewsWith.textContent = '₹' + Math.max(0, (w.withdrawable_balance || 0) - (w.sales_withdrawable || 0)).toFixed(2);
           if (eDrawerNetWith) eDrawerNetWith.textContent = '₹' + (w.withdrawable_balance || 0).toFixed(2);
 
-          // Populate T+9 Days Escrow Pending Ledger
+          // Populate T+9 Days Escrow Pending Ledger & Sold Files Tracker
           const ePendingList = document.getElementById('earnDrawerPendingList');
+          const soldEscrowTbody = document.getElementById('creatorSoldEscrowTbody');
+          const allSalesEntries = (wData.ledger || []).filter(l => l.type === 'credit');
+
+          function renderEscrowTimerBadge(entry) {
+            const secLeft = entry.seconds_left || 0;
+            if (entry.status === 'paid') {
+              return '<span style="background:#f1f5f9; color:#475569; padding:2px 8px; border-radius:6px; font-weight:700; font-size:0.75rem;">Paid Out</span>';
+            }
+            if (entry.is_matured || secLeft <= 0 || entry.status === 'available') {
+              return '<span style="background:#dcfce7; color:#15803d; border:1px solid #86efac; padding:2px 8px; border-radius:6px; font-weight:700; font-size:0.75rem;">✅ Matured (Ready)</span>';
+            }
+            return `<span style="background:#fffbeb; color:#b45309; border:1px solid #fde68a; padding:2px 8px; border-radius:6px; font-weight:700; font-size:0.75rem; font-family:monospace;" data-creator-escrow-sec="${secLeft}">⏳ ${entry.timer_display || ('T+' + Math.floor(secLeft/86400) + 'd left')}</span>`;
+          }
+
+          function renderEscrowStatusBadge(entry) {
+            if (entry.status === 'paid') {
+              return '<span style="color:#475569; font-weight:600;">Disbursed</span>';
+            }
+            if (entry.is_matured || entry.status === 'available') {
+              return '<span style="color:#16a34a; font-weight:700;">Withdrawable</span>';
+            }
+            return '<span style="color:#d97706; font-weight:700;">In Escrow (T+9)</span>';
+          }
+
+          // 1. Populate Drawer Pending Ledger
           if (ePendingList) {
-            const lockedEntries = (wData.ledger || []).filter(l => l.status === 'locked');
+            const lockedEntries = allSalesEntries.filter(l => l.status === 'locked');
             if (lockedEntries.length === 0) {
               ePendingList.innerHTML = `
                 <div style="padding:1rem; text-align:center; color:#64748b; background:#f8fafc; border-radius:10px;">
@@ -646,19 +700,85 @@
               `;
             } else {
               ePendingList.innerHTML = lockedEntries.map(entry => {
-                const unlockDate = entry.unlock_at ? new Date(entry.unlock_at).toLocaleDateString('en-IN', {month:'short', day:'numeric', year:'numeric'}) : 'In T+9 days or earlier';
+                const unlockDate = entry.unlock_at ? new Date(entry.unlock_at).toLocaleDateString('en-IN', {month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit'}) : 'In T+9 days';
+                const fileTitle = entry.doc_title || ('Document #' + (entry.doc_id || '-'));
                 return `
-                  <div style="display:flex; justify-content:space-between; align-items:center; padding:0.6rem 0.75rem; background:#f8fafc; border-radius:8px; margin-bottom:0.5rem; border:1px solid #e2e8f0;">
-                    <div>
-                      <div style="font-weight:700; color:#1e293b;">Order #${entry.order_id || entry.id || '-'}</div>
-                      <div style="font-size:0.73rem; color:#b45309;">Unlocks on: ${unlockDate}</div>
+                  <div style="padding:0.75rem; background:#f8fafc; border-radius:10px; margin-bottom:0.6rem; border:1px solid #e2e8f0;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem;">
+                      <div>
+                        <div style="font-weight:700; color:#1e293b; font-size:0.88rem;">📄 ${fileTitle}</div>
+                        <div style="font-size:0.74rem; color:#64748b; margin-top:2px;">Order #${entry.order_id || entry.id || '-'} • Unlocks: ${unlockDate}</div>
+                      </div>
+                      <div style="text-align:right;">
+                        <div style="font-weight:800; color:#d97706; font-size:1rem;">+₹${parseFloat(entry.amount || 0).toFixed(2)}</div>
+                        <div style="font-size:0.72rem; color:#15803d; font-weight:600;">Your Share</div>
+                      </div>
                     </div>
-                    <div style="font-weight:800; color:#d97706; font-size:0.95rem;">+₹${parseFloat(entry.amount || 0).toFixed(2)}</div>
+                    <div style="margin-top:0.5rem; display:flex; justify-content:space-between; align-items:center; border-top:1px dashed #e2e8f0; padding-top:0.4rem;">
+                      <span style="font-size:0.74rem; color:#64748b;">Escrow Timer:</span>
+                      ${renderEscrowTimerBadge(entry)}
+                    </div>
                   </div>
                 `;
               }).join('');
             }
           }
+
+          // 2. Populate Sold Files & T+9 Escrow Maturity Table in Note Sales section
+          if (soldEscrowTbody) {
+            if (allSalesEntries.length === 0) {
+              soldEscrowTbody.innerHTML = '<tr><td colspan="5" style="padding:0.8rem; text-align:center; color:#94a3b8;">No sold file transactions recorded yet.</td></tr>';
+            } else {
+              soldEscrowTbody.innerHTML = allSalesEntries.map(entry => {
+                const fileTitle = entry.doc_title || ('Document #' + (entry.doc_id || '-'));
+                const orderId = entry.order_id || ('TX-' + (entry.id || '-'));
+                const earning = parseFloat(entry.amount || 0).toFixed(2);
+                return `
+                  <tr style="border-bottom:1px solid #f1f5f9;">
+                    <td style="padding:0.6rem 0.5rem; font-weight:600; color:#1e293b; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${fileTitle}">
+                      📄 ${fileTitle}
+                    </td>
+                    <td style="padding:0.6rem 0.5rem; font-family:monospace; font-size:0.75rem; color:#64748b;">
+                      #${orderId}
+                    </td>
+                    <td style="padding:0.6rem 0.5rem; font-weight:800; color:#16a34a; font-size:0.9rem;">
+                      ₹${earning}
+                    </td>
+                    <td style="padding:0.6rem 0.5rem;">
+                      ${renderEscrowTimerBadge(entry)}
+                    </td>
+                    <td style="padding:0.6rem 0.5rem; font-size:0.78rem;">
+                      ${renderEscrowStatusBadge(entry)}
+                    </td>
+                  </tr>
+                `;
+              }).join('');
+            }
+          }
+
+          // Start live real-time 1-second countdown ticker
+          if (window._creatorEscrowTicker) clearInterval(window._creatorEscrowTicker);
+          window._creatorEscrowTicker = setInterval(() => {
+            document.querySelectorAll('[data-creator-escrow-sec]').forEach(el => {
+              let sec = parseInt(el.getAttribute('data-creator-escrow-sec') || '0', 10);
+              if (sec > 1) {
+                sec -= 1;
+                el.setAttribute('data-creator-escrow-sec', sec);
+                const d = Math.floor(sec / 86400);
+                const h = Math.floor((sec % 86400) / 3600);
+                const m = Math.floor((sec % 3600) / 60);
+                const s = Math.floor(sec % 60);
+                let txt = '⏳ T+';
+                if (d > 0) txt += d + 'd ' + h + 'h ' + m + 'm ' + s + 's';
+                else if (h > 0) txt += h + 'h ' + m + 'm ' + s + 's';
+                else txt += m + 'm ' + s + 's';
+                el.textContent = txt;
+              } else {
+                el.removeAttribute('data-creator-escrow-sec');
+                el.outerHTML = '<span style="background:#dcfce7; color:#15803d; border:1px solid #86efac; padding:2px 8px; border-radius:6px; font-weight:700; font-size:0.75rem;">✅ Matured (Ready)</span>';
+              }
+            });
+          }, 1000);
 
           // Populate Payouts History in Drawer
           const eDrawerPayouts = document.getElementById('earnDrawerPayoutsTbody');

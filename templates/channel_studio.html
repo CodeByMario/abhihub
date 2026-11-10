@@ -2,6 +2,7 @@
 {% block title %}Creator Channel Studio • AbhiHub{% endblock %}
 
 {% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
   :root {
     --apple-bg: #f5f5f7;
@@ -367,6 +368,171 @@
     color: #ffffff;
   }
 
+  
+  /* ── Well-Designed File Cards & Grid ──────────────── */
+  .cs-file-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .cs-file-card {
+    background: var(--apple-surface-sub);
+    border: 1px solid var(--apple-border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .cs-file-card:hover {
+    border-color: rgba(0, 113, 227, 0.35);
+    background: var(--apple-surface);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+  }
+  .cs-file-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+  .cs-file-icon-box {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    flex-shrink: 0;
+  }
+  .cs-price-pill {
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: var(--radius-pill);
+    letter-spacing: 0.02em;
+  }
+  .cs-price-pill.free {
+    background: rgba(34, 197, 94, 0.12);
+    color: #16a34a;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+  }
+  .cs-price-pill.paid {
+    background: rgba(0, 113, 227, 0.12);
+    color: var(--apple-blue);
+    border: 1px solid rgba(0, 113, 227, 0.2);
+  }
+  .cs-file-title {
+    font-size: 14px;
+    font-weight: 650;
+    color: var(--apple-text);
+    margin: 0;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .cs-file-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 11.5px;
+    color: var(--apple-text-secondary);
+  }
+  .cs-meta-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    padding: 2px 7px;
+    border-radius: 6px;
+  }
+  .cs-file-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    padding-top: 10px;
+    border-top: 1px solid var(--apple-border);
+  }
+  .cs-action-btn {
+    flex: 1;
+    height: 32px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1px solid var(--apple-border);
+    background: var(--apple-surface);
+    color: var(--apple-text);
+  }
+  .cs-action-btn:hover {
+    border-color: var(--apple-blue);
+    color: var(--apple-blue);
+  }
+  .cs-action-btn.copy:hover {
+    background: var(--apple-blue);
+    color: #ffffff;
+  }
+  .cs-pagination-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 0 4px;
+    margin-top: 10px;
+    border-top: 1px solid var(--apple-border);
+    flex-wrap: wrap;
+    font-size: 12.5px;
+    color: var(--apple-text-secondary);
+  }
+  .cs-pagination-btns {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .cs-page-btn {
+    padding: 4px 10px;
+    border-radius: 7px;
+    border: 1px solid var(--apple-border);
+    background: var(--apple-surface-sub);
+    color: var(--apple-text);
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .cs-page-btn:hover:not(.disabled) {
+    border-color: var(--apple-blue);
+    color: var(--apple-blue);
+    background: var(--apple-surface);
+  }
+  .cs-page-btn.active {
+    background: var(--apple-blue);
+    color: #ffffff !important;
+    border-color: var(--apple-blue);
+  }
+  .cs-page-btn.disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
   /* ── Notes Library Rows ───────────────────────────── */
   .cs-note-item {
     border-bottom: 1px solid var(--apple-border);
@@ -459,11 +625,11 @@
               <span class="cs-badge-req">Required</span>
             </label>
             <div class="cs-handle-wrap">
-              <span class="cs-handle-prefix">abhihub.com/c/</span>
+              <span class="cs-handle-prefix">www.abhihub.edu.eu.org/c/</span>
               <input type="text" id="handle" class="cs-handle-input" placeholder="e.g. physics_topper" value="{{ channel.handle if channel else '' }}" required oninput="handleCustomSlug(this)">
             </div>
             <div class="cs-live-preview">
-              Public link: <strong id="live-slug-preview">abhihub.com/c/{{ channel.handle if channel else 'your_handle' }}</strong>
+              Public link: <strong id="live-slug-preview">www.abhihub.edu.eu.org/c/{{ channel.handle if channel else 'your_handle' }}</strong>
             </div>
           </div>
 
@@ -566,10 +732,10 @@
       <div class="cs-card">
         <div class="cs-card-header">
           <h2 class="cs-card-title">Uploaded Material</h2>
-          <span class="cs-card-badge">{{ notes|length }} Note{{ 's' if notes|length != 1 else '' }}</span>
+          <span class="cs-card-badge">{{ all_notes_count or notes|length }} Note{{ 's' if (all_notes_count or notes|length) != 1 else '' }}</span>
         </div>
         <p style="font-size: 12.5px; color: var(--apple-text-secondary); margin: 0 0 1rem; line-height: 1.45;">
-          Direct links to paste into specific video descriptions or study groups:
+          Share verified notes, PYQs, and solutions directly in your YouTube descriptions and Telegram study channels:
         </p>
 
         {% if not notes %}
@@ -582,27 +748,68 @@
             </div>
           </div>
         {% else %}
-          <div style="display: flex; flex-direction: column;">
+          <div class="cs-file-grid">
             {% for note in notes %}
-            <div class="cs-note-item">
-              <div style="max-width: 68%;">
-                <div class="cs-note-title">{{ note.title }}</div>
-                <div class="cs-note-meta">
-                  {{ note.category }} &bull; {{ note.views }} views &bull; 
-                  {% if note.is_paid and note.price > 0 %}
-                    <strong style="color: var(--apple-blue);">₹{{ '%.0f'|format(note.price) }}</strong>
+            <div class="cs-file-card">
+              <div class="cs-file-card-top">
+                <div class="cs-file-icon-box">
+                  {% if note.category|lower == 'papers' or note.document_category == 'papers' %}
+                    <i class="fa-solid fa-graduation-cap" style="color: #10b981;"></i>
+                  {% elif note.category|lower == 'syllabus' %}
+                    <i class="fa-solid fa-list-check" style="color: #8b5cf6;"></i>
+                  {% elif note.category|lower == 'question_bank' %}
+                    <i class="fa-solid fa-circle-question" style="color: #f59e0b;"></i>
                   {% else %}
-                    <span style="color: #16a34a; font-weight: 600;">Free</span>
+                    <i class="fa-solid fa-file-lines" style="color: #0071e3;"></i>
+                  {% endif %}
+                </div>
+                <div>
+                  {% if note.is_paid and note.price > 0 %}
+                    <span class="cs-price-pill paid">₹{{ '%.0f'|format(note.price) }}</span>
+                  {% else %}
+                    <span class="cs-price-pill free">Free Access</span>
                   {% endif %}
                 </div>
               </div>
-              <div>
+              <h4 class="cs-file-title" title="{{ note.subject_name or note.subject }}">{{ note.subject_name or note.subject }}</h4>
+              <div class="cs-file-meta">
+                <span class="cs-meta-tag"><i class="fa-solid fa-folder"></i> {{ note.category }}</span>
+                <span class="cs-meta-tag"><i class="fa-regular fa-eye"></i> {{ note.views }} views</span>
+                <span class="cs-meta-tag"><i class="fa-regular fa-file"></i> {{ note.file_type or 'PDF' }}</span>
+              </div>
+              <div class="cs-file-actions">
                 {% set direct_url = 'https://www.abhihub.edu.eu.org/resource/' ~ note.id %}
-                <button type="button" class="cs-copy-btn" onclick="copyToClipboard('{{ direct_url }}', this)">Copy Link</button>
+                <button type="button" class="cs-action-btn copy" onclick="copyToClipboard('{{ direct_url }}', this)">
+                  <i class="fa-regular fa-copy"></i> Copy Link
+                </button>
+                <a href="/resource/{{ note.id }}" target="_blank" class="cs-action-btn view">
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i> Open
+                </a>
               </div>
             </div>
             {% endfor %}
           </div>
+
+          {% if total_pages and total_pages > 1 %}
+          <div class="cs-pagination-bar">
+            <span>Showing Page {{ page }} of {{ total_pages }} ({{ all_notes_count }} files)</span>
+            <div class="cs-pagination-btns">
+              <a href="?page={{ page - 1 }}" class="cs-page-btn {% if page <= 1 %}disabled{% endif %}">
+                &larr; Prev
+              </a>
+              {% for pg in range(1, total_pages + 1) %}
+                {% if pg == page or (pg >= page - 2 and pg <= page + 2) %}
+                  <a href="?page={{ pg }}" class="cs-page-btn {% if pg == page %}active{% endif %}">
+                    {{ pg }}
+                  </a>
+                {% endif %}
+              {% endfor %}
+              <a href="?page={{ page + 1 }}" class="cs-page-btn {% if page >= total_pages %}disabled{% endif %}">
+                Next &rarr;
+              </a>
+            </div>
+          </div>
+          {% endif %}
         {% endif %}
       </div>
     </div>
@@ -625,7 +832,7 @@
         .replace(/^_|_$/g, '');
       handleInput.value = slug;
       handleInput.dataset.autoGenerated = 'true';
-      if (preview) preview.textContent = `abhihub.com/c/${slug || 'your_handle'}`;
+      if (preview) preview.textContent = `www.abhihub.edu.eu.org/c/${slug || 'your_handle'}`;
     }
   }
 
@@ -635,7 +842,7 @@
     const clean = handleInput.value.toLowerCase().replace(/[^a-z0-9_]/g, '_');
     handleInput.value = clean;
     const preview = document.getElementById('live-slug-preview');
-    if (preview) preview.textContent = `abhihub.com/c/${clean || 'your_handle'}`;
+    if (preview) preview.textContent = `www.abhihub.edu.eu.org/c/${clean || 'your_handle'}`;
   }
 
   function copyToClipboard(text, btn) {

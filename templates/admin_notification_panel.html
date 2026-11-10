@@ -652,7 +652,7 @@
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem;">
                     <div style="background: rgba(255,255,255,0.03); border: var(--glass-border); border-radius: 10px; padding: 0.75rem;">
                         <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.3rem;">
-                            <span>📦 Storage</span>
+                            <span><i class="fa-solid fa-hard-drive" style="color:#818cf8; margin-right:6px;"></i>Storage</span>
                             <span id="admStoragePct" style="font-weight: 700; color: #818cf8;">—%</span>
                         </div>
                         <div style="background: rgba(255,255,255,0.08); border-radius: 99px; height: 6px; overflow: hidden; margin-bottom: 0.35rem;">
@@ -666,7 +666,7 @@
 
                     <div style="background: rgba(255,255,255,0.03); border: var(--glass-border); border-radius: 10px; padding: 0.75rem;">
                         <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.3rem;">
-                            <span>📡 Bandwidth</span>
+                            <span><i class="fa-solid fa-network-wired" style="color:#38bdf8; margin-right:6px;"></i>Bandwidth</span>
                             <span id="admBwPct" style="font-weight: 700; color: #38bdf8;">—%</span>
                         </div>
                         <div style="background: rgba(255,255,255,0.08); border-radius: 99px; height: 6px; overflow: hidden; margin-bottom: 0.35rem;">
@@ -680,7 +680,7 @@
 
                     <div style="background: rgba(255,255,255,0.03); border: var(--glass-border); border-radius: 10px; padding: 0.75rem;">
                         <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.3rem;">
-                            <span>🗄️ Supabase DB</span>
+                            <span><i class="fa-solid fa-database" style="color:#34d399; margin-right:6px;"></i>Supabase DB</span>
                             <span id="admSbStatus" style="font-weight: 700; color: #34d399;">Active</span>
                         </div>
                         <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-top: 0.2rem;" id="admSbSize">512 MB Free Tier</div>
@@ -801,6 +801,280 @@
                         Open Observability <i class="fas fa-arrow-right"></i>
                     </a>
                 </div>
+            </div>
+        </div>
+
+        <!-- 3. PLATFORM USER BEHAVIOR & CONVERSION INTELLIGENCE -->
+        <div class="glass-panel" style="margin-top: 1.5rem;" id="engagementIntelligenceSection">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
+                <div>
+                    <h3 style="font-size: 1.25rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-chart-pie text-indigo-400"></i> User Behavior, Funnel Drop-offs &amp; Conversion Intelligence
+                    </h3>
+                    <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0.25rem 0 0 0;">
+                        Live insights on upload drop-offs, zero-result searches, top search keywords, viral files, top uploaders, and paying customers.
+                    </p>
+                </div>
+                <button type="button" class="btn-action btn-indigo" style="padding: 0.4rem 0.85rem; font-size: 0.8rem;" onclick="loadEngagementIntelligence()">
+                    <i class="fas fa-sync-alt"></i> Refresh Intelligence
+                </button>
+            </div>
+
+            <!-- Funnel & Drop-off KPI Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                <!-- Upload Drop-off Card -->
+                <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 12px; padding: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                        <span style="font-size: 0.78rem; font-weight: 600; color: #fca5a5;">UPLOAD FUNNEL DROP-OFF</span>
+                        <span class="badge badge-warn" id="uploadDropoffRate">0% Drop-off</span>
+                    </div>
+                    <div style="font-size: 1.6rem; font-weight: 800; color: #f87171;" id="uploadAbandonedCount">0</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                        Users visited upload page but left without uploading.
+                    </div>
+                </div>
+
+                <!-- Search Zero-Click / Bounce Card -->
+                <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 12px; padding: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                        <span style="font-size: 0.78rem; font-weight: 600; color: #fcd34d;">SEARCH ZERO-CLICK / BOUNCE</span>
+                        <span class="badge badge-warn" id="searchBounceRate">0% Bounce</span>
+                    </div>
+                    <div style="font-size: 1.6rem; font-weight: 800; color: #fbbf24;" id="searchUnmetCount">0</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                        Searches with zero results or no document opened.
+                    </div>
+                </div>
+
+                <!-- Non-Uploading Students Card -->
+                <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 12px; padding: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                        <span style="font-size: 0.78rem; font-weight: 600; color: #a5b4fc;">NON-UPLOADING STUDENTS</span>
+                        <span class="badge badge-blue" id="nonUploadersBadge">0 Inactive</span>
+                    </div>
+                    <div style="font-size: 1.6rem; font-weight: 800; color: #818cf8;" id="nonUploadersCount">0</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                        Registered accounts who consume without contributing.
+                    </div>
+                </div>
+
+                <!-- Paying Buyers & Revenue Card -->
+                <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 12px; padding: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                        <span style="font-size: 0.78rem; font-weight: 600; color: #6ee7b7;">PAYING CUSTOMERS</span>
+                        <span class="badge badge-loved" id="payingBuyersCount">0 Buyers</span>
+                    </div>
+                    <div style="font-size: 1.6rem; font-weight: 800; color: #34d399;" id="totalRevenueAmount">₹0.00</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                        Total platform monetization from credit transactions.
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4 Detailed Intelligence Tables / Grids -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1.25rem;">
+                <!-- Table 1: Top Search Keywords -->
+                <div style="background: rgba(255,255,255,0.02); border: var(--glass-border); border-radius: 12px; padding: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
+                        <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-magnifying-glass text-indigo-400"></i> Top Search Keywords
+                        </h4>
+                        <span class="badge badge-blue" id="topKeywordsCount">0 Queries</span>
+                    </div>
+                    <div style="overflow-x: auto; max-height: 280px; overflow-y: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); color: var(--text-muted); text-align: left;">
+                                    <th style="padding: 0.45rem 0.5rem;">Keyword</th>
+                                    <th style="padding: 0.45rem 0.5rem; text-align: center;">Searches</th>
+                                    <th style="padding: 0.45rem 0.5rem; text-align: right;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topKeywordsTableBody">
+                                <tr><td colspan="3" style="text-align: center; padding: 1rem; color: var(--text-muted);">Loading search keywords…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Table 2: Top Performing Files -->
+                <div style="background: rgba(255,255,255,0.02); border: var(--glass-border); border-radius: 12px; padding: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
+                        <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-fire text-amber-400"></i> Top Most Viewed Files
+                        </h4>
+                        <span class="badge badge-loved" id="topFilesCount">Top 10</span>
+                    </div>
+                    <div style="overflow-x: auto; max-height: 280px; overflow-y: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); color: var(--text-muted); text-align: left;">
+                                    <th style="padding: 0.45rem 0.5rem;">Document</th>
+                                    <th style="padding: 0.45rem 0.5rem; text-align: center;">Views</th>
+                                    <th style="padding: 0.45rem 0.5rem; text-align: right;">Likes</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topFilesTableBody">
+                                <tr><td colspan="3" style="text-align: center; padding: 1rem; color: var(--text-muted);">Loading top files…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Table 3: Top Uploaders Leaderboard -->
+                <div style="background: rgba(255,255,255,0.02); border: var(--glass-border); border-radius: 12px; padding: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
+                        <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-trophy text-amber-300"></i> Top Uploaders Leaderboard
+                        </h4>
+                        <span class="badge badge-emerald" id="topUploadersCount">Top Creators</span>
+                    </div>
+                    <div style="overflow-x: auto; max-height: 280px; overflow-y: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); color: var(--text-muted); text-align: left;">
+                                    <th style="padding: 0.45rem 0.5rem;">Uploader</th>
+                                    <th style="padding: 0.45rem 0.5rem; text-align: center;">Reputation</th>
+                                    <th style="padding: 0.45rem 0.5rem; text-align: right;">College</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topUploadersTableBody">
+                                <tr><td colspan="3" style="text-align: center; padding: 1rem; color: var(--text-muted);">Loading creators…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Table 4: Paying Customers / Buyers Roster -->
+                <div style="background: rgba(255,255,255,0.02); border: var(--glass-border); border-radius: 12px; padding: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
+                        <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-wallet text-emerald-400"></i> Verified Paying Customers (Buyers)
+                        </h4>
+                        <span class="badge badge-loved" id="buyersRosterBadge">Active Buyers</span>
+                    </div>
+                    <div style="overflow-x: auto; max-height: 280px; overflow-y: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); color: var(--text-muted); text-align: left;">
+                                    <th style="padding: 0.45rem 0.5rem;">Customer</th>
+                                    <th style="padding: 0.45rem 0.5rem; text-align: center;">Orders</th>
+                                    <th style="padding: 0.45rem 0.5rem; text-align: right;">Total Spent</th>
+                                </tr>
+                            </thead>
+                            <tbody id="buyersTableBody">
+                                <tr><td colspan="3" style="text-align: center; padding: 1rem; color: var(--text-muted);">Loading buyers…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. CREATOR FILE SALES & ESCROW RELEASE (T+9 DAYS) -->
+        <div class="glass-panel" style="margin-top: 1.5rem;" id="creatorSalesEscrowSection">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
+                <div>
+                    <h3 style="font-size: 1.25rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-hand-holding-dollar text-emerald-400"></i> Creator File Sales &amp; Escrow Release (T+9 Days Tracker)
+                    </h3>
+                    <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0.25rem 0 0 0;">
+                        Track whose files sold, creator earnings, T+9 days escrow maturity timers, bank &amp; UPI payment details, and KYC verification status.
+                    </p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <a href="/admin/payments" class="btn-action btn-emerald" style="padding: 0.4rem 0.85rem; font-size: 0.8rem; text-decoration: none;">
+                        <i class="fas fa-paper-plane"></i> Process Disbursals
+                    </a>
+                    <button type="button" class="btn-action btn-indigo" style="padding: 0.4rem 0.85rem; font-size: 0.8rem;" onclick="loadCreatorSalesEscrow()">
+                        <i class="fas fa-sync-alt"></i> Refresh Escrow
+                    </button>
+                </div>
+            </div>
+
+            <!-- Escrow KPI Cards -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+                <!-- Payouts Due Now (T+9 Over) -->
+                <div style="background: rgba(239, 68, 68, 0.09); border: 1.5px solid rgba(239, 68, 68, 0.35); border-radius: 12px; padding: 1rem; position: relative;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                        <span style="font-size: 0.78rem; font-weight: 700; color: #fca5a5;"><i class="fas fa-bolt text-rose-400"></i> PAYOUTS DUE (T+9 OVER)</span>
+                        <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #f87171;" id="escrowDueBadge">0 Files</span>
+                    </div>
+                    <div style="font-size: 1.6rem; font-weight: 800; color: #ef4444;" id="escrowDueNow">₹0.00</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Net payable after admin commission &amp; tax.</div>
+                </div>
+
+                <!-- Payable Now (Total Withdrawable) -->
+                <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 12px; padding: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                        <span style="font-size: 0.78rem; font-weight: 600; color: #6ee7b7;">TOTAL WITHDRAWABLE</span>
+                        <span class="badge badge-emerald">Disbursable</span>
+                    </div>
+                    <div style="font-size: 1.6rem; font-weight: 800; color: #34d399;" id="escrowPayableNow">₹0.00</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Withdrawable creator balances ready for payment.</div>
+                </div>
+
+                <!-- In Escrow (T+9) -->
+                <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 12px; padding: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                        <span style="font-size: 0.78rem; font-weight: 600; color: #fcd34d;">IN ESCROW (T+9 LOCK)</span>
+                        <span class="badge badge-warn">Lock Period</span>
+                    </div>
+                    <div style="font-size: 1.6rem; font-weight: 800; color: #fbbf24;" id="escrowInEscrow">₹0.00</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Pending maturation before release.</div>
+                </div>
+
+                <!-- Files Sold -->
+                <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 12px; padding: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                        <span style="font-size: 0.78rem; font-weight: 600; color: #a5b4fc;">PAID FILES SOLD</span>
+                        <span class="badge badge-blue">Sales Volume</span>
+                    </div>
+                    <div style="font-size: 1.6rem; font-weight: 800; color: #818cf8;" id="escrowFilesSoldCount">0</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Total monetized study material purchases.</div>
+                </div>
+
+                <!-- Pending KYC -->
+                <div style="background: rgba(244, 63, 94, 0.08); border: 1px solid rgba(244, 63, 94, 0.25); border-radius: 12px; padding: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                        <span style="font-size: 0.78rem; font-weight: 600; color: #fecdd3;">PENDING CREATOR KYC</span>
+                        <span class="badge badge-warn" id="escrowPendingKycBadge">Action Needed</span>
+                    </div>
+                    <div style="font-size: 1.6rem; font-weight: 800; color: #f43f5e;" id="escrowPendingKycCount">0</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Sellers needing bank / UPI verification.</div>
+                </div>
+            </div>
+
+            <!-- Filter Controls -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button type="button" class="history-filter-pill active" id="btnFilterEscrowAll" onclick="filterEscrowSales('all', this)">All Transactions</button>
+                    <button type="button" class="history-filter-pill" onclick="filterEscrowSales('due', this)" style="border-color: rgba(239, 68, 68, 0.5); color: #f87171; font-weight: 700;"><i class="fas fa-bolt"></i> Payouts Due (T+9 Over)</button>
+                    <button type="button" class="history-filter-pill" onclick="filterEscrowSales('locked', this)">T+9 In Escrow</button>
+                    <button type="button" class="history-filter-pill" onclick="filterEscrowSales('paid', this)">Disbursed (Paid)</button>
+                </div>
+                <div style="min-width: 240px;">
+                    <input type="text" id="escrowSearchInput" class="form-input" placeholder="Search by creator, file, or order ID..." oninput="searchEscrowTable()" style="margin: 0; padding: 0.4rem 0.75rem; font-size: 0.82rem;">
+                </div>
+            </div>
+
+            <!-- Escrow Table -->
+            <div style="overflow-x: auto; background: rgba(255,255,255,0.02); border: var(--glass-border); border-radius: 12px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); color: var(--text-muted); text-align: left; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.05em;">
+                            <th style="padding: 0.6rem 0.75rem;">Sold File &amp; Order</th>
+                            <th style="padding: 0.6rem 0.75rem;">Creator / Seller</th>
+                            <th style="padding: 0.6rem 0.75rem;">Sale, Commission &amp; Net Taxable Breakdown</th>
+                            <th style="padding: 0.6rem 0.75rem; text-align: center;">T+9 Escrow Status</th>
+                            <th style="padding: 0.6rem 0.75rem;">Creator Banking &amp; UPI Details</th>
+                            <th style="padding: 0.6rem 0.75rem; text-align: right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="creatorSalesEscrowTableBody">
+                        <tr><td colspan="6" style="text-align: center; padding: 1.5rem; color: var(--text-muted);">Loading creator sales and escrow data…</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -1391,12 +1665,12 @@
             <div id="modPresetChipsWrap" style="margin-bottom:1.25rem;">
                 <label style="display:block; font-size:0.76rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.5rem;">Quick Reason Presets (Click to insert)</label>
                 <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
-                    <button type="button" class="btn-preset-chip" onclick="applyPresetReason('Blurry or unreadable scan. Please upload a clear, legible high-resolution copy.')">📄 Blurry / Unreadable</button>
-                    <button type="button" class="btn-preset-chip" onclick="applyPresetReason('Incorrect subject, course, or semester tag provided for this material.')">🏷️ Wrong Subject/Sem</button>
-                    <button type="button" class="btn-preset-chip" onclick="applyPresetReason('Duplicate submission. This paper or notes already exists in the catalog.')">🔄 Duplicate File</button>
-                    <button type="button" class="btn-preset-chip" onclick="applyPresetReason('Incomplete pages or cut-off content missing key questions/answers.')">✂️ Incomplete Content</button>
-                    <button type="button" class="btn-preset-chip" onclick="applyPresetReason('Contains heavy personal watermarks or advertisements making text illegible.')">🚫 Heavy Watermark</button>
-                    <button type="button" class="btn-preset-chip" onclick="applyPresetReason('Copyrighted textbook or prohibited content that cannot be distributed.')">⚖️ Copyrighted Material</button>
+                    <button type="button" class="btn-preset-chip" onclick="applyPresetReason('Blurry or unreadable scan. Please upload a clear, legible high-resolution copy.')"><i class="fa-solid fa-file-circle-xmark"></i> Blurry / Unreadable</button>
+                    <button type="button" class="btn-preset-chip" onclick="applyPresetReason('Incorrect subject, course, or semester tag provided for this material.')"><i class="fa-solid fa-tag"></i> Wrong Subject/Sem</button>
+                    <button type="button" class="btn-preset-chip" onclick="applyPresetReason('Duplicate submission. This paper or notes already exists in the catalog.')"><i class="fa-solid fa-clone"></i> Duplicate File</button>
+                    <button type="button" class="btn-preset-chip" onclick="applyPresetReason('Incomplete pages or cut-off content missing key questions/answers.')"><i class="fa-solid fa-scissors"></i> Incomplete Content</button>
+                    <button type="button" class="btn-preset-chip" onclick="applyPresetReason('Contains heavy personal watermarks or advertisements making text illegible.')"><i class="fa-solid fa-ban"></i> Heavy Watermark</button>
+                    <button type="button" class="btn-preset-chip" onclick="applyPresetReason('Copyrighted textbook or prohibited content that cannot be distributed.')"><i class="fa-solid fa-scale-balanced"></i> Copyrighted Material</button>
                 </div>
             </div>
 
@@ -1560,6 +1834,8 @@
         if (tabId === 'overview') {
             loadDashboardStats();
             loadSentimentAnalytics();
+            loadEngagementIntelligence();
+            loadCreatorSalesEscrow();
         } else if (tabId === 'moderation') {
             loadPendingDocuments();
         } else if (tabId === 'users') {
@@ -1642,7 +1918,7 @@
                 if (sup.db_size_bytes) {
                     document.getElementById('admSbSize').textContent = formatBytesBrief(sup.db_size_bytes);
                 }
-                document.getElementById('admSbStatus').textContent = sup.error ? '⚠️ Warning' : 'Active';
+                document.getElementById('admSbStatus').innerHTML = sup.error ? '<i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b;"></i> Warning' : '<i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Active';
                 document.getElementById('admSbStatus').style.color = sup.error ? '#f87171' : '#34d399';
             }
         } catch (e) {
@@ -1687,6 +1963,377 @@
             errArea.style.display = 'none';
         }
     }
+
+    // Safe HTML Escape Helper
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // Engagement, Funnel Drop-off & Buyer Intelligence Loader
+    async function loadEngagementIntelligence() {
+        try {
+            const res = await fetch('/api/admin/engagement-intelligence');
+            const result = await res.json();
+            if (!result.success || !result.data) return;
+
+            const d = result.data;
+            const uf = d.upload_funnel || {};
+            const se = d.search_engagement || {};
+
+            // 1. KPI Cards
+            const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+            setTxt('uploadDropoffRate', `${uf.drop_off_pct || 0}% Drop-off`);
+            setTxt('uploadAbandonedCount', uf.abandoned_uploads || 0);
+            setTxt('searchBounceRate', `${se.bounce_rate_pct || 0}% Bounce`);
+            setTxt('searchUnmetCount', se.unmet_searches || 0);
+            setTxt('nonUploadersCount', uf.non_uploading_students || 0);
+            setTxt('nonUploadersBadge', `${uf.non_uploading_students || 0} Inactive`);
+            setTxt('payingBuyersCount', `${d.total_buyers_count || (d.paying_customers || []).length} Buyers`);
+            setTxt('totalRevenueAmount', `₹${(d.total_revenue || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}`);
+
+            // 2. Top Keywords Table
+            const kwBody = document.getElementById('topKeywordsTableBody');
+            const kwList = se.top_keywords || [];
+            if (kwBody) {
+                setTxt('topKeywordsCount', `${kwList.length} Queries`);
+                if (kwList.length === 0) {
+                    kwBody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:1rem;color:var(--text-muted);">No search data recorded yet.</td></tr>';
+                } else {
+                    kwBody.innerHTML = kwList.map(k => `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+                            <td style="padding: 0.45rem 0.5rem; font-weight: 600; color: var(--text-primary);">${escapeHtml(k.query)}</td>
+                            <td style="padding: 0.45rem 0.5rem; text-align: center; color: var(--text-secondary);">${k.count}</td>
+                            <td style="padding: 0.45rem 0.5rem; text-align: right;">
+                                ${k.zero_results > 0 ? '<span class="badge badge-warn" style="font-size:0.7rem;">Zero Results</span>' : '<span class="badge badge-emerald" style="font-size:0.7rem;">Found</span>'}
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            }
+
+            // 3. Top Files Table
+            const filesBody = document.getElementById('topFilesTableBody');
+            const filesList = d.top_files || [];
+            if (filesBody) {
+                setTxt('topFilesCount', `${filesList.length} Files`);
+                if (filesList.length === 0) {
+                    filesBody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:1rem;color:var(--text-muted);">No documents available.</td></tr>';
+                } else {
+                    filesBody.innerHTML = filesList.map(f => `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+                            <td style="padding: 0.45rem 0.5rem;">
+                                <div style="font-weight: 600; color: var(--text-primary); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(f.title)}</div>
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">${escapeHtml(f.uploader_name || 'Community')}</div>
+                            </td>
+                            <td style="padding: 0.45rem 0.5rem; text-align: center; font-weight: 700; color: #818cf8;">${(f.views || 0).toLocaleString()}</td>
+                            <td style="padding: 0.45rem 0.5rem; text-align: right; color: #f43f5e;"><i class="fas fa-heart"></i> ${f.likes || 0}</td>
+                        </tr>
+                    `).join('');
+                }
+            }
+
+            // 4. Top Uploaders Table
+            const upBody = document.getElementById('topUploadersTableBody');
+            const upList = d.top_uploaders || [];
+            if (upBody) {
+                setTxt('topUploadersCount', `${upList.length} Creators`);
+                if (upList.length === 0) {
+                    upBody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:1rem;color:var(--text-muted);">No uploaders recorded yet.</td></tr>';
+                } else {
+                    upBody.innerHTML = upList.map((u, idx) => `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+                            <td style="padding: 0.45rem 0.5rem;">
+                                <div style="font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 0.4rem;">
+                                    ${idx === 0 ? '<i class="fa-solid fa-trophy" style="color:#fbbf24; margin-right:4px;"></i>' : (idx === 1 ? '<i class="fa-solid fa-medal" style="color:#94a3b8; margin-right:4px;"></i>' : (idx === 2 ? '<i class="fa-solid fa-medal" style="color:#d97706; margin-right:4px;"></i>' : '<i class="fa-solid fa-user" style="color:#64748b; margin-right:4px;"></i>'))} ${escapeHtml(u.name)}
+                                </div>
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">${escapeHtml(u.email)}</div>
+                            </td>
+                            <td style="padding: 0.45rem 0.5rem; text-align: center; font-weight: 700; color: #fbbf24;">${u.reputation} XP</td>
+                            <td style="padding: 0.45rem 0.5rem; text-align: right; font-size: 0.75rem; color: var(--text-secondary);">${escapeHtml(u.college_id)}</td>
+                        </tr>
+                    `).join('');
+                }
+            }
+
+            // 5. Paying Customers / Buyers Table
+            const buyersBody = document.getElementById('buyersTableBody');
+            const buyersList = d.paying_customers || [];
+            if (buyersBody) {
+                setTxt('buyersRosterBadge', `${buyersList.length} Active`);
+                if (buyersList.length === 0) {
+                    buyersBody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:1rem;color:var(--text-muted);">No payment transactions recorded yet.</td></tr>';
+                } else {
+                    buyersBody.innerHTML = buyersList.map(b => `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.04);">
+                            <td style="padding: 0.45rem 0.5rem;">
+                                <div style="font-weight: 600; color: var(--text-primary);">${escapeHtml(b.name)}</div>
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">${escapeHtml(b.email)}</div>
+                            </td>
+                            <td style="padding: 0.45rem 0.5rem; text-align: center;">
+                                <span class="badge badge-blue" style="font-size: 0.7rem;">${b.orders_count} Tx</span>
+                            </td>
+                            <td style="padding: 0.45rem 0.5rem; text-align: right; font-weight: 700; color: #34d399;">
+                                ₹${Number(b.total_spent || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            }
+        } catch (err) {
+            console.warn('[EngagementIntelligence] Failed to load:', err);
+        }
+    }
+
+    window._escrowSalesData = [];
+    window._currentEscrowFilter = 'all';
+
+    async function loadCreatorSalesEscrow() {
+        try {
+            const res = await fetch('/api/admin/creator-sales-escrow');
+            const result = await res.json();
+            if (!result.success || !result.data) return;
+
+            const d = result.data;
+            const summary = d.summary || {};
+            window._escrowSalesData = d.sales || [];
+
+            const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+            setTxt('escrowPayableNow', `₹${Number(summary.total_payable_now || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}`);
+            setTxt('escrowInEscrow', `₹${Number(summary.total_in_escrow || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}`);
+            setTxt('escrowDueNow', `₹${Number(summary.total_payout_due_now || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}`);
+            setTxt('escrowDueBadge', `${summary.total_payout_due_count || 0} Files Due`);
+            setTxt('escrowFilesSoldCount', summary.total_sales_count || 0);
+            setTxt('escrowPendingKycCount', summary.pending_kyc_count || 0);
+            setTxt('escrowPendingKycBadge', summary.pending_kyc_count > 0 ? `${summary.pending_kyc_count} Action Needed` : 'All Verified');
+
+            renderEscrowTable();
+        } catch (err) {
+            console.warn('[CreatorSalesEscrow] Failed to load:', err);
+        }
+    }
+
+    function filterEscrowSales(filterType, btn) {
+        window._currentEscrowFilter = filterType;
+        if (btn) {
+            btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+        renderEscrowTable();
+    }
+
+    function searchEscrowTable() {
+        renderEscrowTable();
+    }
+
+    function copyToClipboard(text, label) {
+        if (!text) return;
+        navigator.clipboard.writeText(text).then(() => {
+            alert(`Copied ${label}: ${text}`);
+        }).catch(() => {
+            prompt(`Copy ${label}:`, text);
+        });
+    }
+
+    async function disburseCreatorSale(ledgerId, creatorName, netAmount) {
+        const ref = prompt(`Confirm payout disbursal of ₹${Number(netAmount).toFixed(2)} to ${creatorName}:\nEnter Bank UTR / UPI Ref ID (optional):`, 'UPI-TRANSFER');
+        if (ref === null) return;
+
+        try {
+            const res = await fetch('/api/admin/creator-sales-escrow/disburse', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ledger_id: ledgerId,
+                    txn_ref: ref.trim() || 'MANUAL-DISBURSAL',
+                    admin_notes: `Paid ₹${netAmount} on ${new Date().toLocaleString()}`
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(data.message);
+                loadCreatorSalesEscrow();
+            } else {
+                alert(`Disbursal error: ${data.error || 'Failed to process'}`);
+            }
+        } catch (err) {
+            alert('Network error processing disbursal.');
+        }
+    }
+
+    function renderEscrowTable() {
+        const tbody = document.getElementById('creatorSalesEscrowTableBody');
+        if (!tbody) return;
+
+        const q = (document.getElementById('escrowSearchInput')?.value || '').trim().toLowerCase();
+        let items = window._escrowSalesData || [];
+
+        // Apply tab filter
+        if (window._currentEscrowFilter === 'due') {
+            items = items.filter(i => i.payout_due);
+        } else if (window._currentEscrowFilter === 'matured') {
+            items = items.filter(i => i.timer && i.timer.is_matured && i.status !== 'paid');
+        } else if (window._currentEscrowFilter === 'locked') {
+            items = items.filter(i => i.timer && !i.timer.is_matured && i.status !== 'paid');
+        } else if (window._currentEscrowFilter === 'paid') {
+            items = items.filter(i => i.status === 'paid');
+        }
+
+        // Apply search
+        if (q) {
+            items = items.filter(i => 
+                (i.doc_title || '').toLowerCase().includes(q) ||
+                (i.creator_name || '').toLowerCase().includes(q) ||
+                (i.creator_email || '').toLowerCase().includes(q) ||
+                (i.order_id || '').toLowerCase().includes(q) ||
+                (i.payment_details?.upi_id || '').toLowerCase().includes(q) ||
+                (i.payment_details?.account_number || '').toLowerCase().includes(q)
+            );
+        }
+
+        if (items.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">No creator sales match your filter.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = items.map(item => {
+            const t = item.timer || {};
+            const p = item.payment_details || {};
+            const f = item.financials || {
+                gross_sale: item.amount || 0,
+                admin_commission: 0,
+                commission_pct: 10,
+                tax_tds: 0,
+                net_payout: item.amount || 0
+            };
+
+            // Escrow & Timer status
+            let timerHtml = '';
+            let rowStyle = '';
+            if (item.status === 'paid') {
+                timerHtml = `<span class="badge badge-emerald"><i class="fas fa-circle-check"></i> Disbursed</span>`;
+            } else if (t.is_matured) {
+                rowStyle = 'background: rgba(239, 68, 68, 0.05); border-left: 3px solid #ef4444;';
+                timerHtml = `
+                    <span class="badge" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; font-weight:800; font-size:0.75rem;"><i class="fas fa-bolt"></i> T+9 OVER • DUE</span>
+                    <div style="font-size: 0.72rem; color: #10b981; margin-top: 0.25rem; font-weight: 700;">Ready for Disbursal</div>
+                `;
+            } else {
+                timerHtml = `
+                    <span class="badge badge-warn"><i class="fas fa-hourglass-half"></i> ${escapeHtml(t.timer_display)}</span>
+                    <div style="background: rgba(255,255,255,0.08); border-radius: 99px; height: 5px; width: 110px; margin: 0.35rem auto 0.2rem; overflow: hidden;">
+                        <div style="width: ${t.progress_pct || 10}%; height: 100%; background: #f59e0b; border-radius: 99px;"></div>
+                    </div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted);">Unlocks: ${escapeHtml(t.unlock_date || '')}</div>
+                `;
+            }
+
+            // Financial Breakdown: Gross Sale, Platform Commission, Tax TDS, Net Money
+            const finHtml = `
+                <div style="font-size: 0.78rem; line-height: 1.45;">
+                    <div style="display:flex; justify-content:space-between; gap:0.5rem; color:var(--text-muted);">
+                        <span><i class="fa-solid fa-receipt" style="color:#38bdf8; margin-right:4px;"></i> Sale Made:</span>
+                        <strong style="color:var(--text-primary);">₹${f.gross_sale.toFixed(2)}</strong>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; gap:0.5rem; color:#f59e0b;">
+                        <span><i class="fa-solid fa-percent" style="color:#f59e0b; margin-right:4px;"></i> Commission:</span>
+                        <span>-₹${f.admin_commission.toFixed(2)} <small>(${f.commission_pct}%)</small></span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; gap:0.5rem; color:#a5b4fc;">
+                        <span><i class="fa-solid fa-landmark" style="color:#a5b4fc; margin-right:4px;"></i> Tax (1% TDS):</span>
+                        <span>-₹${f.tax_tds.toFixed(2)}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; gap:0.5rem; border-top:1px dashed rgba(255,255,255,0.1); margin-top:0.3rem; padding-top:0.3rem;">
+                        <span style="font-weight:700; color:#34d399;"><i class="fa-solid fa-wallet" style="color:#10b981; margin-right:4px;"></i> Net Payout:</span>
+                        <strong style="font-size: 0.95rem; color: #10b981;">₹${f.net_payout.toFixed(2)}</strong>
+                    </div>
+                </div>
+            `;
+
+            // Payment Details (UPI / Bank Account) with 1-click copy buttons
+            let paymentDetailStr = '';
+            if (p.upi_id && p.upi_id.trim() !== '') {
+                paymentDetailStr += `
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; background: rgba(99, 102, 241, 0.08); padding: 4px 8px; border-radius: 6px; margin-bottom: 4px; border: 1px solid rgba(99, 102, 241, 0.2);">
+                        <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-primary);"><i class="fas fa-qrcode text-indigo-400"></i> UPI: <strong>${escapeHtml(p.upi_id)}</strong></span>
+                        <button type="button" class="btn-action btn-indigo" style="padding: 2px 7px; font-size: 0.7rem; border-radius: 4px;" onclick="copyToClipboard('${escapeHtml(p.upi_id)}', 'UPI ID')"><i class="fa-regular fa-copy"></i> Copy</button>
+                    </div>
+                `;
+            }
+            if (p.account_number && p.account_number.trim() !== '') {
+                paymentDetailStr += `
+                    <div style="background: rgba(14, 165, 233, 0.08); padding: 5px 8px; border-radius: 6px; border: 1px solid rgba(14, 165, 233, 0.2); font-size: 0.75rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                            <span style="color: var(--text-primary); font-weight: 700;"><i class="fas fa-building-columns text-sky-400"></i> A/C: <strong>${escapeHtml(p.account_number)}</strong></span>
+                            <button type="button" class="btn-action btn-indigo" style="padding: 2px 7px; font-size: 0.7rem; border-radius: 4px;" onclick="copyToClipboard('${escapeHtml(p.account_number)}', 'Account Number')"><i class="fa-regular fa-copy"></i> Copy A/C</button>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; color: var(--text-muted);">
+                            <span>IFSC: <strong style="color: var(--text-primary);">${escapeHtml(p.ifsc_code || 'N/A')}</strong></span>
+                            <button type="button" class="btn-action btn-indigo" style="padding: 1px 6px; font-size: 0.68rem; border-radius: 4px;" onclick="copyToClipboard('${escapeHtml(p.ifsc_code)}', 'IFSC Code')">Copy IFSC</button>
+                        </div>
+                        <div style="color: var(--text-secondary); margin-top: 2px; font-size: 0.72rem;">Bank: ${escapeHtml(p.bank_name || 'N/A')} • Name: ${escapeHtml(p.account_holder || 'N/A')}</div>
+                    </div>
+                `;
+            }
+            if (!paymentDetailStr) {
+                paymentDetailStr = `<div style="color: #f87171; font-size: 0.75rem;"><i class="fas fa-circle-exclamation"></i> No bank or UPI details submitted</div>`;
+            }
+
+            // PAN & Verification
+            let kycBadge = p.is_verified ? '<span class="badge badge-emerald" style="font-size:0.68rem;"><i class="fas fa-check-circle"></i> KYC Verified</span>' : '<span class="badge badge-warn" style="font-size:0.68rem;"><i class="fas fa-triangle-exclamation"></i> KYC Pending</span>';
+            let panHtml = p.pan_number ? `<span style="font-size:0.7rem; color:var(--text-muted); margin-left:4px;">PAN: <code>${escapeHtml(p.pan_number)}</code></span>` : '';
+
+            // Action Button
+            let actionHtml = '';
+            if (item.status === 'paid') {
+                actionHtml = `<span style="color: #34d399; font-weight: 700; font-size: 0.78rem;"><i class="fas fa-check-double"></i> Disbursed</span>`;
+            } else if (item.payout_due) {
+                actionHtml = `
+                    <button type="button" class="btn-action btn-emerald" style="padding: 5px 10px; font-size: 0.75rem; font-weight: 700; width: 100%;" onclick="disburseCreatorSale('${item.id}', '${escapeHtml(item.creator_name)}', ${f.net_payout})">
+                        <i class="fas fa-paper-plane"></i> Pay ₹${f.net_payout.toFixed(2)}
+                    </button>
+                `;
+            } else {
+                actionHtml = `<span style="color: var(--text-muted); font-size: 0.75rem;">In Escrow</span>`;
+            }
+
+            return `
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.06); ${rowStyle}">
+                    <td style="padding: 0.75rem;">
+                        <div style="font-weight: 700; color: var(--text-primary); font-size: 0.88rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(item.doc_title)}">
+                            <i class="fa-solid fa-file-pdf" style="color:#ef4444; margin-right:6px;"></i> ${escapeHtml(item.doc_title)}
+                        </div>
+                        <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 2px;">
+                            #${escapeHtml(item.order_id)} • ${escapeHtml(item.sale_date)}
+                        </div>
+                    </td>
+                    <td style="padding: 0.75rem;">
+                        <div style="font-weight: 600; color: var(--text-primary);">${escapeHtml(item.creator_name)}</div>
+                        <div style="font-size: 0.74rem; color: var(--text-muted);">${escapeHtml(item.creator_email)}</div>
+                        <div style="margin-top: 3px;">${kycBadge} ${panHtml}</div>
+                    </td>
+                    <td style="padding: 0.75rem; min-width: 170px;">
+                        ${finHtml}
+                    </td>
+                    <td style="padding: 0.75rem; text-align: center; min-width: 130px;">
+                        ${timerHtml}
+                    </td>
+                    <td style="padding: 0.75rem; min-width: 220px;">
+                        ${paymentDetailStr}
+                    </td>
+                    <td style="padding: 0.75rem; text-align: right; min-width: 110px;">
+                        ${actionHtml}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    window.loadAdminStats = function() {
+        if (typeof loadDashboardStats === 'function') loadDashboardStats();
+        loadEngagementIntelligence();
+        loadCreatorSalesEscrow();
+    };
 
     // 1. Load Overview Stats
     async function loadDashboardStats() {
@@ -1785,7 +2432,7 @@
                         <td><strong>${doc.title || 'Untitled'}</strong></td>
                         <td><span class="badge badge-blue">${doc.subject || doc.category}</span></td>
                         <td>${doc.views}</td>
-                        <td><span style="color: #34d399; font-weight: bold;">❤️ ${doc.likes}</span></td>
+                        <td><span style="color: #34d399; font-weight: bold;"><i class="fa-solid fa-heart" style="color:#ec4899; margin-right:4px;"></i> ${doc.likes}</span></td>
                         <td><span class="badge badge-loved">${doc.like_ratio}%</span></td>
                         <td><a href="/resource/${doc.id}" target="_blank" class="action-link">View ↗</a></td>
                     </tr>
@@ -1801,13 +2448,13 @@
                     <tr>
                         <td><strong>${doc.title || 'Untitled'}</strong></td>
                         <td>${doc.views}</td>
-                        <td><span style="color: #f87171;">💔 0</span></td>
+                        <td><span style="color: #f87171;"><i class="fa-solid fa-heart-crack" style="color:#f87171; margin-right:4px;"></i> 0</span></td>
                         <td><span class="badge badge-warn">${doc.status_note}</span></td>
                         <td><a href="/resource/${doc.id}" target="_blank" class="action-link">Inspect ↗</a></td>
                     </tr>
                 `).join('');
             } else {
-                underBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted)">No high-bounce items detected 🎉</td></tr>';
+                underBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted)"><i class="fa-solid fa-circle-check" style="color:#10b981; margin-right:6px;"></i> No high-bounce items detected</td></tr>';
             }
 
             // Unmet Search Table
@@ -1821,7 +2468,7 @@
                     </tr>
                 `).join('');
             } else {
-                unmetBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted)">All search queries found matches 🎉</td></tr>';
+                unmetBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted)"><i class="fa-solid fa-circle-check" style="color:#10b981; margin-right:6px;"></i> All search queries found matches</td></tr>';
             }
 
             // Live Feed
@@ -1829,7 +2476,7 @@
             if (data.live_feed && data.live_feed.length) {
                 feedBody.innerHTML = data.live_feed.map(f => `
                     <tr>
-                        <td><span class="badge badge-loved">❤️ ${f.type}</span></td>
+                        <td><span class="badge badge-loved"><i class="fa-solid fa-heart" style="color:#ec4899; margin-right:4px;"></i> ${f.type}</span></td>
                         <td>${f.title ? f.title.slice(0, 30) : 'Document'}</td>
                         <td>${f.timestamp ? f.timestamp.slice(11, 16) : 'Just now'}</td>
                     </tr>
@@ -2002,7 +2649,7 @@
                 container.innerHTML = `
                     <div style="text-align: center; padding: 4rem; color: var(--text-secondary);">
                         <i class="far fa-folder-open fa-3x" style="margin-bottom: 1rem; color: var(--text-muted);"></i>
-                        <p style="font-weight: 700; font-size: 1.1rem; color: var(--text-primary);">Moderation queue is all clear! 🎉</p>
+                        <p style="font-weight: 700; font-size: 1.1rem; color: var(--text-primary);"><i class="fa-solid fa-circle-check" style="color:#10b981; margin-right:6px;"></i> Moderation queue is all clear!</p>
                         <p style="font-size: 0.9rem; color: var(--text-secondary);">All uploaded question papers and notes have been reviewed.</p>
                     </div>
                 `;
@@ -2164,8 +2811,8 @@
                                 <div style="font-weight: 800; font-size: 1.05rem; margin-bottom: 2px;">${s.full_name || 'Student'}</div>
                                 <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 8px;">${s.degree || 'Engineering'}</div>
                                 <div style="display: flex; justify-content: center; gap: 8px; font-size: 0.8rem;">
-                                    <span class="badge badge-loved">⭐ ${s.abhihub_score || s.reputation_score || 0} XP</span>
-                                    <span class="badge badge-blue">🤝 ${s.students_helped || 0} Helped</span>
+                                    <span class="badge badge-loved"><i class="fa-solid fa-star" style="color:#fbbf24; margin-right:4px;"></i> ${s.abhihub_score || s.reputation_score || 0} XP</span>
+                                    <span class="badge badge-blue"><i class="fa-solid fa-users" style="color:#60a5fa; margin-right:4px;"></i> ${s.students_helped || 0} Helped</span>
                                 </div>
                             </div>
                         `;
@@ -2363,19 +3010,19 @@
                         kycBadge.className = "badge badge-loved";
                         kycBadge.style.background = "rgba(16, 185, 129, 0.2)";
                         kycBadge.style.color = "#34d399";
-                        kycBadge.textContent = "✓ Verified";
+                        kycBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> Verified';
                         if (kycActions) kycActions.style.display = "none";
                     } else if (k.rejection_reason) {
                         kycBadge.className = "badge badge-warn";
                         kycBadge.style.background = "rgba(244, 63, 94, 0.2)";
                         kycBadge.style.color = "#f43f5e";
-                        kycBadge.textContent = "✕ Rejected: " + k.rejection_reason;
+                        kycBadge.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Rejected: ' + adminEscapeHtml(k.rejection_reason);
                         if (kycActions) kycActions.style.display = "none";
                     } else {
                         kycBadge.className = "badge";
                         kycBadge.style.background = "rgba(245, 158, 11, 0.2)";
                         kycBadge.style.color = "#fbbf24";
-                        kycBadge.textContent = "⏳ Pending Review";
+                        kycBadge.innerHTML = '<i class="fa-solid fa-hourglass-half"></i> Pending Review';
                         if (kycActions) {
                             kycActions.style.display = "flex";
                             btnApproveKyc.onclick = () => submitKycUserAction(k.id, 'approve');
@@ -3273,6 +3920,8 @@
             if (activeTab && activeTab.id === "tab-overview") {
                 loadDashboardStats();
                 loadSentimentAnalytics();
+                loadEngagementIntelligence();
+                loadCreatorSalesEscrow();
             } else if (activeTab && activeTab.id === "tab-moderation") {
                 loadPendingDocuments();
             }

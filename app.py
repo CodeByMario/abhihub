@@ -1603,8 +1603,29 @@ def page_not_found(e):
         return render_resource_404(slug=request.path)
     return render_template('p_error.html', error="Page Not Found"), 404
 
+@app.errorhandler(413)
+def request_entity_too_large(e):
+    path = (request.path or '').lower()
+    if path.startswith('/api/') or path in ('/upload', '/upload-gate') or request.is_json or 'json' in request.headers.get('Accept', ''):
+        try:
+            from observability.alerts import report_critical_incident
+            report_critical_incident("Upload Payload Exceeded", f"File size exceeded maximum limit on {request.path}", route=request.path)
+        except Exception:
+            pass
+        return jsonify(success=False, error="Payload Too Large", message="File too large. Maximum size is 50MB"), 413
+    return render_template('p_error.html', error="File Too Large"), 413
+
+
 @app.errorhandler(500)
 def internal_server_error(e):
+    path = (request.path or '').lower()
+    if path.startswith('/api/') or path in ('/upload', '/upload-gate') or request.is_json or 'json' in request.headers.get('Accept', ''):
+        try:
+            from observability.alerts import report_critical_incident
+            report_critical_incident("Server 500 Error", f"Unhandled 500 error on {request.path}: {str(e)}", route=request.path)
+        except Exception:
+            pass
+        return jsonify(success=False, error="Internal Server Error", message=str(e)), 500
     return render_template('p_error.html', error="Internal Server Error"), 500
 
 

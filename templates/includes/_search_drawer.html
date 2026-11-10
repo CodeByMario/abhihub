@@ -65,12 +65,16 @@
     box-shadow: -12px 0 48px rgba(0, 0, 0, 0.65);
   }
 
-  /* ── Laptop / Desktop Docked Mode (30vw Right Dock, 70% App with Zero Reload) ── */
+  :root {
+    --search-drawer-w: clamp(380px, 28vw, 440px);
+  }
+
+  /* ── Laptop / Desktop Docked Mode (Seamless Right Dock, Zero Dead Space) ── */
   @media (min-width: 769px) {
     #abhiSearchDrawer {
-      width: 32vw !important;
-      min-width: 380px !important;
-      max-width: 480px !important;
+      width: var(--search-drawer-w) !important;
+      min-width: 0 !important;
+      max-width: 100vw !important;
       right: 0 !important;
       left: auto !important;
       top: 0 !important;
@@ -83,21 +87,21 @@
       transition: margin-left 0.28s cubic-bezier(0.16, 1, 0.3, 1), margin-right 0.28s cubic-bezier(0.16, 1, 0.3, 1), width 0.28s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    /* Single dock: Search takes right dock, app takes remaining width */
+    /* Single dock: Search takes right dock, app takes exact remaining width with ZERO gap */
     body.search-docked-open {
-      margin-right: 32vw !important;
-      width: 68vw !important;
-      max-width: 68vw !important;
+      margin-right: var(--search-drawer-w) !important;
+      width: calc(100vw - var(--search-drawer-w)) !important;
+      max-width: calc(100vw - var(--search-drawer-w)) !important;
       box-sizing: border-box !important;
       overflow-x: hidden !important;
     }
 
-    /* Dual dock: Tarika (30% left) + Search (32% right) + App in center */
+    /* Dual dock: Tarika (left) + Search (right) + App in center */
     body.tarika-docked-open.search-docked-open {
-      margin-left: 30vw !important;
-      margin-right: 32vw !important;
-      width: 38vw !important;
-      max-width: 38vw !important;
+      margin-left: var(--search-drawer-w) !important;
+      margin-right: var(--search-drawer-w) !important;
+      width: calc(100vw - (var(--search-drawer-w) * 2)) !important;
+      max-width: calc(100vw - (var(--search-drawer-w) * 2)) !important;
       box-sizing: border-box !important;
       overflow-x: hidden !important;
     }
@@ -119,16 +123,16 @@
     }
 
     body.search-docked-open:not(.tarika-docked-open) .navbar--bottom {
-      left: 34vw !important;
+      left: calc((100vw - var(--search-drawer-w)) / 2) !important;
       transform: translateX(-50%) !important;
-      max-width: calc(68vw - 2rem) !important;
+      max-width: calc(100vw - var(--search-drawer-w) - 2rem) !important;
       transition: left 0.28s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.28s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     body.tarika-docked-open.search-docked-open .navbar--bottom {
-      left: calc(30vw + 19vw) !important;
+      left: 50% !important;
       transform: translateX(-50%) !important;
-      max-width: calc(38vw - 1rem) !important;
+      max-width: calc(100vw - (var(--search-drawer-w) * 2) - 1rem) !important;
       transition: left 0.28s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.28s cubic-bezier(0.16, 1, 0.3, 1);
     }
 

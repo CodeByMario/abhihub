@@ -85,6 +85,48 @@ def get_channel_by_user_id(user_id: str):
         logger.error(f"[CHANNEL] get_channel_by_user_id error: {e}")
         return None
 
+def auto_index_channel(handle: str):
+    """
+    Automatically triggers search engine discovery (Google sitemap ping + IndexNow push)
+    for a new or updated creator channel in a background thread with zero latency impact.
+    """
+    import threading
+
+    def _worker():
+        try:
+            import os, requests
+            base_domain = os.getenv('BASE_DOMAIN', 'www.abhihub.edu.eu.org').strip().lower()
+            clean_h = sanitize_handle(handle)
+            if not clean_h:
+                return
+
+            channel_url = f"https://{base_domain}/c/{clean_h}"
+            sitemap_url = f"https://{base_domain}/sitemap-channels.xml"
+
+            # 1. Instant submission to IndexNow (Bing, Yandex, Seznam, Naver)
+            try:
+                from methods.seo_helper import submit_to_indexnow
+                submit_to_indexnow([channel_url])
+            except Exception as e_in:
+                logger.debug(f"[CHANNEL INDEX] IndexNow submit failed: {e_in}")
+
+            # 2. Ping Google and Bing with updated Channels Sitemap
+            headers = {"User-Agent": "Mozilla/5.0 (compatible; AbhiHub-Bot/1.0; +https://www.abhihub.edu.eu.org)"}
+            for ping_url in [
+                f"https://www.google.com/ping?sitemap={sitemap_url}",
+                f"https://www.bing.com/ping?sitemap={sitemap_url}"
+            ]:
+                try:
+                    requests.get(ping_url, headers=headers, timeout=5)
+                except Exception:
+                    pass
+
+            logger.info(f"[CHANNEL INDEX] Automatic search index ping completed for @{clean_h}")
+        except Exception as e:
+            logger.warning(f"[CHANNEL INDEX] Auto-index worker error for @{handle}: {e}")
+
+    threading.Thread(target=_worker, daemon=True).start()
+
 def save_user_channel(user_id: str, title: str, handle: str, bio: str = "",
                       avatar_url: str = "", banner_url: str = "", social_links: dict = None):
     """
@@ -132,6 +174,7 @@ def save_user_channel(user_id: str, title: str, handle: str, bio: str = "",
 
     try:
         _execute_with_schema_fallback(_upsert)
+        auto_index_channel(clean_handle)
         return True, clean_handle
     except Exception as e:
         logger.error(f"[CHANNEL] save_user_channel error: {e}")
@@ -463,6 +506,39 @@ PROSPECT_LEADS = {
 }
 ALL_LEADS = PROSPECT_LEADS
 
+
+def get_all_channel_handles():
+    """Returns unique handles and metadata for all channels (Supabase + Prospect leads) for Google sitemap indexing."""
+    handles_map = {}
+
+    # 1. Include prospect / seed leads
+    for h, lead in ALL_LEADS.items():
+        clean_h = sanitize_handle(h)
+        if clean_h:
+            handles_map[clean_h] = {
+                'handle': clean_h,
+                'updated_at': None
+            }
+
+    # 2. Include database channels
+    def _query(client):
+        return client.table('channels').select('handle, updated_at, created_at').execute().data or []
+
+    try:
+        db_channels = _execute_with_schema_fallback(_query) or []
+        for ch in db_channels:
+            h = sanitize_handle(ch.get('handle', ''))
+            if h:
+                handles_map[h] = {
+                    'handle': h,
+                    'updated_at': ch.get('updated_at') or ch.get('created_at')
+                }
+    except Exception as e:
+        logger.warning(f"[CHANNEL] get_all_channel_handles db error: {e}")
+
+    return list(handles_map.values())
+
+
 def fetch_youtube_branding(channel_url_or_handle: str) -> dict:
     """
     Extracts channel title, avatar, and banner directly from a YouTube public link or handle
@@ -544,3 +620,139 @@ def fetch_youtube_branding(channel_url_or_handle: str) -> dict:
     except Exception as e:
         logger.error(f"[YOUTUBE SCRAPE] Error extracting branding: {e}")
         return {"success": False, "error": str(e)}
+
+
+_OG_CACHE = {}
+
+def generate_channel_og_image(channel: dict) -> bytes:
+    """
+    Generates a 1200x630 pixel high-resolution OpenGraph preview image for social sharing
+    (WhatsApp, Twitter, LinkedIn, Telegram, Discord, Google) with official AbhiHub branding.
+    Includes in-memory caching to eliminate redundant render overhead.
+    """
+    handle = channel.get('handle') or 'creator'
+    cache_key = f"{handle}_{channel.get('title', '')}_{channel.get('avatar_url', '')}"
+    if cache_key in _OG_CACHE:
+        return _OG_CACHE[cache_key]
+
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+        import os, io, requests
+
+        w, h = 1200, 630
+        img = Image.new('RGB', (w, h), color='#080c14')
+        draw = ImageDraw.Draw(img)
+
+        # Subtle ambient background glows
+        for r in range(280, 0, -15):
+            alpha = int(12 * (1 - r / 280))
+            draw.ellipse([w - 200 - r, -100 - r, w - 200 + r, -100 + r], fill=(99, 102, 241, alpha))
+
+        for r in range(240, 0, -15):
+            alpha = int(10 * (1 - r / 240))
+            draw.ellipse([-80 - r, h - 80 - r, -80 + r, h - 80 + r], fill=(6, 182, 212, alpha))
+
+        # Card container & inner canvas
+        draw.rounded_rectangle([28, 28, w - 28, h - 28], radius=24, outline='#1e293b', width=2)
+        draw.rounded_rectangle([30, 30, w - 30, h - 30], radius=22, fill='#0d1322')
+
+        # Font resolution
+        font_bold = "C:\\Windows\\Fonts\\segoeuib.ttf" if os.path.exists("C:\\Windows\\Fonts\\segoeuib.ttf") else "C:\\Windows\\Fonts\\arialbd.ttf"
+        font_reg = "C:\\Windows\\Fonts\\segoeui.ttf" if os.path.exists("C:\\Windows\\Fonts\\segoeui.ttf") else "C:\\Windows\\Fonts\\arial.ttf"
+
+        f_brand = ImageFont.truetype(font_bold, 28) if os.path.exists(font_bold) else ImageFont.load_default()
+        f_badge = ImageFont.truetype(font_bold, 15) if os.path.exists(font_bold) else ImageFont.load_default()
+        f_title = ImageFont.truetype(font_bold, 44) if os.path.exists(font_bold) else ImageFont.load_default()
+        f_handle = ImageFont.truetype(font_bold, 24) if os.path.exists(font_bold) else ImageFont.load_default()
+        f_bio = ImageFont.truetype(font_reg, 22) if os.path.exists(font_reg) else ImageFont.load_default()
+        f_pill = ImageFont.truetype(font_bold, 16) if os.path.exists(font_bold) else ImageFont.load_default()
+        f_foot = ImageFont.truetype(font_reg, 16) if os.path.exists(font_reg) else ImageFont.load_default()
+        f_foot_bold = ImageFont.truetype(font_bold, 18) if os.path.exists(font_bold) else ImageFont.load_default()
+
+        # Top Header Branding
+        draw.text((70, 68), "AbhiHub", fill='#38bdf8', font=f_brand)
+        draw.text((188, 73), "CREATOR NETWORK", fill='#818cf8', font=f_badge)
+
+        # Verified Partner Badge
+        badge_text = "VERIFIED CAMPUS PARTNER"
+        draw.rounded_rectangle([w - 320, 65, w - 70, 102], radius=18, fill='#064e3b', outline='#10b981', width=1)
+        draw.text((w - 295, 74), badge_text, fill='#34d399', font=f_badge)
+
+        draw.line([70, 126, w - 70, 126], fill='#1e293b', width=1)
+
+        # Channel Avatar
+        avatar_size = 140
+        av_x, av_y = 70, 165
+        avatar_drawn = False
+        av_url = channel.get('avatar_url') or channel.get('avatar')
+        if av_url and av_url.startswith('http'):
+            try:
+                r = requests.get(av_url, timeout=3)
+                if r.status_code == 200:
+                    raw_av = Image.open(io.BytesIO(r.content)).convert('RGBA')
+                    raw_av = raw_av.resize((avatar_size, avatar_size), Image.Resampling.LANCZOS)
+                    mask = Image.new('L', (avatar_size, avatar_size), 0)
+                    mask_draw = ImageDraw.Draw(mask)
+                    mask_draw.ellipse((0, 0, avatar_size, avatar_size), fill=255)
+                    draw.ellipse([av_x - 4, av_y - 4, av_x + avatar_size + 4, av_y + avatar_size + 4], fill='#4f46e5')
+                    img.paste(raw_av, (av_x, av_y), mask)
+                    avatar_drawn = True
+            except Exception:
+                pass
+
+        if not avatar_drawn:
+            draw.ellipse([av_x, av_y, av_x + avatar_size, av_y + avatar_size], fill='#312e81', outline='#6366f1', width=3)
+            initial = (channel.get('title') or channel.get('handle') or 'A')[0].upper()
+            f_init = ImageFont.truetype(font_bold, 72) if os.path.exists(font_bold) else ImageFont.load_default()
+            draw.text((av_x + 48, av_y + 24), initial, fill='#ffffff', font=f_init)
+
+        # Channel Meta Info
+        text_x = av_x + avatar_size + 36
+        title = (channel.get('title') or 'Creator Channel')[:38]
+        draw.text((text_x, 168), title, fill='#ffffff', font=f_title)
+        draw.text((text_x, 230), f"@{handle}", fill='#818cf8', font=f_handle)
+
+        bio = (channel.get('bio') or 'Curated university lecture notes, exam roadmaps, and verified study resources.')[:120]
+        draw.text((text_x, 275), bio, fill='#94a3b8', font=f_bio)
+
+        # Feature Pills
+        pills = [
+            ("Verified University Notes", "#38bdf8", "#082f49"),
+            ("Solved PYQs & Papers", "#a855f7", "#3b0764"),
+            ("Free Student Access", "#10b981", "#022c22")
+        ]
+        px = text_x
+        py = 350
+        for ptext, pcolor, pbg in pills:
+            pw = len(ptext) * 10 + 26
+            draw.rounded_rectangle([px, py, px + pw, py + 38], radius=19, fill=pbg, outline=pcolor, width=1)
+            draw.text((px + 13, py + 8), ptext, fill=pcolor, font=f_pill)
+            px += pw + 14
+
+        draw.line([70, 480, w - 70, 480], fill='#1e293b', width=1)
+
+        # Footer Platform Branding
+        draw.text((70, 515), "AbhiHub", fill='#ffffff', font=f_foot_bold)
+        draw.text((156, 517), "— World's #1 PYQ & Notes Platform • Made in India", fill='#64748b', font=f_foot)
+        draw.text((70, 545), "Join thousands of campus creators & students studying smarter.", fill='#475569', font=f_foot)
+
+        # URL Capsule
+        url_text = f"www.abhihub.edu.eu.org/c/{handle}"
+        url_box_w = len(url_text) * 11 + 36
+        bx1 = w - 70 - url_box_w
+        draw.rounded_rectangle([bx1, 510, w - 70, 560], radius=16, fill='#1e293b', outline='#3b82f6', width=1)
+        draw.text((bx1 + 18, 523), url_text, fill='#60a5fa', font=f_foot_bold)
+
+        buf = io.BytesIO()
+        img.save(buf, format='PNG', optimize=True)
+        img_bytes = buf.getvalue()
+
+        # Cache result (keep up to 100 images)
+        if len(_OG_CACHE) > 100:
+            _OG_CACHE.clear()
+        _OG_CACHE[cache_key] = img_bytes
+        return img_bytes
+    except Exception as e:
+        logger.error(f"[CHANNEL OG] Error generating image: {e}")
+        # Return simple 1x1 fallback PNG on failure
+        return b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\nIDATx\x9cc`\x00\x00\x00\x02\x00\x01H\xaf\xa4q\x00\x00\x00\x00IEND\xaeB`\x82"

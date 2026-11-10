@@ -40,7 +40,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/app-shell-frame.css') }}?v=2026">
     <meta name="app-env" content="{{ 'developer' if (not IS_PRODUCTION or IS_DEVELOPER) else 'production' }}">
     <!-- Security Module: Blocks default browser right-click & DevTools, renders AbhiHub custom context menu -->
-    <script src="{{ url_for('static', filename='js/security.js') }}" data-env="{{ 'developer' if (not IS_PRODUCTION or IS_DEVELOPER) else 'production' }}"></script>
+    <script src="{{ url_for('static', filename='js/security.js') }}?v=20261110_v2" data-env="{{ 'developer' if (not IS_PRODUCTION or IS_DEVELOPER) else 'production' }}"></script>
+    <!-- Extension Shield: Detects extensions/adblockers and covers the app -->
+    <script src="{{ url_for('static', filename='js/extension-shield.js') }}?v=20261110_ext_v2"></script>
     <style>
         /* Critical responsive layout guards for Shell */
         .shell-desktop-nav { display: none !important; }

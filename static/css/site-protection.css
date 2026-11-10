@@ -64,3 +64,14 @@
     color: #fff;
     border-color: #0071e3;
 }
+
+@keyframes appleSpringUp {
+    0% {
+        opacity: 0;
+        transform: scale(0.94) translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}

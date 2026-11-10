@@ -142,6 +142,116 @@ def notify_administrators(incident: Dict, client=None) -> Dict:
     return {"success": failures == 0, "sent": sent, "failed": failures, "admins": len(admins)}
 
 
+def diagnose_service_health(feature: str = "upload") -> Dict:
+    """Check health and connectivity of all infrastructure services related to the feature."""
+    import time
+    health = {
+        "database": {"name": "Supabase DB", "status": "unknown"},
+        "cloud_storage": {"name": "Cloudinary", "status": "unknown"},
+        "api_keys": {"status": "ok", "configured": [], "missing": []}
+    }
+    required_keys = ["SUPABASE_URL", "SUPABASE_KEY"]
+    if feature in ("upload", "file_open"):
+        required_keys.extend(["CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET"])
+    for k in required_keys:
+        if os.getenv(k):
+            health["api_keys"]["configured"].append(k)
+        else:
+            health["api_keys"]["missing"].append(k)
+    if health["api_keys"]["missing"]:
+        health["api_keys"]["status"] = "missing_keys"
+
+    t0 = time.time()
+    try:
+        sb = _db()
+        if sb:
+            sb.table("profiles").select("id").limit(1).execute()
+            health["database"] = {"name": "Supabase DB", "status": "ok", "latency_ms": round((time.time() - t0) * 1000)}
+        else:
+            health["database"] = {"name": "Supabase DB", "status": "error", "error": "Client unavailable"}
+    except Exception as db_err:
+        health["database"] = {"name": "Supabase DB", "status": "error", "error": str(db_err)[:120], "latency_ms": round((time.time() - t0) * 1000)}
+
+    t0 = time.time()
+    try:
+        import cloudinary.api
+        cloudinary.api.ping()
+        health["cloud_storage"] = {"name": "Cloudinary", "status": "ok", "latency_ms": round((time.time() - t0) * 1000)}
+    except Exception as cld_err:
+        health["cloud_storage"] = {"name": "Cloudinary", "status": "error", "error": str(cld_err)[:120], "latency_ms": round((time.time() - t0) * 1000)}
+
+    return health
+
+
+def report_critical_incident(
+    name: str,
+    message: str,
+    route: str = "",
+    cause: Optional[str] = None,
+    account: Optional[Dict] = None,
+    feature: str = "upload",
+    metadata: Optional[Dict] = None
+) -> Dict:
+    """Record a detailed critical incident with root cause, affected account, and service health snapshot."""
+    try:
+        account_info = dict(account or {})
+        try:
+            from flask import session, request
+            if not account_info and session:
+                user = session.get("user") or {}
+                profile = session.get("profile") or {}
+                account_info = {
+                    "uid": user.get("uid") or user.get("id") or "anonymous",
+                    "email": user.get("email") or "unknown",
+                    "role": user.get("role") or profile.get("role") or "student"
+                }
+            if request and hasattr(request, "remote_addr") and "ip" not in account_info:
+                account_info["ip"] = request.remote_addr
+            if not route and request and hasattr(request, "path"):
+                route = request.path
+        except Exception:
+            pass
+
+        service_health = diagnose_service_health(feature)
+
+        detailed_report = {
+            "root_cause": cause or message,
+            "affected_account": account_info,
+            "feature": feature,
+            "service_health": service_health,
+            "route": route,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+
+        meta = dict(metadata or {})
+        meta["detailed_report"] = detailed_report
+
+        user_tag = account_info.get("email") or account_info.get("uid") or "anonymous"
+        db_st = service_health["database"]["status"]
+        st_st = service_health["cloud_storage"]["status"]
+        key_st = service_health["api_keys"]["status"]
+
+        full_message = (
+            f"{message} | Cause: {cause or 'Unknown'} | Account: {user_tag} "
+            f"| Health: DB={db_st}, Storage={st_st}, Keys={key_st}"
+        )[:2000]
+
+        incident_res = create_incident({
+            "name": name,
+            "severity": "critical",
+            "message": full_message,
+            "route": route,
+            "metadata": meta
+        })
+        if incident_res.get("success") and incident_res.get("incident"):
+            import threading
+            threading.Thread(target=notify_administrators, args=(incident_res["incident"],), daemon=True).start()
+        return incident_res
+    except Exception as exc:
+        log.error("report_critical_incident failed: %s", exc)
+        return {"success": False, "error": str(exc)}
+
+
 def list_incidents(status: Optional[str] = None, limit: int = 50, client=None) -> Dict:
     client = client or _db()
     if client is None:

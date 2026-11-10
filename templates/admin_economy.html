@@ -391,11 +391,11 @@
         body: JSON.stringify({ key, value })
       });
       const d = await r.json();
-      msg.textContent = d.success ? '✅ saved' : ('❌ ' + d.message);
+      msg.textContent = d.success ? '<i class="fa-solid fa-circle-check" style="color:#10b981;"></i> saved' : ('<i class="fa-solid fa-circle-xmark" style="color:#ef4444;"></i> ' + d.message);
       msg.style.color = d.success ? 'green' : 'red';
       if (d.success) showAdminToast(`Updated config for '${key}'`, 'success');
     } catch (err) {
-      msg.textContent = '❌ invalid JSON';
+      msg.textContent = '<i class="fa-solid fa-circle-xmark" style="color:#ef4444;"></i> invalid JSON';
       msg.style.color = 'red';
     }
   }
@@ -428,7 +428,7 @@
     const msg = document.getElementById('ov-msg');
     const inputVal = document.getElementById('ov-user').value.trim();
     if (!inputVal) {
-      msg.textContent = '❌ Please enter a user Email, Name, or UUID';
+      msg.textContent = '<i class="fa-solid fa-circle-xmark" style="color:#ef4444;"></i> Please enter a user Email, Name, or UUID';
       msg.style.color = 'red';
       return;
     }
@@ -438,11 +438,11 @@
         body: JSON.stringify({ access_level: document.getElementById('ov-level').value })
       });
       const d = await r.json();
-      msg.textContent = d.success ? '✅ applied' : ('❌ ' + (d.message || d.error));
+      msg.textContent = d.success ? '<i class="fa-solid fa-circle-check" style="color:#10b981;"></i> applied' : ('<i class="fa-solid fa-circle-xmark" style="color:#ef4444;"></i> ' + (d.message || d.error));
       msg.style.color = d.success ? 'green' : 'red';
       if (d.success) showAdminToast('User access level updated', 'success');
     } catch (err) {
-      msg.textContent = '❌ Network error';
+      msg.textContent = '<i class="fa-solid fa-circle-xmark" style="color:#ef4444;"></i> Network error';
       msg.style.color = 'red';
     }
   };
