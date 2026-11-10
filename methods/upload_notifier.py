@@ -69,7 +69,7 @@ def get_files_needing_notification() -> List[Dict]:
         return []
 
 
-def send_upload_notification(user_id: str, user_email: str, file_name: str, subject: str, doc_type: str) -> bool:
+def send_upload_notification(user_id: str, user_email: str, file_name: str, subject: str, doc_type: str, file_id: str = None) -> bool:
     """
     Send push notification to user about successful upload.
     
@@ -79,6 +79,7 @@ def send_upload_notification(user_id: str, user_email: str, file_name: str, subj
         file_name: Name of the uploaded file
         subject: Subject/topic of the file
         doc_type: Document type (Notes, PYQ, etc.)
+        file_id: Optional document UUID for direct resource deep-linking
     
     Returns:
         True if notification sent successfully, False otherwise
@@ -86,17 +87,17 @@ def send_upload_notification(user_id: str, user_email: str, file_name: str, subj
     try:
         from push_notifications import send_notification
         
-        # Create psychological notification message (curiosity loop & social proof)
-        title = "Your notes are live! 👀 First views rolling in..."
-        body = f"Students in your branch are preparing right now. Tap to see who views '{file_name}' first!"
-        url = "/dashboard"  # Redirect to dashboard
+        title = "AbhiHub · Document Published"
+        clean_name = str(file_name or 'study material')[:40]
+        body = f"Your {doc_type.lower() if doc_type else 'document'} '{clean_name}' is now live and accessible to students."
+        url = f"/resource/{file_id}" if file_id else "/dashboard"
         icon = "/static/images/android-chrome-192x192.png"
-        tag = "upload-success"
+        tag = f"upload-{file_id}" if file_id else "upload-published"
         
         logging.info("Sending upload notification (document_type=%s)", doc_type)
         
-        # Send notification
-        result = send_notification(user_id, title, body, url, icon, tag)
+        # Send notification with category='uploads'
+        result = send_notification(user_id, title, body, url, icon, tag, category="uploads")
         
         if result.get('success'):
             logging.info("✅ Upload notification sent successfully")
@@ -188,7 +189,7 @@ def process_upload_notifications() -> Dict:
         doc_type = file_record.get('document_type', 'File')
         
         # Send notification
-        success = send_upload_notification(user_id, user_email, file_name, subject, doc_type)
+        success = send_upload_notification(user_id, user_email, file_name, subject, doc_type, file_id=file_id)
         
         if success:
             # Mark as notified

@@ -16,42 +16,44 @@
     edge: {
       name: 'Microsoft Edge',
       steps: [
-        'Click the <strong>Extensions (🧩)</strong> puzzle icon in the top-right toolbar of Edge.',
-        'At the top of the extensions menu, turn <strong>OFF</strong> the switch: <strong>"Allow extensions on localhost:5000"</strong> (or on this site).',
-        'Or click the 3 dots (⋮) next to <strong>AdGuard</strong>, <strong>IDM</strong>, or active extensions &rarr; choose <em>"When you click the extension"</em>.',
-        'Click <strong>"Re-Check &amp; Unlock App"</strong> below to resume.'
+        'Click the <strong>Extensions</strong> icon in your browser toolbar.',
+        'Toggle <strong>"Allow extensions on this site"</strong> to <strong>OFF</strong>.',
+        'Or open extension permissions &rarr; set site access to <strong>"When you click the extension"</strong>.',
+        'Select <strong>"Verify &amp; Resume"</strong> below.'
       ]
     },
     chrome: {
       name: 'Google Chrome',
       steps: [
-        'Click the <strong>Extensions (🧩)</strong> icon in the top-right toolbar.',
-        'Click the 3 dots (⋮) next to your ad-blocker or extension &rarr; set <em>"When you click the extension"</em> or toggle <strong>OFF</strong>.',
-        'Or visit <code>chrome://extensions</code> to turn off extensions for this site.',
-        'Click <strong>"Re-Check &amp; Unlock App"</strong> below.'
+        'Click the <strong>Extensions</strong> icon in the top-right toolbar.',
+        'Click <strong>More actions (···)</strong> next to your active ad-blocker or extension.',
+        'Set site access to <strong>"When you click the extension"</strong> or toggle it <strong>OFF</strong>.',
+        'Select <strong>"Verify &amp; Resume"</strong> below.'
       ]
     },
     brave: {
-      name: 'Brave Browser',
+      name: 'Brave',
       steps: [
-        'Click the orange <strong>Brave Lion Shield (🦁)</strong> icon on the right side of the address bar.',
+        'Click the <strong>Brave Shields</strong> icon on the right side of the address bar.',
         'Toggle the top switch <strong>"Shields are UP for this site"</strong> to <strong>DOWN (OFF)</strong>.',
-        'Click <strong>"Re-Check &amp; Unlock App"</strong> below.'
+        'Select <strong>"Verify &amp; Resume"</strong> below.'
       ]
     },
     firefox: {
       name: 'Mozilla Firefox',
       steps: [
-        'Click the <strong>Shield (🛡️)</strong> icon to the left of the URL address bar.',
+        'Click the <strong>Shield</strong> icon to the left of the address bar.',
         'Toggle <strong>"Enhanced Tracking Protection"</strong> to <strong>OFF</strong> for this site.',
-        'Click <strong>"Re-Check &amp; Unlock App"</strong> below.'
+        'If using an ad-blocker, click its toolbar icon and pause protection for AbhiHub.',
+        'Select <strong>"Verify &amp; Resume"</strong> below.'
       ]
     },
     safari: {
-      name: 'Safari (Mac/iOS)',
+      name: 'Safari',
       steps: [
-        'Open Safari <strong>Settings &rarr; Extensions</strong> and uncheck active content blockers.',
-        'Click <strong>"Re-Check &amp; Unlock App"</strong> below.'
+        'On macOS: Navigate to <strong>Safari &rarr; Settings &rarr; Extensions</strong> and uncheck active blockers.',
+        'On iOS / iPadOS: Open device <strong>Settings &rarr; Safari &rarr; Extensions</strong> and turn blockers off.',
+        'Select <strong>"Verify &amp; Resume"</strong> below.'
       ]
     }
   };
@@ -148,73 +150,70 @@
 
     function renderBrowserGuideSteps(browserKey) {
       var guide = BROWSER_GUIDES[browserKey] || BROWSER_GUIDES.edge;
-      return '<ol style="margin: 0; padding-left: 1.35rem; font-size: 13.5px; line-height: 1.6; color: rgba(235, 235, 245, 0.85);">' +
+      return '<ol style="margin: 0; padding-left: 1.25rem;">' +
         guide.steps.map(function (step) {
-          return '<li style="margin-bottom: 0.5rem; letter-spacing: -0.01em;">' + step + '</li>';
+          return '<li style="margin-bottom: 0.5rem; color: #cbd5e1;">' + step + '</li>';
         }).join('') +
         '</ol>';
     }
 
     overlay.innerHTML = [
-      '<div style="max-width: 600px; width: 100%; background: rgba(28, 28, 30, 0.88); border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 28px; padding: 2.25rem 2.25rem 1.85rem; box-shadow: 0 35px 80px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08); text-align: left; animation: appleSpringUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);">',
-      '  <!-- Apple Hero Header -->',
-      '  <div style="display: flex; align-items: center; gap: 1.15rem; margin-bottom: 1.35rem;">',
-      '    <div style="width: 54px; height: 54px; border-radius: 17px; background: linear-gradient(135deg, rgba(255, 69, 58, 0.22), rgba(255, 159, 10, 0.18)); border: 1px solid rgba(255, 69, 58, 0.35); display: flex; align-items: center; justify-content: center; font-size: 1.65rem; color: #ff453a; flex-shrink: 0; box-shadow: 0 4px 16px rgba(255, 69, 58, 0.2);">',
-      '      🛡️',
+      '<div style="max-width: 560px; width: 100%; background: #0d121f; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; padding: 2rem 2.25rem; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6); text-align: left; box-sizing: border-box;">',
+      '  <!-- Header Status -->',
+      '  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; padding-bottom: 0.75rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">',
+      '    <div style="display: inline-flex; align-items: center; gap: 8px;">',
+      '      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+      '      <span style="font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #ef4444;">Security Verification</span>',
       '    </div>',
-      '    <div>',
-      '      <h2 style="margin: 0; font-size: 1.45rem; font-weight: 700; color: #f5f5f7; letter-spacing: -0.025em; line-height: 1.2;">Browser Extension Detected</h2>',
-      '      <div style="font-size: 12.5px; color: #ff453a; font-weight: 600; margin-top: 4px; letter-spacing: -0.01em; display: flex; align-items: center; gap: 5px;">',
-      '        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #ff453a;"></span> All platform operations paused',
-      '      </div>',
-      '    </div>',
+      '    <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">Environment Restricted</span>',
       '  </div>',
-      '  <!-- Apple Notice Box -->',
-      '  <div style="padding: 13px 18px; background: rgba(255, 69, 58, 0.09); border: 1px solid rgba(255, 69, 58, 0.22); border-radius: 16px; margin-bottom: 1.45rem; font-size: 13.5px; line-height: 1.55; color: rgba(245, 245, 247, 0.9); letter-spacing: -0.01em;">',
-      '    To safeguard study material copyrights, protect verified creator monetization, and prevent unauthorized automation, <strong>AbhiHub requires browser extensions (such as ad blockers, script injectors, and downloaders) to be disabled</strong> on this site.',
+      '  <!-- Headline & Policy -->',
+      '  <div style="margin-bottom: 1.6rem;">',
+      '    <h2 style="margin: 0 0 0.5rem 0; font-size: 1.28rem; font-weight: 700; color: #f8fafc; letter-spacing: -0.015em;">Browser Extension Detected</h2>',
+      '    <p style="margin: 0; font-size: 0.875rem; line-height: 1.6; color: #94a3b8;">',
+      '      To protect academic copyrights, verified creator monetization, and document integrity, AbhiHub requires active extensions (such as ad blockers, script injectors, and downloaders) to be disabled on this domain.',
+      '    </p>',
       '  </div>',
-      '  <!-- Guide Section -->',
-      '  <div style="margin-bottom: 1.5rem;">',
-      '    <div style="font-size: 11.5px; font-weight: 600; color: rgba(235, 235, 245, 0.6); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.65rem;">',
-      '      Instructions for your browser:',
+      '  <!-- Resolution Instructions -->',
+      '  <div style="margin-bottom: 1.75rem;">',
+      '    <div style="font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.75rem;">',
+      '      Disable for your browser',
       '    </div>',
-      '    <!-- Apple Segmented Control Tabs -->',
-      '    <div style="background: rgba(120, 120, 128, 0.24); border-radius: 980px; padding: 3px; display: inline-flex; gap: 2px; overflow-x: auto; max-width: 100%; margin-bottom: 0.95rem;">' +
+      '    <!-- Underline Tabs -->',
+      '    <div style="display: flex; gap: 0.25rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 1.1rem; overflow-x: auto;">' +
       Object.keys(BROWSER_GUIDES).map(function (key) {
         var isAct = key === defaultBrowser;
-        return '<button type="button" class="shield-browser-tab" data-browser="' + key + '" style="padding: 5px 14px; border-radius: 980px; font-size: 12.5px; font-weight: ' + (isAct ? '600' : '500') + '; cursor: pointer; border: none; background: ' + (isAct ? '#ffffff' : 'transparent') + '; color: ' + (isAct ? '#1d1d1f' : 'rgba(235, 235, 245, 0.75)') + '; box-shadow: ' + (isAct ? '0 3px 8px rgba(0,0,0,0.18)' : 'none') + '; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);">' +
+        return '<button type="button" class="shield-browser-tab" data-browser="' + key + '" style="padding: 0.45rem 0.85rem; font-size: 0.8rem; font-weight: ' + (isAct ? '600' : '500') + '; cursor: pointer; border: none; border-bottom: 2px solid ' + (isAct ? '#3b82f6' : 'transparent') + '; background: transparent; color: ' + (isAct ? '#ffffff' : '#94a3b8') + '; transition: all 0.15s ease; white-space: nowrap;">' +
           BROWSER_GUIDES[key].name +
           '</button>';
       }).join('') +
       '    </div>',
-      '    <!-- Steps Box -->',
-      '    <div id="shield-guide-steps" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 18px; padding: 18px 20px;">' +
+      '    <div id="shield-guide-steps" style="font-size: 0.86rem; line-height: 1.65; color: #cbd5e1;">' +
       renderBrowserGuideSteps(defaultBrowser) +
       '    </div>',
       '  </div>',
-      '  <!-- Apple Action Bar -->',
-      '  <div style="display: flex; gap: 10px; align-items: center; justify-content: flex-end; flex-wrap: wrap; margin-top: 1.6rem; padding-top: 1.15rem; border-top: 1px solid rgba(255, 255, 255, 0.09);">' +
-      '    <button type="button" id="shield-refresh-btn" style="height: 40px; padding: 0 18px; border-radius: 980px; font-size: 13.5px; font-weight: 500; cursor: pointer; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.07); color: #f5f5f7; transition: all 0.18s ease;">' +
-      '      Reload Page' +
-      '    </button>' +
-      '    <button type="button" id="shield-recheck-btn" style="height: 40px; padding: 0 22px; border-radius: 980px; font-size: 13.5px; font-weight: 600; cursor: pointer; border: none; background: #0071e3; color: #ffffff; box-shadow: 0 4px 14px rgba(0, 113, 227, 0.35); display: inline-flex; align-items: center; gap: 7px; transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);">' +
-      '      <span>🔄</span> Re-Check &amp; Unlock App' +
-      '    </button>' +
+      '  <!-- Action Bar -->',
+      '  <div style="display: flex; gap: 0.75rem; align-items: center; justify-content: flex-end; padding-top: 1.25rem; border-top: 1px solid rgba(255, 255, 255, 0.08);">',
+      '    <button type="button" id="shield-refresh-btn" style="padding: 0.55rem 1.1rem; border-radius: 6px; font-size: 0.84rem; font-weight: 500; cursor: pointer; border: 1px solid rgba(255, 255, 255, 0.15); background: transparent; color: #94a3b8; transition: all 0.15s ease;">',
+      '      Reload Page',
+      '    </button>',
+      '    <button type="button" id="shield-recheck-btn" style="padding: 0.55rem 1.35rem; border-radius: 6px; font-size: 0.84rem; font-weight: 600; cursor: pointer; border: none; background: #2563eb; color: #ffffff; display: inline-flex; align-items: center; gap: 6px; transition: background 0.15s ease;">',
+      '      Verify &amp; Resume',
+      '    </button>',
       '  </div>',
       '</div>'
-    ].join('\n');
+    ].join('
+');
 
     overlay.querySelectorAll('.shield-browser-tab').forEach(function (tab) {
       tab.addEventListener('click', function () {
         overlay.querySelectorAll('.shield-browser-tab').forEach(function (t) {
-          t.style.background = 'transparent';
-          t.style.color = 'rgba(235, 235, 245, 0.75)';
-          t.style.boxShadow = 'none';
+          t.style.borderBottom = '2px solid transparent';
+          t.style.color = '#94a3b8';
           t.style.fontWeight = '500';
         });
-        this.style.background = '#ffffff';
-        this.style.color = '#1d1d1f';
-        this.style.boxShadow = '0 3px 8px rgba(0,0,0,0.18)';
+        this.style.borderBottom = '2px solid #3b82f6';
+        this.style.color = '#ffffff';
         this.style.fontWeight = '600';
         var bKey = this.getAttribute('data-browser');
         var stepsEl = document.getElementById('shield-guide-steps');
@@ -232,15 +231,21 @@
     var recheckBtn = document.getElementById('shield-recheck-btn');
     if (recheckBtn) {
       recheckBtn.addEventListener('click', function () {
-        recheckBtn.innerHTML = '<span>⏳</span> Checking...';
+        recheckBtn.disabled = true;
+        recheckBtn.style.opacity = '0.7';
+        recheckBtn.innerText = 'Verifying environment...';
         setTimeout(function () {
           var isDetected = runExtensionCheck();
           if (!isDetected) {
             hideExtensionShield();
           } else {
-            recheckBtn.innerHTML = '<span>❌</span> Extension Still Active &bull; Re-Check';
+            recheckBtn.innerText = 'Extensions still active — Try again';
             setTimeout(function () {
-              if (recheckBtn) recheckBtn.innerHTML = '<span>🔄</span> Re-Check &amp; Unlock App';
+              if (recheckBtn) {
+                recheckBtn.disabled = false;
+                recheckBtn.style.opacity = '1';
+                recheckBtn.innerHTML = 'Verify &amp; Resume';
+              }
             }, 1800);
           }
         }, 120);

@@ -117,20 +117,32 @@
 
         // Highlight active tab in bottom nav
         const navItems = bottomNav ? bottomNav.querySelectorAll('.navbar__item') : [];
-        navItems.forEach(item => item.classList.remove('navbar__item--active'));
+        navItems.forEach(item => {
+            item.classList.remove('navbar__item--active');
+            item.removeAttribute('aria-current');
+        });
 
         // Highlight active tab in desktop header nav
         const desktopNav = document.getElementById('shellDesktopNav');
         const desktopLinks = desktopNav ? desktopNav.querySelectorAll('.shell-nav-link') : [];
-        desktopLinks.forEach(link => link.classList.remove('shell-nav-link--active'));
+        desktopLinks.forEach(link => {
+            link.classList.remove('shell-nav-link--active');
+            link.removeAttribute('aria-current');
+        });
 
         if (tab) {
             currentActiveTab = tab.id;
             const activeEl = bottomNav ? bottomNav.querySelector(tab.selector) : null;
-            if (activeEl) activeEl.classList.add('navbar__item--active');
+            if (activeEl) {
+                activeEl.classList.add('navbar__item--active');
+                activeEl.setAttribute('aria-current', 'page');
+            }
 
             const activeDesktopEl = desktopNav ? desktopNav.querySelector(tab.selector) : null;
-            if (activeDesktopEl) activeDesktopEl.classList.add('shell-nav-link--active');
+            if (activeDesktopEl) {
+                activeDesktopEl.classList.add('shell-nav-link--active');
+                activeDesktopEl.setAttribute('aria-current', 'page');
+            }
 
             // On a main tab: hide back button, show main logo
             if (headerEl) headerEl.classList.remove('has-back-nav');

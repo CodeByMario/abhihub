@@ -127,8 +127,9 @@
     navItems.forEach(item => {
       const page = item.dataset.page;
       if (
-        (page === 'home' && (currentPath === '/dashboard/' || currentPath === '/dashboard')) ||
-        (page === 'ranking' && currentPath.includes('rank')) ||
+        (page === 'home' && (currentPath === '/home' || currentPath === '/' || currentPath === '/dashboard/' || currentPath === '/dashboard')) ||
+        (page === 'ranking' && (currentPath.includes('rank') || currentPath.includes('leaderboard'))) ||
+        
         (page === 'settings' && (currentPath.includes('setting') || currentPath.includes('profile') || currentPath.includes('account'))) ||
         (page === 'creator-hub' && (currentPath.includes('creator') || currentPath.includes('channel'))) ||
         (page === 'upload' && (currentPath === '/upload' || currentPath === '/upload-gate')) ||

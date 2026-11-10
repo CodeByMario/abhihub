@@ -107,6 +107,26 @@ def test_push_send_unauthorized_for_non_admin(client):
         assert res.status_code == 403
 
 
+def test_push_send_fails_closed_when_admin_emails_empty(client):
+    with client.session_transaction() as sess:
+        sess["user"] = {
+            "uid": "regular-user-id",
+            "email": "student@example.com"
+        }
+    with patch("push_api.ADMIN_EMAILS", []):
+        res = client.post("/api/push/send", json={"title": "Spam", "body": "Bypassed?"})
+        assert res.status_code == 403
+
+
+def test_category_preference_opt_out_suppression():
+    from push_notifications import NotificationService
+    service = NotificationService.get_instance()
+    with patch.object(service, "get_notification_preferences", return_value={"push": True, "uploads": False}):
+        res = service.send_notification("test-user-id", "Test Title", "Test Body", category="uploads")
+        assert res.get("suppressed") is True
+        assert res.get("reason") == "category_preference_disabled"
+
+
 def test_push_send_authorized_for_admin(client):
     with client.session_transaction() as sess:
         sess["user"] = {

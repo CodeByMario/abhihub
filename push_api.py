@@ -105,6 +105,15 @@ def unsubscribe():
         endpoint = data.get('endpoint')
 
         if endpoint:
+            # Verify endpoint ownership before deletion
+            client = init_supabase()
+            if client and user_id:
+                try:
+                    chk = client.table('push_subscriptions').select('user_id').eq('endpoint', endpoint).limit(1).execute()
+                    if chk.data and str(chk.data[0].get('user_id')) != str(user_id):
+                        return jsonify({'error': 'Forbidden: You do not own this subscription endpoint'}), 403
+                except Exception as chk_err:
+                    logging.warning(f"[PUSH_API] ownership check error: {chk_err}")
             success = remove_subscription_by_endpoint(endpoint)
         else:
             success = remove_subscription(user_id or user_email)
@@ -152,8 +161,14 @@ def send():
         user = session.get('user', {})
         user_email = (user.get('email') or '').lower()
 
-        # Check Admin authorization
-        if not user_email or (ADMIN_EMAILS and user_email not in ADMIN_EMAILS):
+        # Check Admin authorization (strict fail-closed)
+        is_admin = False
+        try:
+            from routes.auth import is_admin_user
+            is_admin = is_admin_user(user)
+        except Exception:
+            pass
+        if not is_admin and (not user_email or not ADMIN_EMAILS or user_email not in ADMIN_EMAILS):
             return jsonify({'error': 'Unauthorized: Admin privileges required'}), 403
 
         from push_notifications import send_notification_to_all

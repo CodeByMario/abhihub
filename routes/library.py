@@ -588,6 +588,44 @@ def render_resource_404(slug=None, doc_id=None, is_unapproved=False):
     ), 404
 
 
+@library_bp.route('/api/og/resource/<doc_id>.png')
+@library_bp.route('/api/og/resource/<doc_id>')
+def resource_og_image(doc_id):
+    """Dynamic 1200x630 OG image generation for resources."""
+    import app
+    from methods.resource_og import generate_resource_og_image
+    cache = getattr(app, 'cache', None)
+    doc_res = None
+    if cache and not current_app.config.get('TESTING'):
+        doc_res = cache.get_cached(f"doc_rich:{doc_id}", level=cache.L1, ttl=300)
+    if not doc_res:
+        document_loader = getattr(app, 'get_document_by_id_rich', get_document_by_id_rich)
+        doc_res = document_loader(doc_id)
+        if doc_res and doc_res.get('success') and cache:
+            cache.set_cached(f"doc_rich:{doc_id}", doc_res, ttl=300)
+
+    doc = doc_res.get('data', {}) if doc_res and doc_res.get('success') else {}
+    subj = doc.get('subject') or {}
+    coll = doc.get('college') or {}
+    up = doc.get('uploader') or {}
+
+    img_data = {
+        'id': doc_id,
+        'title': doc.get('title') or 'Study Material',
+        'subject': subj.get('name') if isinstance(subj, dict) else (doc.get('subject_name') or 'Engineering'),
+        'author': up.get('full_name') if isinstance(up, dict) else (doc.get('uploader_name') or 'AbhiHub Member'),
+        'semester': str(doc.get('semester') or doc.get('semester_code') or 'All Semesters'),
+        'category': doc.get('document_category') or doc.get('file_type') or 'Notes',
+        'college': coll.get('name') if isinstance(coll, dict) else (doc.get('college_name') or 'AbhiHub')
+    }
+
+    img_bytes = generate_resource_og_image(img_data)
+    resp = make_response(img_bytes)
+    resp.headers['Content-Type'] = 'image/png'
+    resp.headers['Cache-Control'] = 'public, max-age=86400, stale-while-revalidate=604800'
+    return resp
+
+
 @library_bp.route('/resource/<path:slug>')
 @library_bp.route('/resources/<path:slug>')
 def resource_landing(slug):

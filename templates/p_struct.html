@@ -257,7 +257,7 @@
             if (isEmbedded) {
                 document.documentElement.classList.add('app-shell-embedded');
                 if (window.location.pathname.startsWith('/app-shell')) {
-                    var p = new URLSearchParams(window.location.search).get('p') || '/dashboard';
+                    var p = new URLSearchParams(window.location.search).get('p') || '/home';
                     window.location.replace(p);
                     return;
                 }
@@ -277,7 +277,7 @@
                     var skipPatterns = [/^\/app-shell/, /^\/login/, /^\/signup/, /^\/logout/, /^\/auth/, /^\/reset-password/, /^\/reset-password-confirm/, /^\/offline/, /^\/api\//, /^\/(about|terms|privacy|contact)?$/, /^\/($|landing(\/|$))/];
                     var shouldSkip = skipPatterns.some(function(re) { return re.test(path); });
                     if (!shouldSkip) {
-                        var tabPatterns = [/^\/dashboard/, /^\/upload/, /^\/leaderboard/, /^\/rank/, /^\/profile/, /^\/account/, /^\/creator/, /^\/store-room/, /^\/admin/, /^\/settings/, /^\/setting/, /^\/chat/, /^\/pdf-reader/, /^\/preview/, /^\/notifications/];
+                        var tabPatterns = [/^\/home/, /^\/dashboard/, /^\/upload/, /^\/leaderboard/, /^\/rank/, /^\/profile/, /^\/account/, /^\/creator/, /^\/store-room/, /^\/admin/, /^\/settings/, /^\/setting/, /^\/chat/, /^\/pdf-reader/, /^\/preview/, /^\/notifications/];
                         var isTabOrChild = tabPatterns.some(function(re) { return re.test(path); });
                         if (isTabOrChild) {
                             var currentPath = window.location.pathname + window.location.search + window.location.hash;
@@ -538,7 +538,7 @@
                         <circle cx="11" cy="11" r="8"></circle>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                     </svg>
-                </a>
+                </button>
 
                 <!-- Theme Toggle Button -->
                 <button type="button" class="theme-toggle-nav-btn ap-nav-icon-btn" onclick="toggleGlobalTheme()" aria-label="Toggle light and dark theme" title="Toggle theme">

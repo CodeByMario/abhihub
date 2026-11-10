@@ -686,7 +686,7 @@ class PaymentEngine:
             from push_notifications import send_notification_to_user
             send_notification_to_user(
                 user_id=user_id,
-                title='Payout Requested 💸',
+                title='AbhiHub · Payout Requested',
                 body=f'₹{amount:.2f} payout request submitted. Expected within {PAYOUT_SLA_DAYS} business days.',
             )
         except Exception as e:

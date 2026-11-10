@@ -570,46 +570,44 @@
       edge: {
         name: 'Microsoft Edge',
         steps: [
-          'Click the <strong>Extensions (🧩)</strong> puzzle icon in your top-right browser toolbar.',
-          'At the very top of the popup, toggle <strong>"Allow extensions on this site"</strong> (or on <code>localhost:5000</code>) to <strong>OFF</strong>.',
-          'Or click the 3 dots (⋮) next to <strong>AdGuard</strong>, <strong>IDM</strong>, or active extensions &rarr; <em>"This can read and change site data"</em> &rarr; <strong>"When you click the extension"</strong>.',
-          'Click <strong>"Re-Check & Unlock App"</strong> below to resume.'
+          'Click the <strong>Extensions</strong> icon in your browser toolbar.',
+          'Toggle <strong>"Allow extensions on this site"</strong> to <strong>OFF</strong>.',
+          'Or open extension permissions &rarr; set site access to <strong>"When you click the extension"</strong>.',
+          'Select <strong>"Verify &amp; Resume"</strong> below.'
         ]
       },
       chrome: {
         name: 'Google Chrome',
         steps: [
-          'Click the <strong>Extensions (Puzzle 🧩)</strong> icon in the top-right toolbar.',
-          'Click the <strong>3 dots (⋮)</strong> next to your ad-blocker, IDM, or extension.',
-          'Select <strong>"When you click the extension"</strong> or toggle the extension <strong>OFF</strong>.',
-          'Or visit <code>chrome://extensions</code> to turn off extensions for this site.',
-          'Click <strong>"Re-Check & Unlock App"</strong> below.'
+          'Click the <strong>Extensions</strong> icon in the top-right toolbar.',
+          'Click <strong>More actions (···)</strong> next to your active ad-blocker or extension.',
+          'Set site access to <strong>"When you click the extension"</strong> or toggle it <strong>OFF</strong>.',
+          'Select <strong>"Verify &amp; Resume"</strong> below.'
         ]
       },
       brave: {
-        name: 'Brave Browser',
+        name: 'Brave',
         steps: [
-          'Click the orange <strong>Brave Lion Shield (🦁)</strong> icon on the right side of the address bar.',
+          'Click the <strong>Brave Shields</strong> icon on the right side of the address bar.',
           'Toggle the top switch <strong>"Shields are UP for this site"</strong> to <strong>DOWN (OFF)</strong>.',
-          'Brave will automatically allow normal script execution for AbhiHub.',
-          'Click <strong>"Re-Check & Unlock App"</strong> below.'
+          'Select <strong>"Verify &amp; Resume"</strong> below.'
         ]
       },
       firefox: {
         name: 'Mozilla Firefox',
         steps: [
-          'Click the <strong>Shield (🛡️)</strong> icon to the left of the URL address bar.',
+          'Click the <strong>Shield</strong> icon to the left of the address bar.',
           'Toggle <strong>"Enhanced Tracking Protection"</strong> to <strong>OFF</strong> for this site.',
-          'If using uBlock/AdBlock, click its icon and click the large power button to pause on AbhiHub.',
-          'Click <strong>"Re-Check & Unlock App"</strong> below.'
+          'If using an ad-blocker, click its toolbar icon and pause protection for AbhiHub.',
+          'Select <strong>"Verify &amp; Resume"</strong> below.'
         ]
       },
       safari: {
-        name: 'Safari (Mac/iOS)',
+        name: 'Safari',
         steps: [
-          'On Mac: Open <strong>Safari Settings (Preferences) &rarr; Extensions</strong> and uncheck blockers.',
-          'On iPhone/iPad: Open iOS <strong>Settings &rarr; Safari &rarr; Extensions</strong> and toggle off.',
-          'Click <strong>"Re-Check & Unlock App"</strong> below.'
+          'On macOS: Navigate to <strong>Safari &rarr; Settings &rarr; Extensions</strong> and uncheck active blockers.',
+          'On iOS / iPadOS: Open device <strong>Settings &rarr; Safari &rarr; Extensions</strong> and turn blockers off.',
+          'Select <strong>"Verify &amp; Resume"</strong> below.'
         ]
       }
     };
@@ -692,51 +690,60 @@
         const guide = BROWSER_GUIDES[browserKey] || BROWSER_GUIDES.edge;
         return `
           <ol style="margin: 0; padding-left: 1.25rem;">
-            ${guide.steps.map(step => `<li style="margin-bottom: 0.45rem;">${step}</li>`).join('')}
+            ${guide.steps.map(step => `<li style="margin-bottom: 0.5rem; color: #cbd5e1;">${step}</li>`).join('')}
           </ol>
         `;
       }
 
       overlay.innerHTML = `
-        <div style="max-width: 620px; width: 100%; background: #1e293b; border: 1.5px solid rgba(239, 68, 68, 0.4); border-radius: 20px; padding: 2rem; box-shadow: 0 25px 60px rgba(0,0,0,0.65); text-align: left;">
-          <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem;">
-            <div style="width: 52px; height: 52px; border-radius: 14px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); display: flex; align-items: center; justify-content: center; font-size: 1.7rem; color: #f87171; flex-shrink: 0;">
-              🛡️
+        <div style="max-width: 560px; width: 100%; background: #0d121f; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; padding: 2rem 2.25rem; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6); text-align: left; box-sizing: border-box;">
+          
+          <!-- Header Status -->
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; padding-bottom: 0.75rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+            <div style="display: inline-flex; align-items: center; gap: 8px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              <span style="font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #ef4444;">Security Verification</span>
             </div>
-            <div>
-              <h2 style="margin: 0; font-size: 1.35rem; font-weight: 800; color: #f8fafc; letter-spacing: -0.02em;">Browser Extension Detected</h2>
-              <div style="font-size: 0.8rem; color: #f87171; font-weight: 700; margin-top: 3px;">All platform operations paused</div>
-            </div>
+            <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">Environment Restricted</span>
           </div>
 
-          <div style="padding: 0.85rem 1rem; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 12px; margin-bottom: 1.25rem; font-size: 0.86rem; line-height: 1.55; color: #e2e8f0;">
-            To ensure document security, protect verified student creators, and prevent unauthorized automation, <strong>AbhiHub requires browser extensions (such as ad blockers, script injectors, and downloaders) to be disabled</strong> on this domain.
+          <!-- Headline & Policy -->
+          <div style="margin-bottom: 1.6rem;">
+            <h2 style="margin: 0 0 0.5rem 0; font-size: 1.28rem; font-weight: 700; color: #f8fafc; letter-spacing: -0.015em;">Browser Extension Detected</h2>
+            <p style="margin: 0; font-size: 0.875rem; line-height: 1.6; color: #94a3b8;">
+              To protect academic copyrights, verified creator monetization, and document integrity, AbhiHub requires active extensions (such as ad blockers, script injectors, and downloaders) to be disabled on this domain.
+            </p>
           </div>
 
-          <div style="margin-bottom: 1.25rem;">
-            <div style="font-size: 0.78rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">
-              Step-by-Step Guide to Disable Extensions:
+          <!-- Resolution Instructions -->
+          <div style="margin-bottom: 1.75rem;">
+            <div style="font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.75rem;">
+              Disable for your browser
             </div>
 
-            <div style="display: flex; gap: 0.4rem; overflow-x: auto; padding-bottom: 0.4rem; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 0.85rem;">
+            <!-- Underline Tabs -->
+            <div style="display: flex; gap: 0.25rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 1.1rem; overflow-x: auto;">
               ${Object.keys(BROWSER_GUIDES).map(key => `
-                <button type="button" class="shield-browser-tab" data-browser="${key}" style="padding: 5px 12px; border-radius: 8px; font-size: 0.78rem; font-weight: 600; cursor: pointer; border: 1px solid ${key === defaultBrowser ? '#3b82f6' : 'rgba(255,255,255,0.1)'}; background: ${key === defaultBrowser ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255,255,255,0.04)'}; color: ${key === defaultBrowser ? '#60a5fa' : '#94a3b8'}; transition: all 0.15s ease;">
+                <button type="button" class="shield-browser-tab" data-browser="${key}" style="padding: 0.45rem 0.85rem; font-size: 0.8rem; font-weight: ${key === defaultBrowser ? '600' : '500'}; cursor: pointer; border: none; border-bottom: 2px solid ${key === defaultBrowser ? '#3b82f6' : 'transparent'}; background: transparent; color: ${key === defaultBrowser ? '#ffffff' : '#94a3b8'}; transition: all 0.15s ease; white-space: nowrap;">
                   ${BROWSER_GUIDES[key].name}
                 </button>
               `).join('')}
             </div>
 
-            <div id="shield-guide-steps" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 1rem; font-size: 0.84rem; line-height: 1.6; color: #cbd5e1;">
+            <div id="shield-guide-steps" style="font-size: 0.86rem; line-height: 1.65; color: #cbd5e1;">
               ${renderBrowserGuideSteps(defaultBrowser)}
             </div>
           </div>
 
-          <div style="display: flex; gap: 0.75rem; align-items: center; justify-content: flex-end; flex-wrap: wrap; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.08);">
-            <button type="button" id="shield-refresh-btn" style="padding: 0.65rem 1.1rem; border-radius: 10px; font-size: 0.84rem; font-weight: 600; cursor: pointer; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: #cbd5e1;">
+          <!-- Action Bar -->
+          <div style="display: flex; gap: 0.75rem; align-items: center; justify-content: flex-end; padding-top: 1.25rem; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+            <button type="button" id="shield-refresh-btn" style="padding: 0.55rem 1.1rem; border-radius: 6px; font-size: 0.84rem; font-weight: 500; cursor: pointer; border: 1px solid rgba(255, 255, 255, 0.15); background: transparent; color: #94a3b8; transition: all 0.15s ease;">
               Reload Page
             </button>
-            <button type="button" id="shield-recheck-btn" style="padding: 0.65rem 1.4rem; border-radius: 10px; font-size: 0.85rem; font-weight: 700; cursor: pointer; border: none; background: #2563eb; color: #ffffff; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4); display: flex; align-items: center; gap: 6px;">
-              <span>🔄</span> Re-Check &amp; Unlock App
+            <button type="button" id="shield-recheck-btn" style="padding: 0.55rem 1.35rem; border-radius: 6px; font-size: 0.84rem; font-weight: 600; cursor: pointer; border: none; background: #2563eb; color: #ffffff; display: inline-flex; align-items: center; gap: 6px; transition: background 0.15s ease;">
+              Verify &amp; Resume
             </button>
           </div>
         </div>
@@ -745,13 +752,13 @@
       overlay.querySelectorAll('.shield-browser-tab').forEach(tab => {
         tab.addEventListener('click', function() {
           overlay.querySelectorAll('.shield-browser-tab').forEach(t => {
-            t.style.border = '1px solid rgba(255,255,255,0.1)';
-            t.style.background = 'rgba(255,255,255,0.04)';
+            t.style.borderBottom = '2px solid transparent';
             t.style.color = '#94a3b8';
+            t.style.fontWeight = '500';
           });
-          this.style.border = '1px solid #3b82f6';
-          this.style.background = 'rgba(59, 130, 246, 0.2)';
-          this.style.color = '#60a5fa';
+          this.style.borderBottom = '2px solid #3b82f6';
+          this.style.color = '#ffffff';
+          this.style.fontWeight = '600';
           const bKey = this.getAttribute('data-browser');
           const stepsEl = document.getElementById('shield-guide-steps');
           if (stepsEl) stepsEl.innerHTML = renderBrowserGuideSteps(bKey);
@@ -763,14 +770,20 @@
 
       const recheckBtn = document.getElementById('shield-recheck-btn');
       if (recheckBtn) recheckBtn.addEventListener('click', async () => {
-        recheckBtn.innerHTML = '<span>⏳</span> Checking...';
+        recheckBtn.disabled = true;
+        recheckBtn.style.opacity = '0.7';
+        recheckBtn.innerText = 'Verifying environment...';
         const detected = await runExtensionCheck();
         if (!detected) {
           hideExtensionShield();
         } else {
-          recheckBtn.innerHTML = '<span>❌</span> Extension Still Active &bull; Re-Check';
+          recheckBtn.innerText = 'Extensions still active — Try again';
           setTimeout(() => {
-            if (recheckBtn) recheckBtn.innerHTML = '<span>🔄</span> Re-Check &amp; Unlock App';
+            if (recheckBtn) {
+              recheckBtn.disabled = false;
+              recheckBtn.style.opacity = '1';
+              recheckBtn.innerHTML = 'Verify &amp; Resume';
+            }
           }, 2000);
         }
       });

@@ -271,6 +271,21 @@ main {
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
+/* WCAG 2.2 AA / Apple HIG min 44x44px touch hit target */
+.ap-nav-icon-btn::after,
+#headerSearchBtn::after,
+#notifBell::after,
+.theme-toggle-nav-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+    pointer-events: auto;
+}
+
 .ap-nav-icon-btn svg,
 #headerSearchBtn svg,
 #notifBell svg,

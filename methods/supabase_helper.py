@@ -2838,7 +2838,7 @@ def notify_all_new_upload(doc_id: str, title: str, uploader_id: str = None, subj
         clean_title = clean_title[:57] + "..."
     
     action_url = f"/resource/{doc_id}"
-    notif_title = "📄 New File Uploaded!"
+    notif_title = "AbhiHub · New File Uploaded"
     notif_message = f'"{clean_title}" was just uploaded for {subject}. Tap to open and view.' if subject else f'"{clean_title}" was just uploaded. Tap to open and view.'
 
     # 1. In-App Notifications: Insert for all registered profiles in batches
@@ -2888,18 +2888,8 @@ def notify_all_new_upload(doc_id: str, title: str, uploader_id: str = None, subj
             type(e).__name__,
         )
 
-    # 2. Web Push Notification: Send to all push subscribers
-    try:
-        from push_notifications import send_notification_to_all
-        send_notification_to_all(
-            title=notif_title,
-            body=notif_message,
-            url=action_url,
-            icon="/static/images/android-chrome-192x192.png",
-            tag=f"doc-{doc_id}"
-        )
-    except Exception as e:
-        logging.error(f"[NOTIFY_UPLOAD] Failed to send web push broadcast: {e}")
+    # 2. Web Push Notification: Avoid platform-wide broadcast flooding for single uploads.
+    # Targeted in-app notifications are retained for enrolled students above.
 
 
 def save_file_access(user_email: str, file_name: str, file_type: str = 'pdf', file_path: str = '', file_url: str = '', record_id: str = None) -> Dict:

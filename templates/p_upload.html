@@ -107,6 +107,7 @@
               <span class="preview-status-tag" id="compressionSavingsTag">Ready to upload</span>
             </div>
           </div>
+          <button type="button" class="apple-change-btn" id="editFrontBtn" onclick="openImageEditor('front')" style="display: none; background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; margin-right: 0.4rem;" title="Crop or rotate front page">Crop / Rotate</button>
           <button type="button" class="apple-change-btn" id="changeFileBtn" title="Choose a different file">Change</button>
         </div>
 
@@ -117,22 +118,63 @@
             <span>This paper has a back side (Merge both sides side-by-side)</span>
           </label>
           <div id="backSideUploadArea" style="display: none; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #e2e8f0;">
-            <div id="backSideDropZone" style="border: 1px dashed #94a3b8; border-radius: 8px; padding: 0.75rem; text-align: center; cursor: pointer; background: #ffffff;" onclick="document.getElementById('backSideInput').click()">
+            <div id="backSideDropZone" style="border: 1px dashed #94a3b8; border-radius: 8px; padding: 0.75rem; text-align: center; background: #ffffff;">
               <input type="file" id="backSideInput" accept="image/*" style="display: none;" onchange="handleBackSideFileSelected(this)">
-              <div id="backSideEmptyPrompt" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; color: #64748b; font-size: 0.82rem;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                <span>Click to select or capture back side image</span>
+              <input type="file" id="backSideCameraInput" accept="image/*" capture="environment" style="display: none;" onchange="handleBackSideFileSelected(this)">
+              
+              <div id="backSideEmptyPrompt" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; color: #64748b; font-size: 0.82rem;">
+                <div style="font-weight: 600; color: #334155;">Capture or select Page 2 (Back Side):</div>
+                <div style="display: flex; gap: 0.6rem; margin-top: 0.25rem;">
+                  <button type="button" onclick="document.getElementById('backSideCameraInput').click()" class="scan-btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; border-radius: 8px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    <span>Camera / Scan</span>
+                  </button>
+                  <button type="button" onclick="document.getElementById('backSideInput').click()" class="scan-btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; border-radius: 8px; background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                    <span>Browse Files</span>
+                  </button>
+                </div>
               </div>
+              
               <div id="backSideSelectedInfo" style="display: none; align-items: center; justify-content: space-between; text-align: left;">
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                  <span style="font-size: 0.72rem; font-weight: 700; background: #e0e7ff; color: #4338ca; padding: 2px 6px; border-radius: 4px;">BACK</span>
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                  <span style="font-size: 0.72rem; font-weight: 700; background: #e0e7ff; color: #4338ca; padding: 2px 6px; border-radius: 4px;">PAGE 2: BACK</span>
                   <span id="backSideFileName" style="font-size: 0.82rem; font-weight: 500; color: #334155;">image.jpg</span>
                 </div>
-                <button type="button" onclick="event.stopPropagation(); removeBackSideFile();" style="border: none; background: #fee2e2; color: #dc2626; font-size: 0.75rem; padding: 3px 8px; border-radius: 6px; cursor: pointer;">Remove</button>
+                <div style="display: flex; gap: 0.4rem;">
+                  <button type="button" id="editBackBtn" onclick="openImageEditor('back')" style="border: 1px solid #c7d2fe; background: #e0e7ff; color: #4338ca; font-size: 0.75rem; padding: 3px 8px; border-radius: 6px; cursor: pointer;">Crop / Rotate</button>
+                  <button type="button" onclick="removeBackSideFile()" style="border: none; background: #fee2e2; color: #dc2626; font-size: 0.75rem; padding: 3px 8px; border-radius: 6px; cursor: pointer;">Remove</button>
+                </div>
               </div>
             </div>
+
+            <!-- Live Combined Output Preview Card -->
+            <div id="combinedOutputPreview" style="display: none; margin-top: 0.75rem; padding: 0.75rem; border: 1px solid #bbf7d0; background: #f0fdf4; border-radius: 10px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="display: inline-block; width: 8px; height: 8px; background: #16a34a; border-radius: 50%;"></span>
+                  <span style="font-size: 0.82rem; font-weight: 700; color: #15803d;">Combined Output Preview (Page 1 + Page 2)</span>
+                </div>
+                <div style="display: flex; gap: 0.4rem; align-items: center;">
+                  <button type="button" onclick="updateCombinedOutput()" style="border: 1px solid #86efac; background: #ffffff; color: #166534; font-size: 0.75rem; padding: 2px 7px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 600;">
+                    <span>⚡ Re-Combine</span>
+                  </button>
+                  <button type="button" id="swapSidesBtn" onclick="swapSidesOrder()" style="border: 1px solid #cbd5e1; background: #ffffff; color: #334155; font-size: 0.75rem; padding: 2px 7px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                    <span>⇄ Swap Front / Back</span>
+                  </button>
+                </div>
+              </div>
+              <div style="text-align: center; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.5rem; overflow: hidden;">
+                <img id="combinedPreviewImg" src="" alt="Combined side-by-side preview" style="max-height: 180px; max-width: 100%; object-fit: contain; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.4rem; font-size: 0.75rem; color: #166534;">
+                <span id="combinedMetaText">Both pages stitched side-by-side on single landscape sheet</span>
+                <span style="font-weight: 600;">✓ Confirmed &amp; Ready</span>
+              </div>
+            </div>
+
             <p style="font-size: 0.75rem; color: #64748b; margin-top: 0.4rem; margin-bottom: 0;">
-              Both pages will be enhanced, deskewed, and stitched side-by-side like an open book on a single landscape sheet without overlap.
+              Both pages are stitched side-by-side like an open book on a single landscape sheet without overlap or distortion.
             </p>
           </div>
         </div>
@@ -629,6 +671,126 @@
 
 </div>
 
+<!-- ── Image Editor & Crop Modal ── -->
+<div id="imageEditorModal" class="popup-overlay" style="display:none; z-index:99999;" role="dialog" aria-modal="true" aria-labelledby="editorModalTitle">
+  <div class="popup-card" style="max-width: 720px; width: 95%; max-height: 94vh; display: flex; flex-direction: column; padding: 1.25rem; border-radius: 18px; overflow-y: auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
+      <div>
+        <h3 id="editorModalTitle" style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #1e293b;">Edit &amp; Enhance Document</h3>
+        <span id="editorSideBadge" style="display: inline-block; font-size: 0.72rem; font-weight: 700; background: #e0e7ff; color: #4338ca; padding: 2px 8px; border-radius: 9999px; margin-top: 4px;">PAGE 1: FRONT</span>
+      </div>
+      <button type="button" onclick="closeImageEditor(false)" style="border: none; background: #f1f5f9; color: #64748b; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center;" aria-label="Close editor">✕</button>
+    </div>
+
+    <!-- Quick Document Scan & Presets Row -->
+    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem;">
+      <span style="font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Presets:</span>
+      <button type="button" id="presetDocScanBtn" onclick="applyEditorPreset('docscan')" style="padding: 0.35rem 0.7rem; font-size: 0.78rem; font-weight: 600; background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Boost text contrast and clean white paper background for OCR">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span>📄 Clean Scanned Doc (OCR Text)</span>
+      </button>
+      <button type="button" id="presetAutoEnhanceBtn" onclick="applyEditorPreset('auto')" style="padding: 0.35rem 0.7rem; font-size: 0.78rem; font-weight: 500; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Auto-enhance brightness and clarity">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/></svg>
+        <span>☀️ Auto-Enhance</span>
+      </button>
+      <button type="button" id="presetOriginalBtn" onclick="applyEditorPreset('original')" style="padding: 0.35rem 0.65rem; font-size: 0.78rem; font-weight: 500; background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer;" title="Reset filters to original photo">
+        <span>Original Photo</span>
+      </button>
+    </div>
+
+    <!-- Canvas Preview & Crop Container -->
+    <div id="editorViewport" style="flex: 1; min-height: 260px; max-height: 45vh; background: #0f172a; border-radius: 12px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; touch-action: none; user-select: none;">
+      <canvas id="editorCanvas" style="max-width: 100%; max-height: 100%; object-fit: contain; display: block; box-shadow: 0 4px 20px rgba(0,0,0,0.5);"></canvas>
+      
+      <!-- Flexible 8-Handle Crop Box with Rule of Thirds Grid -->
+      <div id="editorCropBox" style="position: absolute; border: 2px solid #38bdf8; background: rgba(56, 189, 248, 0.1); box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6); pointer-events: auto; cursor: move; display: none;">
+        <!-- 3x3 Grid Overlay -->
+        <div style="position: absolute; inset: 0; pointer-events: none; display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr;">
+          <div style="border-right: 1px dashed rgba(255,255,255,0.3); border-bottom: 1px dashed rgba(255,255,255,0.3);"></div>
+          <div style="border-right: 1px dashed rgba(255,255,255,0.3); border-bottom: 1px dashed rgba(255,255,255,0.3);"></div>
+          <div style="border-bottom: 1px dashed rgba(255,255,255,0.3);"></div>
+          <div style="border-right: 1px dashed rgba(255,255,255,0.3); border-bottom: 1px dashed rgba(255,255,255,0.3);"></div>
+          <div style="border-right: 1px dashed rgba(255,255,255,0.3); border-bottom: 1px dashed rgba(255,255,255,0.3);"></div>
+          <div style="border-bottom: 1px dashed rgba(255,255,255,0.3);"></div>
+          <div style="border-right: 1px dashed rgba(255,255,255,0.3);"></div>
+          <div style="border-right: 1px dashed rgba(255,255,255,0.3);"></div>
+          <div></div>
+        </div>
+        <!-- 8 Handles -->
+        <div class="crop-hndl nw" data-handle="nw" style="position: absolute; left: -8px; top: -8px; width: 16px; height: 16px; background: #0284c7; border: 2px solid #fff; border-radius: 50%; cursor: nwse-resize; touch-action: none; z-index: 10;"></div>
+        <div class="crop-hndl n" data-handle="n" style="position: absolute; left: calc(50% - 8px); top: -8px; width: 16px; height: 16px; background: #0284c7; border: 2px solid #fff; border-radius: 50%; cursor: ns-resize; touch-action: none; z-index: 10;"></div>
+        <div class="crop-hndl ne" data-handle="ne" style="position: absolute; right: -8px; top: -8px; width: 16px; height: 16px; background: #0284c7; border: 2px solid #fff; border-radius: 50%; cursor: nesw-resize; touch-action: none; z-index: 10;"></div>
+        <div class="crop-hndl e" data-handle="e" style="position: absolute; right: -8px; top: calc(50% - 8px); width: 16px; height: 16px; background: #0284c7; border: 2px solid #fff; border-radius: 50%; cursor: ew-resize; touch-action: none; z-index: 10;"></div>
+        <div class="crop-hndl se" data-handle="se" style="position: absolute; right: -8px; bottom: -8px; width: 16px; height: 16px; background: #0284c7; border: 2px solid #fff; border-radius: 50%; cursor: nwse-resize; touch-action: none; z-index: 10;"></div>
+        <div class="crop-hndl s" data-handle="s" style="position: absolute; left: calc(50% - 8px); bottom: -8px; width: 16px; height: 16px; background: #0284c7; border: 2px solid #fff; border-radius: 50%; cursor: ns-resize; touch-action: none; z-index: 10;"></div>
+        <div class="crop-hndl sw" data-handle="sw" style="position: absolute; left: -8px; bottom: -8px; width: 16px; height: 16px; background: #0284c7; border: 2px solid #fff; border-radius: 50%; cursor: nesw-resize; touch-action: none; z-index: 10;"></div>
+        <div class="crop-hndl w" data-handle="w" style="position: absolute; left: -8px; top: calc(50% - 8px); width: 16px; height: 16px; background: #0284c7; border: 2px solid #fff; border-radius: 50%; cursor: ew-resize; touch-action: none; z-index: 10;"></div>
+      </div>
+    </div>
+
+    <!-- Crop Aspect Ratio Bar (Visible when Crop is active) -->
+    <div id="cropRatioBar" style="display: none; align-items: center; gap: 0.5rem; margin-top: 0.6rem; padding: 0.4rem 0.6rem; background: #f1f5f9; border-radius: 8px;">
+      <span style="font-size: 0.72rem; font-weight: 600; color: #64748b;">RATIO:</span>
+      <button type="button" onclick="setCropRatio('free')" id="ratioBtn_free" class="crop-ratio-btn" style="padding: 2px 8px; font-size: 0.75rem; border-radius: 4px; border: 1px solid #0071E3; background: #0071E3; color: #fff; cursor: pointer;">Free</button>
+      <button type="button" onclick="setCropRatio('a4')" id="ratioBtn_a4" class="crop-ratio-btn" style="padding: 2px 8px; font-size: 0.75rem; border-radius: 4px; border: 1px solid #cbd5e1; background: #fff; color: #334155; cursor: pointer;">A4 Document</button>
+      <button type="button" onclick="setCropRatio('original')" id="ratioBtn_original" class="crop-ratio-btn" style="padding: 2px 8px; font-size: 0.75rem; border-radius: 4px; border: 1px solid #cbd5e1; background: #fff; color: #334155; cursor: pointer;">Original</button>
+      <button type="button" onclick="selectAllCrop()" style="padding: 2px 8px; font-size: 0.75rem; border-radius: 4px; border: 1px solid #cbd5e1; background: #fff; color: #334155; cursor: pointer; margin-left: auto;">Select All</button>
+    </div>
+
+    <!-- Sliders: Brightness, Contrast & Sharpness -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-top: 0.75rem; padding: 0.6rem 0.8rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+      <div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 600; color: #475569; margin-bottom: 2px;">
+          <span>Brightness</span>
+          <span id="brightnessValText">0</span>
+        </div>
+        <input type="range" id="sliderBrightness" min="-50" max="50" value="0" step="1" oninput="onFilterChange()" style="width: 100%; accent-color: #0071E3; cursor: pointer;">
+      </div>
+      <div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 600; color: #475569; margin-bottom: 2px;">
+          <span>Contrast</span>
+          <span id="contrastValText">0</span>
+        </div>
+        <input type="range" id="sliderContrast" min="-50" max="100" value="0" step="1" oninput="onFilterChange()" style="width: 100%; accent-color: #0071E3; cursor: pointer;">
+      </div>
+      <div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 600; color: #475569; margin-bottom: 2px;">
+          <span>Sharpness (OCR Text)</span>
+          <span id="sharpnessValText">0%</span>
+        </div>
+        <input type="range" id="sliderSharpness" min="0" max="100" value="0" step="5" oninput="onFilterChange()" style="width: 100%; accent-color: #16a34a; cursor: pointer;">
+      </div>
+    </div>
+
+    <!-- Editing Toolbar Bottom Row -->
+    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: space-between; align-items: center; margin-top: 0.75rem; padding-top: 0.65rem; border-top: 1px solid #e2e8f0;">
+      <div style="display: flex; gap: 0.4rem; align-items: center;">
+        <button type="button" onclick="rotateEditorImage(-90)" class="apple-btn-secondary" style="padding: 0.4rem 0.65rem; font-size: 0.78rem; background: #f1f5f9; border-radius: 8px; border: 1px solid #cbd5e1; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Rotate 90 degrees counter-clockwise">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          <span>↺ 90°</span>
+        </button>
+        <button type="button" onclick="rotateEditorImage(90)" class="apple-btn-secondary" style="padding: 0.4rem 0.65rem; font-size: 0.78rem; background: #f1f5f9; border-radius: 8px; border: 1px solid #cbd5e1; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Rotate 90 degrees clockwise">
+          <span>↻ 90°</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+        </button>
+        <button type="button" id="toggleCropBtn" onclick="toggleCropMode()" class="apple-btn-secondary" style="padding: 0.4rem 0.65rem; font-size: 0.78rem; background: #f1f5f9; border-radius: 8px; border: 1px solid #cbd5e1; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Enable or adjust crop boundaries">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>
+          <span id="cropBtnLabel">Crop</span>
+        </button>
+        <button type="button" onclick="resetEditorImage()" class="apple-btn-secondary" style="padding: 0.4rem 0.6rem; font-size: 0.78rem; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; color: #64748b; cursor: pointer;" title="Reset all adjustments">Reset</button>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; margin-left: auto;">
+        <button type="button" onclick="closeImageEditor(false)" class="apple-btn-secondary" style="padding: 0.45rem 0.85rem; font-size: 0.82rem; background: #f1f5f9; border: none; border-radius: 8px; color: #475569; cursor: pointer;">Cancel</button>
+        <button type="button" onclick="applyEditorEdits()" class="apple-btn-primary" style="padding: 0.45rem 1.1rem; font-size: 0.82rem; background: #0071E3; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Done</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ── Apple Success XP & Share Modal ── -->
 <div id="popupModal" class="popup-overlay" style="display:none;" role="dialog" aria-modal="true">
   <div class="popup-card">
@@ -791,6 +953,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   }
+  window.formatSize = formatSize;
 
   // Step navigation helper
   function setStep(step) {
@@ -1338,6 +1501,11 @@ document.addEventListener('DOMContentLoaded', function () {
     if (compressionStatusRow) compressionStatusRow.style.display = isImg ? 'inline-flex' : 'none';
 
     if (isImg) {
+      window._frontFile = file;
+      window._editedFrontFile = null;
+      const editFrontBtn = document.getElementById('editFrontBtn');
+      if (editFrontBtn) editFrontBtn.style.display = 'inline-flex';
+
       const result = await compressImageFile(file);
       compressedFile = result.file;
       if (compressionStatusRow) compressionStatusRow.style.display = 'none';
@@ -1355,7 +1523,16 @@ document.addEventListener('DOMContentLoaded', function () {
         selectedFileSize.textContent = formatSize(file.size);
         compressionSavingsTag.textContent = 'Optimized';
       }
+
+      if (window._backSideFile && document.getElementById('hasBackSideCheck')?.checked) {
+        updateCombinedOutput();
+      }
     } else {
+      window._frontFile = null;
+      window._editedFrontFile = null;
+      const editFrontBtn = document.getElementById('editFrontBtn');
+      if (editFrontBtn) editFrontBtn.style.display = 'none';
+
       compressedFile = file;
       imagePreviewEl.style.display = 'none';
       pdfPreviewFallback.style.display = 'flex';
@@ -1379,17 +1556,33 @@ document.addEventListener('DOMContentLoaded', function () {
   function resetDropzone() {
     stagedFile = null;
     compressedFile = null;
+    window._frontFile = null;
+    window._backSideFile = null;
+    window._editedFrontFile = null;
+    window._editedBackFile = null;
+    window._combinedFile = null;
+    if (window._combinedPreviewUrl) {
+      try { URL.revokeObjectURL(window._combinedPreviewUrl); } catch(e) {}
+      window._combinedPreviewUrl = null;
+    }
     fileInput.value = '';
     cameraInput.value = '';
+    const backSideCamera = document.getElementById('backSideCameraInput');
+    if (backSideCamera) backSideCamera.value = '';
+    const backSideFileInp = document.getElementById('backSideInput');
+    if (backSideFileInp) backSideFileInp.value = '';
     imagePreviewEl.src = '';
     filePreviewCard.style.display = 'none';
-    window._backSideFile = null;
+    const editFrontBtn = document.getElementById('editFrontBtn');
+    if (editFrontBtn) editFrontBtn.style.display = 'none';
     const backCheck = document.getElementById('hasBackSideCheck');
     if (backCheck) backCheck.checked = false;
     const twoSidedCard = document.getElementById('twoSidedPaperCard');
     if (twoSidedCard) twoSidedCard.style.display = 'none';
     const backArea = document.getElementById('backSideUploadArea');
     if (backArea) backArea.style.display = 'none';
+    const combCard = document.getElementById('combinedOutputPreview');
+    if (combCard) combCard.style.display = 'none';
     dropArea.style.display = 'flex';
     if (scanActionRow) scanActionRow.style.display = 'flex';
     if (compressionStatusRow) compressionStatusRow.style.display = 'none';
@@ -1398,17 +1591,27 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // Event Listeners for Step Navigation
-  goToStep2Btn.addEventListener('click', () => {
+  goToStep2Btn.addEventListener('click', async () => {
     if (!stagedFile) return;
-    ribbonFileName.textContent = stagedFile.name;
-    ribbonFileSize.textContent = formatSize((compressedFile || stagedFile).size);
+    if (document.getElementById('hasBackSideCheck')?.checked && (window._editedBackFile || window._backSideFile) && !window._combinedFile) {
+      if (typeof window.updateCombinedOutput === 'function') {
+        await window.updateCombinedOutput();
+      }
+    }
+    const effectiveFile = window._combinedFile || compressedFile || stagedFile;
+    ribbonFileName.textContent = effectiveFile.name;
+    ribbonFileSize.textContent = formatSize(effectiveFile.size);
 
     // Populate live reference preview in Step 2
     const isImg = stagedFile.type && stagedFile.type.indexOf('image/') === 0;
     const step2DocImg = document.getElementById('step2DocImg');
     const step2PdfFallback = document.getElementById('step2PdfFallback');
 
-    if (isImg && imagePreviewEl && imagePreviewEl.src) {
+    if (window._combinedFile && window._combinedPreviewUrl) {
+      step2DocImg.src = window._combinedPreviewUrl;
+      step2DocImg.style.display = 'block';
+      step2PdfFallback.style.display = 'none';
+    } else if (isImg && imagePreviewEl && imagePreviewEl.src) {
       step2DocImg.src = imagePreviewEl.src;
       step2DocImg.style.display = 'block';
       step2PdfFallback.style.display = 'none';
@@ -1770,8 +1973,15 @@ document.addEventListener('DOMContentLoaded', function () {
   if (uploadForm) {
     let notifPromptShown = false;
 
-    function executeUpload() {
-      const uploadFile = compressedFile || stagedFile;
+    async function executeUpload() {
+      if (document.getElementById('hasBackSideCheck')?.checked && (window._editedBackFile || window._backSideFile) && !window._combinedFile) {
+        if (typeof window.updateCombinedOutput === 'function') {
+          submitBtn.disabled = true;
+          submitBtnText.textContent = 'Combining pages…';
+          await window.updateCombinedOutput();
+        }
+      }
+      const uploadFile = window._combinedFile || compressedFile || stagedFile;
       if (!uploadFile) {
         alert('Please select or capture a file to upload.');
         setStep(1);
@@ -1785,7 +1995,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const formData = new FormData(uploadForm);
       formData.set('upload_document', uploadFile, uploadFile.name);
-      if (window._backSideFile && document.getElementById('hasBackSideCheck')?.checked) {
+      if (!window._combinedFile && window._backSideFile && document.getElementById('hasBackSideCheck')?.checked) {
         formData.set('back_side_document', window._backSideFile, window._backSideFile.name);
         formData.set('has_back_side', 'true');
       }
@@ -2064,31 +2274,716 @@ window.loadUploadHistory = async function () {
     if (empty) empty.style.display = 'block';
   }
 };
+  // ── On-Device Image Editor & Side-by-Side Combiner Suite ──
+  window._editorTargetSide = 'front';
+  window._editorRotation = 0;
+  window._editorCropActive = false;
+  window._editorCropRatio = 'free'; // 'free', 'a4', 'original'
+  window._editorImageObj = null;
+  window._editorCropRect = { x: 0, y: 0, w: 0, h: 0 };
+  window._editorBrightness = 0;
+  window._editorContrast = 0;
+  window._editorSharpness = 0;
+  window._editorIsDocScan = false;
+
+  const getFormatSize = function(bytes) {
+    if (typeof window.formatSize === 'function') return window.formatSize(bytes);
+    if (!bytes || bytes === 0) return '0 KB';
+    return (bytes / 1024).toFixed(1) + ' KB';
+  };
+
+  window.openImageEditor = function(side) {
+    const targetFile = (side === 'front') ? (window._editedFrontFile || window._frontFile) : (window._editedBackFile || window._backSideFile);
+    if (!targetFile) return;
+
+    window._editorTargetSide = side;
+    window._editorRotation = 0;
+    window._editorCropActive = false;
+    window._editorCropRatio = 'free';
+    window._editorBrightness = 0;
+    window._editorContrast = 0;
+    window._editorSharpness = 0;
+    window._editorIsDocScan = false;
+
+    syncEditorControlsUI();
+
+    const modal = document.getElementById('imageEditorModal');
+    const badge = document.getElementById('editorSideBadge');
+    const cropBtnLabel = document.getElementById('cropBtnLabel');
+    const cropBox = document.getElementById('editorCropBox');
+    const ratioBar = document.getElementById('cropRatioBar');
+
+    if (badge) badge.textContent = (side === 'front') ? 'PAGE 1: FRONT' : 'PAGE 2: BACK';
+    if (cropBtnLabel) cropBtnLabel.textContent = 'Crop';
+    if (cropBox) cropBox.style.display = 'none';
+    if (ratioBar) ratioBar.style.display = 'none';
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        window._editorImageObj = img;
+        renderEditorCanvas();
+        if (modal) modal.style.display = 'flex';
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(targetFile);
+  };
+
+  function syncEditorControlsUI() {
+    const bSlider = document.getElementById('sliderBrightness');
+    const cSlider = document.getElementById('sliderContrast');
+    const sSlider = document.getElementById('sliderSharpness');
+    const bText = document.getElementById('brightnessValText');
+    const cText = document.getElementById('contrastValText');
+    const sText = document.getElementById('sharpnessValText');
+
+    if (bSlider) bSlider.value = window._editorBrightness;
+    if (cSlider) cSlider.value = window._editorContrast;
+    if (sSlider) sSlider.value = window._editorSharpness;
+    if (bText) bText.textContent = (window._editorBrightness > 0 ? '+' : '') + window._editorBrightness;
+    if (cText) cText.textContent = (window._editorContrast > 0 ? '+' : '') + window._editorContrast;
+    if (sText) sText.textContent = window._editorSharpness + '%';
+
+    updateRatioPillsUI();
+  }
+
+  function updateRatioPillsUI() {
+    ['free', 'a4', 'original'].forEach(r => {
+      const btn = document.getElementById('ratioBtn_' + r);
+      if (btn) {
+        if (window._editorCropRatio === r) {
+          btn.style.background = '#0071E3';
+          btn.style.color = '#fff';
+          btn.style.borderColor = '#0071E3';
+        } else {
+          btn.style.background = '#fff';
+          btn.style.color = '#334155';
+          btn.style.borderColor = '#cbd5e1';
+        }
+      }
+    });
+  }
+
+  window.setCropRatio = function(ratio) {
+    window._editorCropRatio = ratio;
+    updateRatioPillsUI();
+    if (window._editorCropActive) {
+      initCropBoxCoords();
+    }
+  };
+
+  window.selectAllCrop = function() {
+    const canvas = document.getElementById('editorCanvas');
+    if (!canvas) return;
+    window._editorCropRect = {
+      x: 0,
+      y: 0,
+      w: canvas.width,
+      h: canvas.height
+    };
+    updateCropBoxOverlay();
+  };
+
+  window.applyEditorPreset = function(preset) {
+    if (preset === 'docscan') {
+      window._editorBrightness = 18;
+      window._editorContrast = 50;
+      window._editorSharpness = 60;
+      window._editorIsDocScan = true;
+    } else if (preset === 'auto') {
+      window._editorBrightness = 12;
+      window._editorContrast = 25;
+      window._editorSharpness = 30;
+      window._editorIsDocScan = false;
+    } else {
+      window._editorBrightness = 0;
+      window._editorContrast = 0;
+      window._editorSharpness = 0;
+      window._editorIsDocScan = false;
+    }
+    syncEditorControlsUI();
+    applyLiveFilterPreview();
+  };
+
+  window.onFilterChange = function() {
+    const bSlider = document.getElementById('sliderBrightness');
+    const cSlider = document.getElementById('sliderContrast');
+    const sSlider = document.getElementById('sliderSharpness');
+    if (bSlider) window._editorBrightness = parseInt(bSlider.value, 10) || 0;
+    if (cSlider) window._editorContrast = parseInt(cSlider.value, 10) || 0;
+    if (sSlider) window._editorSharpness = parseInt(sSlider.value, 10) || 0;
+
+    const bText = document.getElementById('brightnessValText');
+    const cText = document.getElementById('contrastValText');
+    const sText = document.getElementById('sharpnessValText');
+    if (bText) bText.textContent = (window._editorBrightness > 0 ? '+' : '') + window._editorBrightness;
+    if (cText) cText.textContent = (window._editorContrast > 0 ? '+' : '') + window._editorContrast;
+    if (sText) sText.textContent = window._editorSharpness + '%';
+
+    applyLiveFilterPreview();
+  };
+
+  function applyLiveFilterPreview() {
+    const canvas = document.getElementById('editorCanvas');
+    if (!canvas) return;
+    const b = 1 + (window._editorBrightness / 100);
+    const c = 1 + (window._editorContrast / 100);
+    const gray = window._editorIsDocScan ? ' grayscale(100%)' : '';
+    canvas.style.filter = `brightness(${b}) contrast(${c})${gray}`;
+  }
+
+  function renderEditorCanvas() {
+    const canvas = document.getElementById('editorCanvas');
+    const img = window._editorImageObj;
+    if (!canvas || !img) return;
+
+    const rad = (window._editorRotation * Math.PI) / 180;
+    const isSideways = (window._editorRotation % 180 !== 0);
+    const w = isSideways ? img.height : img.width;
+    const h = isSideways ? img.width : img.height;
+
+    canvas.width = w;
+    canvas.height = h;
+
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, w, h);
+    ctx.save();
+    ctx.translate(w / 2, h / 2);
+    ctx.rotate(rad);
+    ctx.drawImage(img, -img.width / 2, -img.height / 2);
+    ctx.restore();
+
+    applyLiveFilterPreview();
+
+    if (window._editorCropActive) {
+      updateCropBoxOverlay();
+    }
+  }
+
+  window.rotateEditorImage = function(deg) {
+    window._editorRotation = (window._editorRotation + deg + 360) % 360;
+    renderEditorCanvas();
+    if (window._editorCropActive) {
+      initCropBoxCoords();
+    }
+  };
+
+  window.toggleCropMode = function() {
+    window._editorCropActive = !window._editorCropActive;
+    const cropBox = document.getElementById('editorCropBox');
+    const cropBtnLabel = document.getElementById('cropBtnLabel');
+    const ratioBar = document.getElementById('cropRatioBar');
+
+    if (window._editorCropActive) {
+      if (cropBtnLabel) cropBtnLabel.textContent = 'Uncrop';
+      if (ratioBar) ratioBar.style.display = 'flex';
+      initCropBoxCoords();
+      if (cropBox) cropBox.style.display = 'block';
+    } else {
+      if (cropBtnLabel) cropBtnLabel.textContent = 'Crop';
+      if (ratioBar) ratioBar.style.display = 'none';
+      if (cropBox) cropBox.style.display = 'none';
+    }
+  };
+
+  function initCropBoxCoords() {
+    const canvas = document.getElementById('editorCanvas');
+    if (!canvas) return;
+
+    let targetW = Math.round(canvas.width * 0.90);
+    let targetH = Math.round(canvas.height * 0.90);
+
+    if (window._editorCropRatio === 'a4') {
+      const a4Ratio = (canvas.height > canvas.width) ? (1 / 1.414) : 1.414;
+      if (canvas.width / canvas.height > a4Ratio) {
+        targetH = Math.round(canvas.height * 0.90);
+        targetW = Math.round(targetH * a4Ratio);
+      } else {
+        targetW = Math.round(canvas.width * 0.90);
+        targetH = Math.round(targetW / a4Ratio);
+      }
+    } else if (window._editorCropRatio === 'original') {
+      const origRatio = canvas.width / canvas.height;
+      if (origRatio > 1) {
+        targetW = Math.round(canvas.width * 0.90);
+        targetH = Math.round(targetW / origRatio);
+      } else {
+        targetH = Math.round(canvas.height * 0.90);
+        targetW = Math.round(targetH * origRatio);
+      }
+    }
+
+    targetW = Math.min(canvas.width, targetW);
+    targetH = Math.min(canvas.height, targetH);
+
+    window._editorCropRect = {
+      x: Math.round((canvas.width - targetW) / 2),
+      y: Math.round((canvas.height - targetH) / 2),
+      w: targetW,
+      h: targetH
+    };
+    updateCropBoxOverlay();
+  }
+
+  function updateCropBoxOverlay() {
+    const canvas = document.getElementById('editorCanvas');
+    const cropBox = document.getElementById('editorCropBox');
+    if (!canvas || !cropBox || !window._editorCropActive) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const vp = document.getElementById('editorViewport').getBoundingClientRect();
+
+    const scaleX = rect.width / canvas.width;
+    const scaleY = rect.height / canvas.height;
+
+    const left = (rect.left - vp.left) + (window._editorCropRect.x * scaleX);
+    const top = (rect.top - vp.top) + (window._editorCropRect.y * scaleY);
+    const width = window._editorCropRect.w * scaleX;
+    const height = window._editorCropRect.h * scaleY;
+
+    cropBox.style.left = left + 'px';
+    cropBox.style.top = top + 'px';
+    cropBox.style.width = width + 'px';
+    cropBox.style.height = height + 'px';
+  }
+
+  // Pointer Dragging for 8 Handles and Crop Box
+  (function initCropPointerInteractions() {
+    let activeDrag = null;
+
+    document.addEventListener('pointerdown', function(e) {
+      if (!window._editorCropActive) return;
+      const cropBox = document.getElementById('editorCropBox');
+      if (!cropBox) return;
+
+      const handleEl = e.target.closest('.crop-hndl');
+      if (handleEl) {
+        e.preventDefault();
+        e.stopPropagation();
+        activeDrag = {
+          type: 'handle',
+          handle: handleEl.dataset.handle,
+          startX: e.clientX,
+          startY: e.clientY,
+          startRect: { ...window._editorCropRect }
+        };
+        try { handleEl.setPointerCapture(e.pointerId); } catch(err) {}
+        return;
+      }
+
+      if (e.target.closest('#editorCropBox')) {
+        e.preventDefault();
+        e.stopPropagation();
+        activeDrag = {
+          type: 'move',
+          startX: e.clientX,
+          startY: e.clientY,
+          startRect: { ...window._editorCropRect }
+        };
+        try { cropBox.setPointerCapture(e.pointerId); } catch(err) {}
+      }
+    });
+
+    document.addEventListener('pointermove', function(e) {
+      if (!activeDrag) return;
+      const canvas = document.getElementById('editorCanvas');
+      if (!canvas) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+
+      const dx = (e.clientX - activeDrag.startX) * scaleX;
+      const dy = (e.clientY - activeDrag.startY) * scaleY;
+      const sr = activeDrag.startRect;
+
+      if (activeDrag.type === 'move') {
+        const newX = Math.max(0, Math.min(canvas.width - sr.w, sr.x + dx));
+        const newY = Math.max(0, Math.min(canvas.height - sr.h, sr.y + dy));
+        window._editorCropRect.x = Math.round(newX);
+        window._editorCropRect.y = Math.round(newY);
+      } else if (activeDrag.type === 'handle') {
+        const h = activeDrag.handle;
+        let x = sr.x;
+        let y = sr.y;
+        let w = sr.w;
+        let hgt = sr.h;
+
+        if (h.indexOf('w') !== -1) {
+          const maxDx = sr.w - 30;
+          const actualDx = Math.min(maxDx, Math.max(-sr.x, dx));
+          x = sr.x + actualDx;
+          w = sr.w - actualDx;
+        }
+        if (h.indexOf('e') !== -1) {
+          w = Math.max(30, Math.min(canvas.width - sr.x, sr.w + dx));
+        }
+        if (h.indexOf('n') !== -1) {
+          const maxDy = sr.h - 30;
+          const actualDy = Math.min(maxDy, Math.max(-sr.y, dy));
+          y = sr.y + actualDy;
+          hgt = sr.h - actualDy;
+        }
+        if (h.indexOf('s') !== -1) {
+          hgt = Math.max(30, Math.min(canvas.height - sr.y, sr.h + dy));
+        }
+
+        window._editorCropRect = {
+          x: Math.round(x),
+          y: Math.round(y),
+          w: Math.round(w),
+          h: Math.round(hgt)
+        };
+      }
+      updateCropBoxOverlay();
+    });
+
+    function endDrag(e) {
+      if (activeDrag) {
+        activeDrag = null;
+      }
+    }
+    document.addEventListener('pointerup', endDrag);
+    document.addEventListener('pointercancel', endDrag);
+  })();
+
+  window.resetEditorImage = function() {
+    window._editorRotation = 0;
+    window._editorCropActive = false;
+    window._editorCropRatio = 'free';
+    window._editorBrightness = 0;
+    window._editorContrast = 0;
+    window._editorSharpness = 0;
+    window._editorIsDocScan = false;
+
+    syncEditorControlsUI();
+    const cropBox = document.getElementById('editorCropBox');
+    const cropBtnLabel = document.getElementById('cropBtnLabel');
+    const ratioBar = document.getElementById('cropRatioBar');
+    if (cropBox) cropBox.style.display = 'none';
+    if (ratioBar) ratioBar.style.display = 'none';
+    if (cropBtnLabel) cropBtnLabel.textContent = 'Crop';
+    renderEditorCanvas();
+  };
+
+  window.closeImageEditor = function(apply) {
+    const modal = document.getElementById('imageEditorModal');
+    if (modal) modal.style.display = 'none';
+    window._editorImageObj = null;
+  };
+
+  // Pixel Enhancement: Brightness, Contrast, Unsharp Mask Sharpness & Clean Paper OCR
+  function applyFiltersAndEnhance(srcCanvas, destCanvas) {
+    const w = srcCanvas.width;
+    const h = srcCanvas.height;
+    destCanvas.width = w;
+    destCanvas.height = h;
+    const ctx = destCanvas.getContext('2d');
+    ctx.drawImage(srcCanvas, 0, 0);
+
+    const b = window._editorBrightness;
+    const c = window._editorContrast;
+    const s = window._editorSharpness;
+    const isDoc = window._editorIsDocScan;
+
+    if (b === 0 && c === 0 && s === 0 && !isDoc) {
+      return; // No enhancements needed
+    }
+
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const data = imgData.data;
+    const len = data.length;
+
+    // Contrast factor
+    const cFactor = (259 * (c + 255)) / (255 * (259 - c));
+    const bOffset = b * 1.3;
+
+    // Step 1: Brightness, Contrast & Doc Scan Thresholding
+    for (let i = 0; i < len; i += 4) {
+      let r = data[i];
+      let g = data[i + 1];
+      let bl = data[i + 2];
+
+      if (isDoc) {
+        // Grayscale conversion
+        let gray = 0.299 * r + 0.587 * g + 0.114 * bl;
+        // Contrast & brightness stretch
+        gray = cFactor * (gray + bOffset - 128) + 128;
+        if (gray > 175) {
+          // Paper background whitening (cleans shadows & noise)
+          gray = Math.min(255, gray + (255 - gray) * 0.85);
+        } else {
+          // Ink text deepening
+          gray = Math.max(0, gray * 0.75);
+        }
+        data[i] = gray;
+        data[i + 1] = gray;
+        data[i + 2] = gray;
+      } else {
+        if (b !== 0 || c !== 0) {
+          data[i] = Math.min(255, Math.max(0, cFactor * (r + bOffset - 128) + 128));
+          data[i + 1] = Math.min(255, Math.max(0, cFactor * (g + bOffset - 128) + 128));
+          data[i + 2] = Math.min(255, Math.max(0, cFactor * (bl + bOffset - 128) + 128));
+        }
+      }
+    }
+
+    // Step 2: Unsharp Mask Sharpness Convolution (3x3 kernel)
+    if (s > 0) {
+      const sharpAmount = (s / 100) * 0.85; // 0 to 0.85
+      const origData = new Uint8ClampedArray(data);
+
+      for (let y = 1; y < h - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+          const idx = (y * w + x) * 4;
+          for (let ch = 0; ch < 3; ch++) {
+            const current = origData[idx + ch];
+            const up = origData[((y - 1) * w + x) * 4 + ch];
+            const down = origData[((y + 1) * w + x) * 4 + ch];
+            const left = origData[(y * w + (x - 1)) * 4 + ch];
+            const right = origData[(y * w + (x + 1)) * 4 + ch];
+
+            // Laplacian: current * (1 + 4*a) - (up + down + left + right) * a
+            const val = current * (1 + 4 * sharpAmount) - (up + down + left + right) * sharpAmount;
+            data[idx + ch] = Math.min(255, Math.max(0, val));
+          }
+        }
+      }
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+  }
+
+  window.applyEditorEdits = function() {
+    const canvas = document.getElementById('editorCanvas');
+    if (!canvas) return;
+
+    let targetSource = canvas;
+    if (window._editorCropActive && window._editorCropRect && window._editorCropRect.w > 20 && window._editorCropRect.h > 20) {
+      const cropC = document.createElement('canvas');
+      cropC.width = window._editorCropRect.w;
+      cropC.height = window._editorCropRect.h;
+      const ctx = cropC.getContext('2d');
+      ctx.drawImage(
+        canvas,
+        window._editorCropRect.x, window._editorCropRect.y, window._editorCropRect.w, window._editorCropRect.h,
+        0, 0, window._editorCropRect.w, window._editorCropRect.h
+      );
+      targetSource = cropC;
+    }
+
+    // Apply Filters & Sharpness to final canvas
+    const finalCanvas = document.createElement('canvas');
+    applyFiltersAndEnhance(targetSource, finalCanvas);
+
+    finalCanvas.toBlob(blob => {
+      if (!blob) return;
+      const side = window._editorTargetSide;
+      const originalFile = (side === 'front') ? window._frontFile : window._backSideFile;
+      const fname = (originalFile ? originalFile.name.replace(/\.[^/.]+$/, '') : 'document') + '_edited.jpg';
+
+      const editedFile = new File([blob], fname, { type: 'image/jpeg', lastModified: Date.now() });
+
+      if (side === 'front') {
+        window._editedFrontFile = editedFile;
+        const imgEl = document.getElementById('imagePreviewEl');
+        if (imgEl) imgEl.src = URL.createObjectURL(blob);
+        const sizeEl = document.getElementById('selectedFileSize');
+        if (sizeEl) sizeEl.textContent = getFormatSize(blob.size);
+      } else {
+        window._editedBackFile = editedFile;
+        const nameEl = document.getElementById('backSideFileName');
+        if (nameEl) nameEl.textContent = fname + ' (' + getFormatSize(blob.size) + ')';
+      }
+
+      closeImageEditor(true);
+
+      if (window._backSideFile && document.getElementById('hasBackSideCheck')?.checked) {
+        updateCombinedOutput();
+      }
+    }, 'image/jpeg', 0.88);
+  };
+
   // Back side helper functions
-  function toggleBackSideSection(checked) {
+  window.toggleBackSideSection = function(checked) {
     const area = document.getElementById('backSideUploadArea');
     if (area) area.style.display = checked ? 'block' : 'none';
     if (!checked) removeBackSideFile();
-  }
-  function handleBackSideFileSelected(input) {
+    else if ((window._frontFile || window._editedFrontFile) && (window._backSideFile || window._editedBackFile)) {
+      updateCombinedOutput();
+    }
+  };
+
+  window.handleBackSideFileSelected = function(input) {
     if (input.files && input.files[0]) {
       window._backSideFile = input.files[0];
+      window._editedBackFile = null;
       const prompt = document.getElementById('backSideEmptyPrompt');
       if (prompt) prompt.style.display = 'none';
       const info = document.getElementById('backSideSelectedInfo');
       if (info) info.style.display = 'flex';
       const nameEl = document.getElementById('backSideFileName');
-      if (nameEl) nameEl.textContent = input.files[0].name;
+      if (nameEl) nameEl.textContent = input.files[0].name + ' (' + getFormatSize(input.files[0].size) + ')';
+
+      if (window._frontFile || window._editedFrontFile) {
+        updateCombinedOutput();
+      }
     }
-  }
-  function removeBackSideFile() {
+  };
+
+  window.removeBackSideFile = function() {
     window._backSideFile = null;
-    const input = document.getElementById('backSideInput');
-    if (input) input.value = '';
+    window._editedBackFile = null;
+    window._combinedFile = null;
+    if (window._combinedPreviewUrl) {
+      try { URL.revokeObjectURL(window._combinedPreviewUrl); } catch(e) {}
+      window._combinedPreviewUrl = null;
+    }
+    const input1 = document.getElementById('backSideInput');
+    const input2 = document.getElementById('backSideCameraInput');
+    if (input1) input1.value = '';
+    if (input2) input2.value = '';
     const prompt = document.getElementById('backSideEmptyPrompt');
     if (prompt) prompt.style.display = 'flex';
     const info = document.getElementById('backSideSelectedInfo');
     if (info) info.style.display = 'none';
+    const comb = document.getElementById('combinedOutputPreview');
+    if (comb) comb.style.display = 'none';
+  };
+
+  window.swapSidesOrder = function() {
+    const tempRaw = window._frontFile;
+    window._frontFile = window._backSideFile;
+    window._backSideFile = tempRaw;
+
+    const tempEdited = window._editedFrontFile;
+    window._editedFrontFile = window._editedBackFile;
+    window._editedBackFile = tempEdited;
+
+    const f = window._editedFrontFile || window._frontFile;
+    const b = window._editedBackFile || window._backSideFile;
+
+    if (f) {
+      const selName = document.getElementById('selectedFileName');
+      const selSize = document.getElementById('selectedFileSize');
+      if (selName) selName.textContent = f.name;
+      if (selSize) selSize.textContent = getFormatSize(f.size);
+      const reader = new FileReader();
+      reader.onload = e => {
+        const preview = document.getElementById('imagePreviewEl');
+        if (preview) preview.src = e.target.result;
+      };
+      reader.readAsDataURL(f);
+    }
+    if (b) {
+      const backName = document.getElementById('backSideFileName');
+      if (backName) backName.textContent = b.name + ' (' + getFormatSize(b.size) + ')';
+    }
+
+    updateCombinedOutput();
+  };
+
+  window.updateCombinedOutput = async function() {
+    const fFile = window._editedFrontFile || window._frontFile;
+    const bFile = window._editedBackFile || window._backSideFile;
+    const isChecked = document.getElementById('hasBackSideCheck')?.checked;
+
+    if (!fFile || !bFile || !isChecked) {
+      const comb = document.getElementById('combinedOutputPreview');
+      if (comb) comb.style.display = 'none';
+      return;
+    }
+
+    const combPill = document.getElementById('compressionStatusRow');
+    if (combPill) {
+      combPill.querySelector('span').textContent = 'Combining front and back pages into one document…';
+      combPill.style.display = 'inline-flex';
+    }
+
+    try {
+      const [img1, img2] = await Promise.all([
+        loadImageFromFile(fFile),
+        loadImageFromFile(bFile)
+      ]);
+
+      const targetH = Math.max(img1.height, img2.height);
+      const w1 = Math.round(img1.width * (targetH / img1.height));
+      const w2 = Math.round(img2.width * (targetH / img2.height));
+      const gutter = 16;
+      const totalW = w1 + gutter + w2;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = totalW;
+      canvas.height = targetH;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, totalW, targetH);
+
+      // Page 1 (Front on Left)
+      ctx.drawImage(img1, 0, 0, w1, targetH);
+
+      // Center gutter line
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(w1 + 7, 0, 2, targetH);
+
+      // Page 2 (Back on Right)
+      ctx.drawImage(img2, w1 + gutter, 0, w2, targetH);
+
+      let finalCanvas = canvas;
+      if (totalW > 2400) {
+        const scale = 2400 / totalW;
+        finalCanvas = document.createElement('canvas');
+        finalCanvas.width = 2400;
+        finalCanvas.height = Math.round(targetH * scale);
+        const fctx = finalCanvas.getContext('2d');
+        fctx.drawImage(canvas, 0, 0, finalCanvas.width, finalCanvas.height);
+      }
+
+      await new Promise(resolve => {
+        finalCanvas.toBlob(blob => {
+          if (!blob) { resolve(); return; }
+          if (window._combinedPreviewUrl) {
+            try { URL.revokeObjectURL(window._combinedPreviewUrl); } catch(e) {}
+          }
+          window._combinedPreviewUrl = URL.createObjectURL(blob);
+
+          const fname = (fFile.name ? fFile.name.replace(/\.[^/.]+$/, '') : 'document') + '_twosided_merged.jpg';
+          window._combinedFile = new File([blob], fname, { type: 'image/jpeg', lastModified: Date.now() });
+
+          const prevImg = document.getElementById('combinedPreviewImg');
+          const combCard = document.getElementById('combinedOutputPreview');
+          const metaText = document.getElementById('combinedMetaText');
+
+          if (prevImg) prevImg.src = window._combinedPreviewUrl;
+          if (metaText) metaText.textContent = 'Both sides combined into 1 sheet (' + getFormatSize(blob.size) + ')';
+          if (combCard) combCard.style.display = 'block';
+
+          if (combPill) combPill.style.display = 'none';
+          resolve();
+        }, 'image/jpeg', 0.88);
+      });
+
+    } catch (err) {
+      console.error('Failed to combine front and back sides:', err);
+      if (combPill) combPill.style.display = 'none';
+    }
+  };
+
+  function loadImageFromFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   }
 </script>
 

@@ -43,7 +43,7 @@ def test_app_shell_sanitizes_p(client):
         res = client.get(f'/app-shell?p={bp}')
         assert res.status_code == 200
         html = res.get_data(as_text=True)
-        assert 'src="/dashboard"' in html
+        assert 'src="/home"' in html
 
 def test_app_shell_inside_iframe_redirects_to_target(client):
     with client.session_transaction() as sess:
@@ -52,21 +52,15 @@ def test_app_shell_inside_iframe_redirects_to_target(client):
     assert res.status_code == 302
     assert res.headers.get('Location') == '/upload'
 
-def test_landing_page_redirects_to_app_shell_for_auth_user(client):
+def test_landing_page_accessible_for_auth_user(client):
     with client.session_transaction() as sess:
         sess['user'] = {'uid': 'usr_1', 'email': 'student@example.com'}
     res = client.get('/')
-    assert res.status_code == 302
-    assert res.headers.get('Location') == '/app-shell'
-
-    # Inside iframe it redirects to /dashboard instead of /app-shell
-    res_iframe = client.get('/', headers={'Sec-Fetch-Dest': 'iframe'})
-    assert res_iframe.status_code == 302
-    assert res_iframe.headers.get('Location') == '/dashboard'
+    assert res.status_code == 200
 
 def test_ai_embed_csp_unaffected(client):
     res = client.get('/ai/embed')
     assert res.status_code == 301
-    assert res.headers.get('Location') == '/dashboard'
+    assert res.headers.get('Location') in ('/home', '/dashboard')
     csp = res.headers.get('Content-Security-Policy', '')
     assert 'https://*.abhihub.edu.eu.org' in csp

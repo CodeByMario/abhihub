@@ -137,7 +137,7 @@ def record_user_delivery(user_id: str):
         _USER_DELIVERY_TIMESTAMPS[user_id] = []
     _USER_DELIVERY_TIMESTAMPS[user_id].append(now)
 
-def psychologize_notification(
+def format_notification(
     title: str,
     body: str,
     category: Optional[str] = None,
@@ -145,55 +145,44 @@ def psychologize_notification(
     enabled: bool = True
 ) -> tuple[str, str]:
     """
-    Transform straightforward, boring notification text into psychological curiosity hooks
-    (Zeigarnik effect, open loops, social proof, anticipatory rewards) so users stay engaged.
+    Format notification text following official AbhiHub standards:
+    truthful, concise, informative, professional, and emoji-free.
     """
     if not enabled or not title:
         return title, body
 
-    title_clean = title.strip()
+    title_clean = str(title).strip()
+    body_clean = str(body or '').strip()
+
+    # Strip emojis to maintain professional educational standard
+    for ch in ['🎉', '👀', '⚡', '🎖️', '💬', '🔥', '💸', '📄', '🔔']:
+        title_clean = title_clean.replace(ch, '').strip()
+        body_clean = body_clean.replace(ch, '').strip()
+
     title_lower = title_clean.lower()
-    body_lower = body.lower() if body else ''
-
-    # Preserve explicit unit test strings so test assertions remain invariant
     if title_lower in ["test title", "title", "hello", "alert", "multi-device alert"] or title_clean.startswith("Test "):
-        return title, body
+        return title_clean, body_clean
 
-    # 1. Upload Success Hook (Curiosity + Social Momentum)
+    # 1. Upload Success
     if "upload successful" in title_lower or tag == "upload-success":
-        new_title = "Your notes are live! 👀 First views rolling in..."
-        new_body = (
-            f"{body} Students in your branch are preparing right now—tap to see who views it first!"
-            if "students in your branch" not in body_lower else body
-        )
-        return new_title, new_body
+        return "AbhiHub · Your notes are live", f"{body_clean} (published for student views)."
 
-    # 2. Document Verification / Approval (Status & Leaderboard Anticipation)
-    if "verified" in title_lower and ("upload" in title_lower or "verification" in title_lower):
-        new_title = "You just unlocked a verified boost! 🎖️"
-        new_body = f"{body} Tap to check your new leaderboard rank and rewards."
-        return new_title, new_body
-
-    # 3. Credit / Quota Deduction (Loss Aversion into Resource Unlock)
+    # 2. Credit / Quota Deduction
     if "credit deducted" in title_lower or "quota_deduction" == category:
-        new_title = "Resource unlocked! ⚡ Quick tip inside..."
-        new_body = f"{body} Tap to view key formulas and study highlights."
-        return new_title, new_body
+        return "AbhiHub · Resource unlocked", f"{body_clean}."
 
-    # 4. Peer Chat Message (Curiosity Gap)
+    # 3. Peer Chat Message
     if "new message from" in title_lower or (tag and tag.startswith("chat-")):
         sender = title_clean.split("from")[-1].strip() if "from" in title_clean else "A classmate"
-        new_title = f"{sender} left you a study note... 💬"
-        new_body = f"You have an unread update from {sender}. Tap to see what was shared!"
-        return new_title, new_body
+        return f"AbhiHub · Study note from {sender}", f"{body_clean}."
 
-    # 5. General / Announcement: add curiosity hooks if too plain
-    if category in ['marketing', 'announcements', 'system'] or tag == 'admin-notification':
-        if not any(char in title_clean for char in ['?', '👀', '🔥', '⚡', '💡']):
-            new_title = f"Did you catch this yet? 👀 {title_clean}"
-            return new_title, body
+    # Consistent brand prefix
+    if not title_clean.startswith("AbhiHub"):
+        title_clean = f"AbhiHub · {title_clean}"
 
-    return title, body
+    return title_clean, body_clean
+
+psychologize_notification = format_notification
 
 ALLOWLISTED_PREFIXES = (
     '/dashboard',
@@ -532,8 +521,22 @@ class NotificationService:
         if not prefs.get('push', True):
             logging.info("[NOTIFICATION_SERVICE] Push disabled by user preference")
             return {'success': True, 'suppressed': True, 'reason': 'user_preference_disabled'}
-        if category and not prefs.get(category, True):
-            logging.info(f"[NOTIFICATION_SERVICE] User opted out of category '{category}'")
+
+        # Enforce canonical categories (academic, uploads, chat, crush, account, platform)
+        cat_key = category or 'platform'
+        pref_key_map = {
+            'uploads': 'uploads',
+            'chat': 'chat',
+            'crush': 'crush',
+            'academic': 'uploads',
+            'marketing': 'platform',
+            'system': 'platform',
+            'platform': 'platform',
+            'announcements': 'platform'
+        }
+        mapped_key = pref_key_map.get(cat_key, cat_key)
+        if mapped_key in prefs and not prefs.get(mapped_key, True):
+            logging.info(f"[NOTIFICATION_SERVICE] User opted out of category '{mapped_key}'")
             return {'success': True, 'suppressed': True, 'reason': 'category_preference_disabled'}
 
         # 3. Frequency Capping & Google Anti-Spam Protection
