@@ -1130,13 +1130,38 @@ def api_edit_document(doc_id):
         updates_dict = {}
 
         if 'metadata_updates' in data and isinstance(data['metadata_updates'], dict):
-            updates_dict = data['metadata_updates']
+            updates_dict = dict(data['metadata_updates'])
         elif 'field' in data:
             updates_dict = {data['field']: data.get('value')}
+        else:
+            updates_dict = dict(data)
 
         target_subject_id = updates_dict.get('subject_id') or doc.get('subject_id')
         target_college_id = updates_dict.get('college_id') or doc.get('college_id')
         target_dept_id = updates_dict.get('department_id') or updates_dict.get('branch_id') or doc.get('department_id')
+
+        # Handle inline new subject creation if requested
+        new_subj_name = str(updates_dict.get('new_subject_name') or data.get('new_subject_name') or '').strip()
+        if new_subj_name:
+            target_dept = target_dept_id or doc.get('department_id')
+            new_code = str(updates_dict.get('new_subject_code') or updates_dict.get('subject_code') or '').strip().upper() or None
+            new_sem = None
+            try:
+                new_sem = int(updates_dict.get('semester') or data.get('semester') or 1)
+            except Exception:
+                pass
+            try:
+                ins_res = client.table('subjects').insert({
+                    'name': new_subj_name,
+                    'subject_code': new_code,
+                    'department_id': target_dept,
+                    'semester': new_sem
+                }).execute()
+                if ins_res.data:
+                    target_subject_id = ins_res.data[0]['id']
+                    update_payload['subject_id'] = target_subject_id
+            except Exception as nse:
+                logging.warning(f"Error creating new subject inline: {nse}")
 
         # Process all identifying and hidden metadata fields
         for fld, val in updates_dict.items():
@@ -1145,7 +1170,7 @@ def api_edit_document(doc_id):
             if fld_lower == 'title':
                 update_payload['title'] = str(val or '').strip() or doc.get('title')
             elif fld_lower in ['document_category', 'category']:
-                update_payload['document_category'] = str(val or '').strip()
+                update_payload['document_category'] = str(val or '').strip().lower()
             elif fld_lower == 'status' and is_admin:
                 val_status = str(val or '').strip().lower()
                 if val_status in ['approved', 'hidden', 'pending']:
@@ -1172,30 +1197,31 @@ def api_edit_document(doc_id):
                     update_payload['topics_covered'] = [str(t).strip() for t in val if str(t).strip()] if val else None
                 else:
                     update_payload['topics_covered'] = None
-            elif fld_lower in ['exam_type', 'program', 'difficulty_level'] and is_admin:
-                update_payload[fld_lower] = str(val or '').strip() or None
-            elif fld_lower == 'semester' and is_admin:
+            elif fld_lower in ['exam_type', 'unit', 'program', 'difficulty_level']:
+                update_payload['exam_type'] = str(val or '').strip() or None
+            elif fld_lower == 'semester':
                 try:
                     s_int = int(val or 1)
                     if target_subject_id:
                         try: client.table('subjects').update({'semester': s_int}).eq('id', target_subject_id).execute()
                         except Exception as se: logging.warning(f"Error updating subjects.semester: {se}")
                 except Exception: pass
-            elif fld_lower == 'college_id' and is_admin:
+            elif fld_lower == 'college_id':
                 c_id_val = str(val or '').strip() or None
                 update_payload['college_id'] = c_id_val
                 target_college_id = c_id_val
-            elif fld_lower in ['department_id', 'branch_id'] and is_admin:
+            elif fld_lower in ['department_id', 'branch_id']:
                 d_id_val = str(val or '').strip() or None
                 update_payload['department_id'] = d_id_val
                 target_dept_id = d_id_val
-            elif fld_lower == 'subject_id' and is_admin:
+            elif fld_lower == 'subject_id':
                 s_id_val = str(val or '').strip() or None
-                update_payload['subject_id'] = s_id_val
-                target_subject_id = s_id_val
-            elif fld_lower == 'subject_code' and is_admin:
+                if s_id_val and s_id_val != '__ADD_NEW__':
+                    update_payload['subject_id'] = s_id_val
+                    target_subject_id = s_id_val
+            elif fld_lower == 'subject_code':
                 s_code = str(val or '').strip().upper()
-                if target_subject_id:
+                if target_subject_id and s_code:
                     try: client.table('subjects').update({'subject_code': s_code}).eq('id', target_subject_id).execute()
                     except Exception as sce: logging.warning(f"Error updating subjects.subject_code: {sce}")
             elif fld_lower in ['subject_name', 'subject'] and is_admin:
@@ -1234,23 +1260,8 @@ def api_edit_document(doc_id):
                 desc_obj['text_description'] = str(val or '').strip()
                 update_payload['description'] = json.dumps(desc_obj)
 
-        # Fallback if full form legacy submitted
-        if not update_payload and not updates_dict:
-            new_title = (data.get('title') or '').strip()
-            new_text_desc = (data.get('description') or '').strip()
-            is_paid = bool(data.get('is_paid', False))
-
-            try:
-                price = max(0.0, float(data.get('price', 0) or 0))
-            except (ValueError, TypeError):
-                price = 0.0
-
-            coupon_code = str(data.get('coupon_code') or '').strip().upper() or None
-            try:
-                coupon_discount = max(0, min(100, int(data.get('coupon_discount', 0) or 0)))
-            except (ValueError, TypeError):
-                coupon_discount = 0
-
+        # Ensure description JSON and pricing are synced if either is provided
+        if 'description' in data or 'is_paid' in data or 'price' in data:
             desc_raw = doc.get('description') or ''
             desc_obj = {}
             if isinstance(desc_raw, str) and desc_raw.strip().startswith('{'):
@@ -1259,7 +1270,21 @@ def api_edit_document(doc_id):
             elif isinstance(desc_raw, dict):
                 desc_obj = dict(desc_raw)
 
-            desc_obj['text_description'] = new_text_desc
+            if 'description' in data:
+                desc_obj['text_description'] = str(data.get('description') or '').strip()
+
+            is_paid = bool(data.get('is_paid', doc.get('is_paid', False)))
+            try:
+                price = max(0.0, float(data.get('price', doc.get('price', 0)) or 0))
+            except Exception:
+                price = 0.0
+
+            coupon_code = str(data.get('coupon_code') or '').strip().upper() or None
+            try:
+                coupon_discount = max(0, min(100, int(data.get('coupon_discount', 0) or 0)))
+            except Exception:
+                coupon_discount = 0
+
             desc_obj['pricing'] = {
                 'is_paid': is_paid,
                 'price': price if is_paid else 0.0,
@@ -1267,17 +1292,14 @@ def api_edit_document(doc_id):
                 'coupon_discount': coupon_discount if is_paid else 0,
                 'seller_id': doc.get('uploader_id')
             }
+            update_payload['is_paid'] = is_paid
+            update_payload['price'] = price if is_paid else 0.0
+            update_payload['coupon_code'] = coupon_code if is_paid else None
+            update_payload['coupon_discount'] = coupon_discount if is_paid else 0
+            update_payload['description'] = json.dumps(desc_obj)
 
-            update_payload = {
-                'title': new_title or doc.get('title'),
-                'description': json.dumps(desc_obj),
-                'is_paid': is_paid,
-                'price': price if is_paid else 0.0,
-                'coupon_code': coupon_code if is_paid else None,
-                'coupon_discount': coupon_discount if is_paid else 0
-            }
-            if is_admin and status_action in ['approved', 'hidden', 'pending']:
-                update_payload['status'] = status_action
+        if is_admin and status_action in ['approved', 'hidden', 'pending']:
+            update_payload['status'] = status_action
 
         # Apply updates to documents table (filtering only columns that exist in documents)
         doc_update_clean = {k: v for k, v in update_payload.items() if k in valid_doc_cols}

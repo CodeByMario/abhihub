@@ -1604,9 +1604,117 @@ body.zen-active .image-canvas img {
     <!-- Tab 2: Edit File Info -->
     <div id="manageTab_edit" class="ap-studio-tab-pane" style="display:none;">
       <form id="editDocumentForm" onsubmit="saveDocumentChanges(event)" class="ap-studio-form">
-        <div class="ap-field-row">
-          <label class="ap-field-label">File Title / Name</label>
-          <input type="text" id="editDocTitle" value="{{ document.title or '' }}" required class="ap-text-input">
+        <!-- Academic Classification Grid: College & Branch -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:0.85rem; margin-bottom:0.85rem;">
+          <div class="ap-field-row" style="margin-bottom:0;">
+            <label class="ap-field-label" for="editDocCollege">College / Institution</label>
+            <select id="editDocCollege" class="ap-select-input" onchange="onEditCollegeOrBranchChange()">
+              <option value="">Select College</option>
+              {% for c in all_colleges %}
+              <option value="{{ c.id }}" {% if c.id == document.college_id %}selected{% endif %} data-abbr="{{ c.abbreviation or '' }}" data-name="{{ c.name or '' }}">{{ c.name }}{% if c.abbreviation %} ({{ c.abbreviation }}){% endif %}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="ap-field-row" style="margin-bottom:0;">
+            <label class="ap-field-label" for="editDocBranch">Department / Branch</label>
+            <select id="editDocBranch" class="ap-select-input" onchange="onEditCollegeOrBranchChange()">
+              <option value="">Select Branch / Department</option>
+              {% for b in all_branches %}
+              <option value="{{ b.id }}" {% if b.id == document.department_id %}selected{% endif %} data-abbr="{{ b.abbreviation or '' }}" data-name="{{ b.name or '' }}">{{ b.name }}{% if b.abbreviation %} ({{ b.abbreviation }}){% endif %}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <!-- Subject & Subject Code Grid -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:0.85rem; margin-bottom:0.85rem;">
+          <div class="ap-field-row" style="margin-bottom:0;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <label class="ap-field-label" for="editDocSubject" style="margin-bottom:0;">Subject</label>
+              <button type="button" onclick="toggleAddNewSubjectBox(true)" style="background:none; border:none; color:var(--ap-blue, #0071e3); font-size:0.75rem; font-weight:600; cursor:pointer; padding:0;">+ Add New Subject</button>
+            </div>
+            <select id="editDocSubject" class="ap-select-input" onchange="onEditSubjectSelectChange()">
+              {% if document.subject %}
+              <option value="{{ document.subject.id or document.subject_id }}" selected data-code="{{ document.subject.subject_code or '' }}" data-name="{{ document.subject.name or '' }}">{{ document.subject.name }}{% if document.subject.subject_code %} ({{ document.subject.subject_code }}){% endif %}</option>
+              {% elif document.subject_id %}
+              <option value="{{ document.subject_id }}" selected data-code="{{ document.subject_code or '' }}" data-name="{{ document.subject_name or 'Current Subject' }}">{{ document.subject_name or 'Current Subject' }}</option>
+              {% else %}
+              <option value="">Select Subject</option>
+              {% endif %}
+              <option value="__ADD_NEW__">+ Add New Subject...</option>
+            </select>
+          </div>
+
+          <div class="ap-field-row" style="margin-bottom:0;">
+            <label class="ap-field-label" for="editDocSubjectCode">Subject Code</label>
+            <input type="text" id="editDocSubjectCode" value="{{ document.subject.subject_code if (document.subject and document.subject.subject_code) else (document.subject_code or '') }}" placeholder="e.g. CS501 / 0012" class="ap-text-input uppercase" oninput="updateGeneratedTitlePreview()">
+          </div>
+        </div>
+
+        <!-- Inline Add New Subject Subcard (collapsible) -->
+        <div id="addNewSubjectWrap" class="ap-settings-subcard" style="display:none; margin-bottom:0.85rem; background:rgba(0,113,227,0.04); border:1px dashed #bfdbfe;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
+            <span style="font-size:0.8rem; font-weight:700; color:#1e40af;">Add New Subject to Catalog</span>
+            <button type="button" onclick="toggleAddNewSubjectBox(false)" style="background:none; border:none; color:#64748b; font-size:0.75rem; cursor:pointer;">✕ Cancel</button>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:0.75rem;">
+            <div>
+              <label class="ap-field-micro-label">Subject Name</label>
+              <input type="text" id="newSubjectName" placeholder="e.g. Distributed Systems" class="ap-text-input micro" oninput="updateGeneratedTitlePreview()">
+            </div>
+            <div>
+              <label class="ap-field-micro-label">Subject Code (Optional)</label>
+              <input type="text" id="newSubjectCode" placeholder="e.g. CS602" class="ap-text-input micro uppercase" oninput="updateGeneratedTitlePreview()">
+            </div>
+          </div>
+        </div>
+
+        <!-- Academic Details: Semester, Category, Unit/Detail, Year/Date Grid -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:0.75rem; margin-bottom:0.85rem;">
+          <div>
+            <label class="ap-field-micro-label">Semester</label>
+            <select id="editDocSemester" class="ap-select-input" onchange="updateGeneratedTitlePreview()">
+              {% set cur_sem = document.semester or (document.subject.semester if document.subject else 1) %}
+              {% for s in range(1, 9) %}
+              <option value="{{ s }}" {% if cur_sem|string == s|string %}selected{% endif %}>Sem {{ s }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div>
+            <label class="ap-field-micro-label">Category</label>
+            {% set cur_cat = (document.document_category or 'notes')|lower %}
+            <select id="editDocCategory" class="ap-select-input" onchange="updateGeneratedTitlePreview()">
+              <option value="notes" {% if cur_cat == 'notes' %}selected{% endif %}>Notes</option>
+              <option value="papers" {% if cur_cat in ['papers', 'pyq', 'paper'] %}selected{% endif %}>Question Paper (PYQ)</option>
+              <option value="practical" {% if cur_cat == 'practical' %}selected{% endif %}>Practical / Lab</option>
+              <option value="syllabus" {% if cur_cat == 'syllabus' %}selected{% endif %}>Syllabus</option>
+              <option value="question_bank" {% if cur_cat == 'question_bank' %}selected{% endif %}>Question Bank</option>
+              <option value="assignment" {% if cur_cat == 'assignment' %}selected{% endif %}>Assignment</option>
+              <option value="other" {% if cur_cat == 'other' %}selected{% endif %}>Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="ap-field-micro-label">Unit / Detail</label>
+            <input type="text" id="editDocDetail" value="{{ document.unit or document.exam_type or '' }}" placeholder="e.g. Unit U1,U2 or End-Sem" class="ap-text-input" oninput="updateGeneratedTitlePreview()">
+          </div>
+
+          <div>
+            <label class="ap-field-micro-label">Year / Exam Date</label>
+            <input type="text" id="editDocYear" value="{{ document.year or '2025' }}" placeholder="e.g. 2025" class="ap-text-input" oninput="updateGeneratedTitlePreview()">
+          </div>
+        </div>
+
+        <!-- Generated / Managed File Title Row with Auto-Sync Option -->
+        <div class="ap-field-row" style="margin-bottom:1.15rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <label class="ap-field-label" for="editDocTitle" style="margin-bottom:0;">File Title / Name</label>
+            <button type="button" id="autoSyncTitleBtn" onclick="forceSyncTitleFromFields()" style="background:none; border:none; color:var(--ap-blue, #0071e3); font-size:0.75rem; font-weight:600; cursor:pointer; padding:0;">⚡ Auto-Format Title</button>
+          </div>
+          <input type="text" id="editDocTitle" value="{{ document.title or '' }}" required class="ap-text-input" style="font-weight:600;">
+          <span style="font-size:0.72rem; color:#64748b; margin-top:3px; display:block;">Formatted automatically from College, Branch, Subject, Code, Category, and Semester.</span>
         </div>
 
         <div class="ap-field-row">
@@ -2933,6 +3041,160 @@ body.zen-active .image-canvas img {
     if (pWrap) pWrap.style.display = checked ? 'flex' : 'none';
   }
 
+  // ── Author Studio Metadata & Title Sync Functions ──
+  var _manualTitleEdited = false;
+
+  document.addEventListener('DOMContentLoaded', function() {
+    var titleInput = document.getElementById('editDocTitle');
+    if (titleInput) {
+      titleInput.addEventListener('input', function() {
+        _manualTitleEdited = true;
+      });
+    }
+  });
+
+  function forceSyncTitleFromFields() {
+    _manualTitleEdited = false;
+    updateGeneratedTitlePreview(true);
+    var btn = document.getElementById('autoSyncTitleBtn');
+    if (btn) {
+      var orig = btn.textContent;
+      btn.textContent = '✓ Formatted!';
+      setTimeout(function() { btn.textContent = orig; }, 1500);
+    }
+  }
+
+  async function onEditCollegeOrBranchChange() {
+    var branchSelect = document.getElementById('editDocBranch');
+    var branchId = branchSelect ? branchSelect.value : '';
+    var semSelect = document.getElementById('editDocSemester');
+    var sem = semSelect ? semSelect.value : '';
+    var subjSelect = document.getElementById('editDocSubject');
+
+    updateGeneratedTitlePreview();
+
+    if (!branchId || !subjSelect) return;
+
+    try {
+      var res = await fetch(`/api/subjects?department_id=${encodeURIComponent(branchId)}&semester=${encodeURIComponent(sem)}`);
+      var data = await res.json();
+      if (data && data.success && Array.isArray(data.subjects)) {
+        var curSubjId = subjSelect.value;
+        var html = '<option value="">Select Subject</option>';
+        data.subjects.forEach(function(s) {
+          var isSel = (s.id == curSubjId) ? 'selected' : '';
+          html += `<option value="${s.id}" data-code="${s.subject_code || ''}" data-name="${s.name}" ${isSel}>${s.name}${s.subject_code ? ' (' + s.subject_code + ')' : ''}</option>`;
+        });
+        html += '<option value="__ADD_NEW__">+ Add New Subject...</option>';
+        subjSelect.innerHTML = html;
+      }
+    } catch (err) {
+      console.warn('Could not load subjects for department:', err);
+    }
+  }
+
+  function onEditSubjectSelectChange() {
+    var subjSelect = document.getElementById('editDocSubject');
+    if (!subjSelect) return;
+    if (subjSelect.value === '__ADD_NEW__') {
+      toggleAddNewSubjectBox(true);
+      return;
+    }
+    toggleAddNewSubjectBox(false);
+    var selectedOpt = subjSelect.options[subjSelect.selectedIndex];
+    if (selectedOpt) {
+      var code = selectedOpt.getAttribute('data-code');
+      var codeInput = document.getElementById('editDocSubjectCode');
+      if (code && codeInput) {
+        codeInput.value = code;
+      }
+    }
+    updateGeneratedTitlePreview();
+  }
+
+  function toggleAddNewSubjectBox(show) {
+    var wrap = document.getElementById('addNewSubjectWrap');
+    if (wrap) wrap.style.display = show ? 'block' : 'none';
+    var subjSelect = document.getElementById('editDocSubject');
+    if (show && subjSelect) {
+      subjSelect.value = '__ADD_NEW__';
+      var nameInp = document.getElementById('newSubjectName');
+      if (nameInp) nameInp.focus();
+    } else if (!show && subjSelect && subjSelect.value === '__ADD_NEW__') {
+      subjSelect.selectedIndex = 0;
+    }
+    updateGeneratedTitlePreview();
+  }
+
+  function updateGeneratedTitlePreview(force) {
+    var titleInput = document.getElementById('editDocTitle');
+    if (!titleInput) return;
+    if (_manualTitleEdited && !force) return;
+
+    var collegeSelect = document.getElementById('editDocCollege');
+    var collegeOpt = collegeSelect && collegeSelect.selectedIndex >= 0 ? collegeSelect.options[collegeSelect.selectedIndex] : null;
+    var collegeAbbr = collegeOpt ? (collegeOpt.getAttribute('data-abbr') || collegeOpt.text.split('(')[1]?.replace(')', '') || collegeOpt.text).trim() : '';
+    if (collegeSelect && !collegeSelect.value) collegeAbbr = '';
+
+    var branchSelect = document.getElementById('editDocBranch');
+    var branchOpt = branchSelect && branchSelect.selectedIndex >= 0 ? branchSelect.options[branchSelect.selectedIndex] : null;
+    var branchAbbr = branchOpt ? (branchOpt.getAttribute('data-abbr') || branchOpt.text.split('(')[1]?.replace(')', '') || branchOpt.text).trim() : '';
+    if (branchSelect && !branchSelect.value) branchAbbr = '';
+
+    var isNewSubj = document.getElementById('addNewSubjectWrap')?.style.display === 'block';
+    var subjName = '';
+    var subjCode = '';
+
+    if (isNewSubj) {
+      subjName = document.getElementById('newSubjectName')?.value?.trim() || 'New Subject';
+      subjCode = document.getElementById('newSubjectCode')?.value?.trim() || '';
+    } else {
+      var subjSelect = document.getElementById('editDocSubject');
+      var subjOpt = subjSelect && subjSelect.selectedIndex >= 0 ? subjSelect.options[subjSelect.selectedIndex] : null;
+      subjName = subjOpt ? (subjOpt.getAttribute('data-name') || subjOpt.text.replace(/\s*\([^)]*\)$/, '')).trim() : '';
+      if (subjSelect && !subjSelect.value) subjName = '';
+      subjCode = document.getElementById('editDocSubjectCode')?.value?.trim() || (subjOpt ? subjOpt.getAttribute('data-code') : '') || '';
+    }
+
+    var catSelect = document.getElementById('editDocCategory');
+    var catVal = catSelect ? catSelect.value : 'notes';
+    var catLabels = {
+      'notes': 'Notes',
+      'papers': 'Paper',
+      'practical': 'Practical',
+      'syllabus': 'Syllabus',
+      'question_bank': 'Question Bank',
+      'assignment': 'Assignment',
+      'other': 'Material'
+    };
+    var catText = catLabels[catVal] || 'Notes';
+
+    var detail = document.getElementById('editDocDetail')?.value?.trim() || '';
+    var sem = document.getElementById('editDocSemester')?.value || '1';
+    var yr = document.getElementById('editDocYear')?.value?.trim() || '2025';
+
+    var parts = [];
+    if (collegeAbbr) parts.push(collegeAbbr);
+    if (branchAbbr) parts.push(branchAbbr);
+
+    var subjPart = subjName;
+    if (subjCode) {
+      subjPart = subjCode + ' - ' + subjName;
+    }
+    if (subjPart) parts.push(subjPart);
+
+    var midPart = catText;
+    if (detail) midPart += ' (' + detail + ')';
+    parts.push(midPart);
+
+    parts.push('Sem ' + sem + ' (' + yr + ')');
+
+    var generated = parts.join(' - ');
+    if (generated && generated.length > 5) {
+      titleInput.value = generated;
+    }
+  }
+
   async function saveDocumentChanges(e) {
     if (e) e.preventDefault();
     var btn = document.getElementById('saveDocChangesBtn');
@@ -2943,6 +3205,20 @@ body.zen-active .image-canvas img {
     var price = parseFloat(document.getElementById('editDocPrice').value || '0');
     var couponCode = document.getElementById('editDocCoupon').value.trim();
     var couponDiscount = parseInt(document.getElementById('editDocDiscount').value || '0', 10);
+
+    var collegeId = document.getElementById('editDocCollege')?.value || null;
+    var branchId = document.getElementById('editDocBranch')?.value || null;
+    var subjSelect = document.getElementById('editDocSubject');
+    var subjectId = subjSelect ? subjSelect.value : null;
+    var subjectCode = document.getElementById('editDocSubjectCode')?.value?.trim() || null;
+    var semester = document.getElementById('editDocSemester')?.value || null;
+    var category = document.getElementById('editDocCategory')?.value || null;
+    var detail = document.getElementById('editDocDetail')?.value?.trim() || null;
+    var year = document.getElementById('editDocYear')?.value?.trim() || null;
+
+    var isNewSubject = document.getElementById('addNewSubjectWrap')?.style.display === 'block';
+    var newSubjectName = document.getElementById('newSubjectName')?.value?.trim() || '';
+    var newSubjectCode = document.getElementById('newSubjectCode')?.value?.trim() || '';
 
     var adminStatus = document.getElementById('adminStatusAction')?.value || '';
     var adminReason = document.getElementById('adminReasonPreset')?.value || '';
@@ -2965,8 +3241,22 @@ body.zen-active .image-canvas img {
         is_paid: isPaid,
         price: price,
         coupon_code: couponCode,
-        coupon_discount: couponDiscount
+        coupon_discount: couponDiscount,
+        college_id: collegeId,
+        department_id: branchId,
+        subject_id: (subjectId && subjectId !== '__ADD_NEW__') ? subjectId : null,
+        subject_code: subjectCode,
+        semester: semester,
+        document_category: category,
+        exam_type: detail,
+        year: year
       };
+
+      if (isNewSubject && newSubjectName) {
+        payload.new_subject_name = newSubjectName;
+        payload.new_subject_code = newSubjectCode || subjectCode;
+      }
+
       if (document.getElementById('adminStatusAction')) {
         payload.status = adminStatus;
         payload.reason_preset = adminReason;
@@ -2986,12 +3276,12 @@ body.zen-active .image-canvas img {
       } else {
         statusEl.innerHTML = '<span style="color:#ef4444;">' + (data.message || 'Failed to update') + '</span>';
         btn.disabled = false;
-        btn.textContent = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle; margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Save Changes';
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle; margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Save Changes';
       }
     } catch(err) {
       statusEl.innerHTML = '<span style="color:#ef4444;">Network error while updating.</span>';
       btn.disabled = false;
-      btn.textContent = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle; margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Save Changes';
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle; margin-right:4px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Save Changes';
     }
   }
 
