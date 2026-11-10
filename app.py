@@ -423,7 +423,7 @@ def enforce_api_rate_limit():
 
     # Payment/storage providers retry webhooks independently; they need signature
     # validation and provider-specific controls rather than a browser-user quota.
-    if request.path.startswith('/api/webhooks/') or request.path in ('/api/health', '/health'):
+    if request.path.startswith(('/api/webhooks/', '/api/og/')) or request.path in ('/api/health', '/health'):
         return None
 
     from methods.api_rate_limiter import check_api_rate_limit

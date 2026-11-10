@@ -1,238 +1,235 @@
-{% set is_noindex = noindex | default(false) 
-   or request.path.startswith('/login') 
-   or request.path.startswith('/signup') 
-   or request.path.startswith('/settings') 
-   or request.path.startswith('/admin')
-   or request.path.startswith('/dashboard')
-   or request.path.startswith('/upload')
-   or request.path.startswith('/upload-gate')
-   or request.path.startswith('/account')
-   or request.path.startswith('/earnings')
-   or request.path.startswith('/delete-account')
-   or request.path.startswith('/reset-password')
-   or request.path.startswith('/auth-callback')
-   or request.path.startswith('/store-room')
-   or request.path.startswith('/dino-game')
-   or request.path.startswith('/offline')
-   or request.path.startswith('/api/') %}
-
-<!-- 1. Performance & Hints -->
-
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="dns-prefetch" href="https://fonts.googleapis.com">
-<link rel="dns-prefetch" href="https://www.googletagmanager.com">
-
-<!-- Search Engine Ownership Verification -->
-<!-- Google Search Console: Replace with your actual verification code from https://search.google.com/search-console -->
-<meta name="google-site-verification" content="{{ GOOGLE_SITE_VERIFICATION | default('') }}">
-<!-- Bing Webmaster Tools: Replace with your actual code from https://www.bing.com/webmasters -->
-<meta name="msvalidate.01" content="{{ BING_SITE_VERIFICATION | default('') }}">
-
-<!-- 2. Core Meta Tags -->
-<title>{{ seo_title | default("AbhiHub - World's #1 Previous Year Question Paper, Notes Sharing & Exam Preparation Platform") }}</title>
-<meta name="description"
-  content="{{ seo_description | default("AbhiHub is the World's #1 previous year question paper platform, notes sharing platform, and exam preparation platform. Proudly Made in India with multi-device support and fast-growing Tarika AI support.") }}">
-<meta name="keywords"
-  content="{{ seo_keywords | default("World's #1 PYQ platform, previous year question paper platform, notes sharing platform, exam preparation platform, Made in India, Tarika AI, multi-device support, engineering notes, study materials, exam preparation, AbhiHub") }}">
-<meta name="author" content="AbhiHub">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="AbhiHub">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#2563eb">
-<meta name="google-adsense-account" content="ca-pub-8274846157272362">
-<!-- Geo signals for India-specific and global ranking -->
-<meta name="geo.region" content="IN">
-<meta name="geo.country" content="India">
-<meta name="geo.placename" content="India">
-<meta name="geo.position" content="20.593684;78.96288">
-<meta name="ICBM" content="20.593684, 78.96288">
-<meta name="language" content="en-IN">
-<meta name="coverage" content="Worldwide">
-<meta name="distribution" content="Global">
-<meta name="rating" content="General">
-
-<!-- Google AdSense: Single canonical load (IS_PRODUCTION + noindex safe). p_struct.html duplicate removed. -->
-{% if IS_PRODUCTION and not is_noindex and not disable_ads and ads_allowed %}
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8274846157272362"
-  crossorigin="anonymous"></script>
-{% endif %}
-
-<!-- 3. Robots Directives -->
-{% if is_noindex %}
-<meta name="robots" content="noindex, nofollow">
-{% else %}
-<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
-{% endif %}
-
-<!-- 4. Canonical URLs -->
-{% set canonical_domain = BASE_URL | default('https://www.abhihub.edu.eu.org') %}
-{% if not disable_canonical %}
-<link rel="canonical" href="{{ canonical_domain }}{{ request.path }}">
-
-<!-- 5. Open Graph Tags -->
-<meta property="og:site_name" content="AbhiHub">
-<meta property="og:type" content="{{ og_type | default('website') }}">
-<meta property="og:title"
-  content="{{ og_title | default(seo_title | default("AbhiHub - World's #1 Previous Year Question Paper, Notes Sharing & Exam Preparation Platform")) }}">
-<meta property="og:description"
-  content="{{ og_description | default(seo_description | default("AbhiHub is the World's #1 previous year question paper platform, notes sharing platform, and exam preparation platform. Proudly Made in India.")) }}">
-<meta property="og:url" content="{{ canonical_domain }}{{ request.path }}">
-<meta property="og:image"
-  content="{{ og_image | default(url_for('static', filename='images/android-chrome-512x512.png', _external=True)) }}">
-<meta property="og:image:width" content="{{ og_image_width | default('1200') }}">
-<meta property="og:image:height" content="{{ og_image_height | default('630') }}">
-<meta property="og:image:type" content="image/png">
-{% endif %}
-
-<!-- 6. Twitter Card Tags -->
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="{{ twitter_title | default(og_title | default(seo_title | default('AbhiHub'))) }}">
-<meta name="twitter:description"
-  content="{{ twitter_description | default(og_description | default(seo_description | default(''))) }}">
-<meta name="twitter:image"
-  content="{{ twitter_image | default(og_image | default(url_for('static', filename='premium/icons/icon-512x512.png', _external=True))) }}">
-
-<!-- 7. Organization + WebSite + WebApplication JSON-LD Schema -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "EducationalOrganization",
-      "@id": "{{ canonical_domain }}/#organization",
-      "name": "AbhiHub",
-      "alternateName": [
-        "Abhi Hub",
-        "World's #1 PYQ Platform",
-        "AbhiHub Notes Sharing Platform",
-        "AbhiHub Exam Preparation Platform",
-        "Made in India Educational Hub"
-      ],
-      "url": "{{ canonical_domain }}/",
-      "logo": "{{ canonical_domain }}/static/images/apple-touch-icon.png",
-      "description": "AbhiHub is the World's #1 previous year question paper platform, notes sharing platform, and exam preparation platform. Proudly Made in India, featuring multi-device support and fast-growing Tarika AI support.",
-      "foundingDate": "2023",
-      "foundingLocation": {
-        "@type": "Country",
-        "name": "India"
-      },
-      "award": "World's #1 Previous Year Question Paper & Notes Sharing Platform",
-      "areaServed": [
-        {
-          "@type": "Country",
-          "name": "India"
-        },
-        {
-          "@type": "AdministrativeArea",
-          "name": "Worldwide"
-        }
-      ],
-      "knowsAbout": [
-        "Previous Year Question Papers",
-        "PYQ Platform",
-        "Notes Sharing Platform",
-        "Exam Preparation Platform",
-        "Tarika AI Study Assistant",
-        "Multi-Device Cross-Platform Sync",
-        "Engineering Exam Papers",
-        "College Study Resources",
-        "Made in India EdTech"
-      ],
-      "sameAs": [
-        "https://www.instagram.com/_abhihub_",
-        "https://www.linkedin.com/company/abhihub"
-      ]
-    },
-    {
-      "@type": "WebSite",
-      "@id": "{{ canonical_domain }}/#website",
-      "name": "AbhiHub",
-      "url": "{{ canonical_domain }}/",
-      "description": "World's #1 previous year question paper and engineering notes sharing platform, Made in India.",
-      "publisher": { "@id": "{{ canonical_domain }}/#organization" },
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": {
-          "@type": "EntryPoint",
-          "urlTemplate": "{{ canonical_domain }}/pyq?q={search_term_string}"
-        },
-        "query-input": "required name=search_term_string"
-      }
-    },
-    {
-      "@type": "WebApplication",
-      "@id": "{{ canonical_domain }}/#webapp",
-      "name": "AbhiHub Exam Preparation & Notes Sharing Platform",
-      "applicationCategory": "EducationalApplication",
-      "operatingSystem": "All (Android, iOS, Windows, macOS, Web, PWA)",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "INR"
-      },
-      "featureList": [
-        "World's #1 Previous Year Question Paper (PYQ) Platform",
-        "Student & Faculty Notes Sharing Platform",
-        "Complete Exam Preparation Hub",
-        "Fast-Growing Tarika (AI Support)",
-        "Multi-Device Support with Cloud Sync",
-        "Proudly Made in India"
-      ]
-    }
-  ]
-}
-</script>
-
-{% if request.path == '/' %}
-<!-- FAQPage Schema: Enables expandable FAQ rich results in Google SERPs for the landing page -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "What is AbhiHub?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "AbhiHub is India's student-first peer academic marketplace where you can download verified previous year question papers (PYQs) and high-scoring engineering notes, or upload your own handwritten notes to earn up to 85% royalties directly via UPI."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How do I earn money by uploading notes on AbhiHub?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Upload your handwritten engineering notes or PYQ solutions to AbhiHub, set a price, and earn 85% of every sale directly via UPI. AbhiHub handles verification, payments, and student reach across India."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Are the PYQs and notes on AbhiHub verified?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes. Every resource on AbhiHub is reviewed by Tarika (our AI co-founder) and campus moderators for syllabus accuracy, formatting quality, and relevance before being listed."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Which engineering colleges and universities are covered?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "AbhiHub started at G.H. Raisoni College of Engineering, Nagpur (GHRCEN) and is rapidly expanding to cover universities and colleges across India — including AKTU, RTM Nagpur University, Pune University, VTU, RGPV, and more."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Is AbhiHub free to use?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Browsing and previewing the first 3 pages of any resource is completely free. Full document access uses a pay-per-download model starting from ₹19. Creating an account is always free."
-      }
-    }
-  ]
-}
-</script>
+{% set is_noindex = noindex | default(false) 
+   or request.path.startswith('/login') 
+   or request.path.startswith('/signup') 
+   or request.path.startswith('/settings') 
+   or request.path.startswith('/admin')
+   or request.path.startswith('/dashboard')
+   or request.path.startswith('/upload')
+   or request.path.startswith('/upload-gate')
+   or request.path.startswith('/account')
+   or request.path.startswith('/earnings')
+   or request.path.startswith('/delete-account')
+   or request.path.startswith('/reset-password')
+   or request.path.startswith('/auth-callback')
+   or request.path.startswith('/store-room')
+   or request.path.startswith('/dino-game')
+   or request.path.startswith('/offline')
+   or request.path.startswith('/api/') %}
+
+<!-- 1. Performance & Hints -->
+
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://fonts.googleapis.com">
+<link rel="dns-prefetch" href="https://www.googletagmanager.com">
+
+<!-- Search Engine Ownership Verification -->
+<!-- Google Search Console: Replace with your actual verification code from https://search.google.com/search-console -->
+<meta name="google-site-verification" content="{{ GOOGLE_SITE_VERIFICATION | default('') }}">
+<!-- Bing Webmaster Tools: Replace with your actual code from https://www.bing.com/webmasters -->
+<meta name="msvalidate.01" content="{{ BING_SITE_VERIFICATION | default('') }}">
+
+<!-- 2. Core Meta Tags -->
+<title>{{ seo_title | default("AbhiHub - World's #1 Previous Year Question Paper, Notes Sharing & Exam Preparation Platform") }}</title>
+<meta name="description"
+  content="{{ seo_description | default("AbhiHub is the World's #1 previous year question paper platform, notes sharing platform, and exam preparation platform. Proudly Made in India with multi-device support and fast-growing Tarika AI support.") }}">
+<meta name="keywords"
+  content="{{ seo_keywords | default("World's #1 PYQ platform, previous year question paper platform, notes sharing platform, exam preparation platform, Made in India, Tarika AI, multi-device support, engineering notes, study materials, exam preparation, AbhiHub") }}">
+<meta name="author" content="AbhiHub">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="AbhiHub">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2563eb">
+<meta name="google-adsense-account" content="ca-pub-8274846157272362">
+<!-- Geo signals for India-specific and global ranking -->
+<meta name="geo.region" content="IN">
+<meta name="geo.country" content="India">
+<meta name="geo.placename" content="India">
+<meta name="geo.position" content="20.593684;78.96288">
+<meta name="ICBM" content="20.593684, 78.96288">
+<meta name="language" content="en-IN">
+<meta name="coverage" content="Worldwide">
+<meta name="distribution" content="Global">
+<meta name="rating" content="General">
+
+<!-- Google AdSense: Single canonical load (IS_PRODUCTION + noindex safe). p_struct.html duplicate removed. -->
+{% if IS_PRODUCTION and not is_noindex and not disable_ads and ads_allowed %}
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8274846157272362"
+  crossorigin="anonymous"></script>
+{% endif %}
+
+<!-- 3. Robots Directives -->
+{% if is_noindex %}
+<meta name="robots" content="noindex, nofollow">
+{% else %}
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+{% endif %}
+
+<!-- 4. Canonical URLs -->
+{% set current_origin = (request.url_root.rstrip('/') if (request and request.url_root) else (BASE_URL | default('https://www.abhihub.edu.eu.org', true))) %}
+{% set canonical_domain = BASE_URL | default('https://www.abhihub.edu.eu.org') %}
+{% if not disable_canonical %}
+<link rel="canonical" href="{{ canonical_domain }}{{ request.path }}">
+
+<!-- 5. Open Graph Tags -->
+<meta property="og:site_name" content="AbhiHub">
+<meta property="og:type" content="{{ og_type | default('website') }}">
+<meta property="og:title" content="{{ (og_title | default(seo_title | default("AbhiHub - World's #1 Previous Year Question Paper, Notes Sharing & Exam Preparation Platform"))) | trim | striptags }}">
+<meta property="og:description" content="{{ (og_description | default(seo_description | default("AbhiHub is the World's #1 previous year question paper platform, notes sharing platform, and exam preparation platform. Proudly Made in India."))) | trim | striptags }}">
+<meta property="og:url" content="{{ current_origin }}{{ request.path }}">
+<meta property="og:image" content="{{ og_image | default(url_for('static', filename='images/android-chrome-512x512.png', _external=True)) }}">
+<meta property="og:image:secure_url" content="{{ og_image | default(url_for('static', filename='images/android-chrome-512x512.png', _external=True)) }}">
+<meta property="og:image:width" content="{{ og_image_width | default('1200') }}">
+<meta property="og:image:height" content="{{ og_image_height | default('630') }}">
+<meta property="og:image:type" content="image/png">
+{% endif %}
+
+<!-- 6. Twitter Card Tags -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ (twitter_title | default(og_title | default(seo_title | default('AbhiHub')))) | trim | striptags }}">
+<meta name="twitter:description" content="{{ (twitter_description | default(og_description | default(seo_description | default('')))) | trim | striptags }}">
+<meta name="twitter:image" content="{{ twitter_image | default(og_image | default(url_for('static', filename='premium/icons/icon-512x512.png', _external=True))) }}">
+
+<!-- 7. Organization + WebSite + WebApplication JSON-LD Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "EducationalOrganization",
+      "@id": "{{ canonical_domain }}/#organization",
+      "name": "AbhiHub",
+      "alternateName": [
+        "Abhi Hub",
+        "World's #1 PYQ Platform",
+        "AbhiHub Notes Sharing Platform",
+        "AbhiHub Exam Preparation Platform",
+        "Made in India Educational Hub"
+      ],
+      "url": "{{ canonical_domain }}/",
+      "logo": "{{ canonical_domain }}/static/images/apple-touch-icon.png",
+      "description": "AbhiHub is the World's #1 previous year question paper platform, notes sharing platform, and exam preparation platform. Proudly Made in India, featuring multi-device support and fast-growing Tarika AI support.",
+      "foundingDate": "2023",
+      "foundingLocation": {
+        "@type": "Country",
+        "name": "India"
+      },
+      "award": "World's #1 Previous Year Question Paper & Notes Sharing Platform",
+      "areaServed": [
+        {
+          "@type": "Country",
+          "name": "India"
+        },
+        {
+          "@type": "AdministrativeArea",
+          "name": "Worldwide"
+        }
+      ],
+      "knowsAbout": [
+        "Previous Year Question Papers",
+        "PYQ Platform",
+        "Notes Sharing Platform",
+        "Exam Preparation Platform",
+        "Tarika AI Study Assistant",
+        "Multi-Device Cross-Platform Sync",
+        "Engineering Exam Papers",
+        "College Study Resources",
+        "Made in India EdTech"
+      ],
+      "sameAs": [
+        "https://www.instagram.com/_abhihub_",
+        "https://www.linkedin.com/company/abhihub"
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "{{ canonical_domain }}/#website",
+      "name": "AbhiHub",
+      "url": "{{ canonical_domain }}/",
+      "description": "World's #1 previous year question paper and engineering notes sharing platform, Made in India.",
+      "publisher": { "@id": "{{ canonical_domain }}/#organization" },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "{{ canonical_domain }}/pyq?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "{{ canonical_domain }}/#webapp",
+      "name": "AbhiHub Exam Preparation & Notes Sharing Platform",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "All (Android, iOS, Windows, macOS, Web, PWA)",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "INR"
+      },
+      "featureList": [
+        "World's #1 Previous Year Question Paper (PYQ) Platform",
+        "Student & Faculty Notes Sharing Platform",
+        "Complete Exam Preparation Hub",
+        "Fast-Growing Tarika (AI Support)",
+        "Multi-Device Support with Cloud Sync",
+        "Proudly Made in India"
+      ]
+    }
+  ]
+}
+</script>
+
+{% if request.path == '/' %}
+<!-- FAQPage Schema: Enables expandable FAQ rich results in Google SERPs for the landing page -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is AbhiHub?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "AbhiHub is India's student-first peer academic marketplace where you can download verified previous year question papers (PYQs) and high-scoring engineering notes, or upload your own handwritten notes to earn up to 85% royalties directly via UPI."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I earn money by uploading notes on AbhiHub?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Upload your handwritten engineering notes or PYQ solutions to AbhiHub, set a price, and earn 85% of every sale directly via UPI. AbhiHub handles verification, payments, and student reach across India."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Are the PYQs and notes on AbhiHub verified?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Every resource on AbhiHub is reviewed by Tarika (our AI co-founder) and campus moderators for syllabus accuracy, formatting quality, and relevance before being listed."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which engineering colleges and universities are covered?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "AbhiHub started at G.H. Raisoni College of Engineering, Nagpur (GHRCEN) and is rapidly expanding to cover universities and colleges across India — including AKTU, RTM Nagpur University, Pune University, VTU, RGPV, and more."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is AbhiHub free to use?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Browsing and previewing the first 3 pages of any resource is completely free. Full document access uses a pay-per-download model starting from ₹19. Creating an account is always free."
+      }
+    }
+  ]
+}
+</script>
 {% endif %}

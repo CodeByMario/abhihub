@@ -131,16 +131,13 @@ def generate_resource_og_image(data: dict) -> bytes:
     # Divider line
     draw.line([(95, 442), (1100, 442)], fill='#eae3f5', width=2)
 
-    # Shared by & College row
-    draw.text((95, 458), "SHARED BY", fill='#77718b', font=f_label)
-    draw.text((95, 480), author[:36], fill='#17152c', font=f_val)
+    # Shared by & College row (two-column layout)
+    draw.text((95, 458), "UPLOADED BY", fill='#77718b', font=f_label)
+    draw.text((95, 480), author[:32], fill='#17152c', font=f_val)
 
-    coll_text = college[:45]
-    try:
-        coll_w = draw.textlength(coll_text, font=f_sem)
-    except Exception:
-        coll_w = len(coll_text) * 11
-    draw.text((1100 - coll_w, 480), coll_text, fill='#6834d5', font=f_sem)
+    draw.text((620, 458), "COLLEGE / INSTITUTION", fill='#77718b', font=f_label)
+    coll_text = college[:36]
+    draw.text((620, 480), coll_text, fill='#6834d5', font=f_val)
 
     # 3. Footer Bar
     draw.rectangle([0, 555, w, h], fill='#30206c')

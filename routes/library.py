@@ -588,35 +588,69 @@ def render_resource_404(slug=None, doc_id=None, is_unapproved=False):
     ), 404
 
 
-@library_bp.route('/api/og/resource/<doc_id>.png')
-@library_bp.route('/api/og/resource/<doc_id>')
+@library_bp.route('/api/og/resource/<path:doc_id>')
 def resource_og_image(doc_id):
     """Dynamic 1200x630 OG image generation for resources."""
     import app
     from methods.resource_og import generate_resource_og_image
+
+    # Support raw UUID, .png suffix, or complete resource slug
+    clean_id = doc_id[:-4] if doc_id.lower().endswith('.png') else doc_id
+    uuid_match = re.search(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', clean_id, re.I)
+    target_id = uuid_match.group(0) if uuid_match else clean_id
+
     cache = getattr(app, 'cache', None)
     doc_res = None
     if cache and not current_app.config.get('TESTING'):
-        doc_res = cache.get_cached(f"doc_rich:{doc_id}", level=cache.L1, ttl=300)
+        doc_res = cache.get_cached(f"doc_rich:{target_id}", level=cache.L1, ttl=300)
     if not doc_res:
         document_loader = getattr(app, 'get_document_by_id_rich', get_document_by_id_rich)
-        doc_res = document_loader(doc_id)
+        doc_res = document_loader(target_id)
         if doc_res and doc_res.get('success') and cache:
-            cache.set_cached(f"doc_rich:{doc_id}", doc_res, ttl=300)
+            cache.set_cached(f"doc_rich:{target_id}", doc_res, ttl=300)
 
     doc = doc_res.get('data', {}) if doc_res and doc_res.get('success') else {}
     subj = doc.get('subject') or {}
     coll = doc.get('college') or {}
     up = doc.get('uploader') or {}
 
+    subj_name = subj.get('name') if isinstance(subj, dict) else (doc.get('subject_name') or doc.get('subject') or 'General Engineering')
+    subj_code = subj.get('code') if isinstance(subj, dict) else (doc.get('subject_code') or '')
+    subj_text = f"{subj_name} ({subj_code})" if subj_code else str(subj_name)
+
+    coll_abbr = coll.get('abbreviation') if isinstance(coll, dict) else (doc.get('college_abbr') or '')
+    coll_name = coll.get('name') if isinstance(coll, dict) else (doc.get('college_name') or doc.get('college') or 'AbhiHub')
+    coll_display = f"{coll_abbr} - {coll_name}" if (coll_abbr and coll_abbr != coll_name) else (coll_abbr or coll_name)
+
+    author_name = up.get('full_name') if isinstance(up, dict) else (doc.get('uploader_name') or 'AbhiHub Member')
+
+    # Normalize category label for visual badge
+    cat_raw = str(doc.get('document_category') or doc.get('file_type') or 'Notes').strip()
+    cat_lower = cat_raw.lower()
+    if any(k in cat_lower for k in ['pyq', 'paper', 'exam', 'ese', 'mse']):
+        cat_badge = 'PYQ / Paper'
+    elif any(k in cat_lower for k in ['question', 'qb', 'qbank']):
+        cat_badge = 'Question Bank'
+    elif any(k in cat_lower for k in ['practical', 'lab', 'manual', 'viva']):
+        cat_badge = 'Practical'
+    elif 'syllabus' in cat_lower:
+        cat_badge = 'Syllabus'
+    elif 'assignment' in cat_lower:
+        cat_badge = 'Assignment'
+    else:
+        cat_badge = 'Notes'
+
+    sem_val = doc.get('semester') or doc.get('semester_code') or 'All Semesters'
+    sem_text = f"Sem {sem_val}" if str(sem_val).isdigit() else str(sem_val)
+
     img_data = {
-        'id': doc_id,
-        'title': doc.get('title') or 'Study Material',
-        'subject': subj.get('name') if isinstance(subj, dict) else (doc.get('subject_name') or 'Engineering'),
-        'author': up.get('full_name') if isinstance(up, dict) else (doc.get('uploader_name') or 'AbhiHub Member'),
-        'semester': str(doc.get('semester') or doc.get('semester_code') or 'All Semesters'),
-        'category': doc.get('document_category') or doc.get('file_type') or 'Notes',
-        'college': coll.get('name') if isinstance(coll, dict) else (doc.get('college_name') or 'AbhiHub')
+        'id': target_id,
+        'title': doc.get('title') or (f"{subj_name} {cat_badge}" if subj_name else 'Study Material'),
+        'subject': subj_text,
+        'author': author_name,
+        'semester': sem_text,
+        'category': cat_badge,
+        'college': coll_display
     }
 
     img_bytes = generate_resource_og_image(img_data)

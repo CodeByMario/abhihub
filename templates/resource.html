@@ -38,8 +38,8 @@ uploader_name %}
 {% set og_title = seo_title %}
 {% set og_description = seo_description %}
 {% set og_type = 'article' %}
-{% set canonical_base = BASE_URL | default('https://www.abhihub.edu.eu.org') %}
-{% set og_image = canonical_base ~ '/api/og/resource/' ~ document.id ~ '.png' %}
+{% set current_host = (request.url_root.rstrip('/') if (request and request.url_root) else (BASE_URL | default('https://www.abhihub.edu.eu.org', true))) %}
+{% set og_image = current_host ~ '/api/og/resource/' ~ document.id ~ '.png' %}
 {% set twitter_image = og_image %}
 {% set og_image_width = '1200' %}
 {% set og_image_height = '630' %}
