@@ -1631,9 +1631,10 @@ body.zen-active .image-canvas img {
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:0.85rem; margin-bottom:0.85rem;">
           <div class="ap-field-row" style="margin-bottom:0;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-              <label class="ap-field-label" for="editDocSubject" style="margin-bottom:0;">Subject</label>
+              <label class="ap-field-label" for="editDocSubject" style="margin-bottom:0;">Subject *</label>
               <button type="button" onclick="toggleAddNewSubjectBox(true)" style="background:none; border:none; color:var(--ap-blue, #0071e3); font-size:0.75rem; font-weight:600; cursor:pointer; padding:0;">+ Add New Subject</button>
             </div>
+            <input type="text" id="editDocSubjectFilter" oninput="filterEditSubjectOptions(this.value)" placeholder="Search subjects in list..." class="ap-text-input micro" style="margin-bottom:5px; font-size:12px; padding:5px 8px;">
             <select id="editDocSubject" class="ap-select-input" onchange="onEditSubjectSelectChange()">
               {% if document.subject %}
               <option value="{{ document.subject.id or document.subject_id }}" selected data-code="{{ document.subject.subject_code or '' }}" data-name="{{ document.subject.name or '' }}">{{ document.subject.name }}{% if document.subject.subject_code %} ({{ document.subject.subject_code }}){% endif %}</option>
@@ -1648,7 +1649,7 @@ body.zen-active .image-canvas img {
 
           <div class="ap-field-row" style="margin-bottom:0;">
             <label class="ap-field-label" for="editDocSubjectCode">Subject Code</label>
-            <input type="text" id="editDocSubjectCode" value="{{ document.subject.subject_code if (document.subject and document.subject.subject_code) else (document.subject_code or '') }}" placeholder="e.g. CS501 / 0012" class="ap-text-input uppercase" oninput="updateGeneratedTitlePreview()">
+            <input type="text" id="editDocSubjectCode" value="{{ document.subject.subject_code if (document.subject and document.subject.subject_code) else (document.subject_code or '') }}" placeholder="e.g. CS501 / 0012" class="ap-text-input uppercase" oninput="updateGeneratedTitlePreview()" style="margin-top:27px;">
           </div>
         </div>
 
@@ -3033,6 +3034,7 @@ body.zen-active .image-canvas img {
       if (eTab) eTab.style.display = 'block';
       if (vBtn) vBtn.classList.remove('active');
       if (eBtn) eBtn.classList.add('active');
+      loadEditSubjectsList();
     }
   }
 
@@ -3043,6 +3045,7 @@ body.zen-active .image-canvas img {
 
   // ── Author Studio Metadata & Title Sync Functions ──
   var _manualTitleEdited = false;
+  window.__ALL_EDIT_SUBJECTS__ = [];
 
   document.addEventListener('DOMContentLoaded', function() {
     var titleInput = document.getElementById('editDocTitle');
@@ -3051,6 +3054,7 @@ body.zen-active .image-canvas img {
         _manualTitleEdited = true;
       });
     }
+    loadEditSubjectsList();
   });
 
   function forceSyncTitleFromFields() {
@@ -3064,33 +3068,104 @@ body.zen-active .image-canvas img {
     }
   }
 
-  async function onEditCollegeOrBranchChange() {
+  async function loadEditSubjectsList() {
     var branchSelect = document.getElementById('editDocBranch');
     var branchId = branchSelect ? branchSelect.value : '';
     var semSelect = document.getElementById('editDocSemester');
     var sem = semSelect ? semSelect.value : '';
     var subjSelect = document.getElementById('editDocSubject');
+    if (!subjSelect) return;
 
-    updateGeneratedTitlePreview();
+    var curSubjId = '{{ document.subject_id or (document.subject.id if document.subject else "") }}';
+    var curSubjName = '{{ (document.subject.name if document.subject else document.subject_name) or "" }}';
+    var curSubjCode = '{{ (document.subject.subject_code if document.subject and document.subject.subject_code else document.subject_code) or "" }}';
 
-    if (!branchId || !subjSelect) return;
+    var url = '/api/subjects';
+    var params = [];
+    if (branchId) params.push('department_id=' + encodeURIComponent(branchId));
+    if (sem) params.push('semester=' + encodeURIComponent(sem));
+    if (params.length > 0) url += '?' + params.join('&');
 
     try {
-      var res = await fetch(`/api/subjects?department_id=${encodeURIComponent(branchId)}&semester=${encodeURIComponent(sem)}`);
+      var res = await fetch(url);
       var data = await res.json();
-      if (data && data.success && Array.isArray(data.subjects)) {
-        var curSubjId = subjSelect.value;
-        var html = '<option value="">Select Subject</option>';
-        data.subjects.forEach(function(s) {
-          var isSel = (s.id == curSubjId) ? 'selected' : '';
-          html += `<option value="${s.id}" data-code="${s.subject_code || ''}" data-name="${s.name}" ${isSel}>${s.name}${s.subject_code ? ' (' + s.subject_code + ')' : ''}</option>`;
-        });
-        html += '<option value="__ADD_NEW__">+ Add New Subject...</option>';
-        subjSelect.innerHTML = html;
+      var list = (data && data.success && Array.isArray(data.subjects)) ? data.subjects : (data.data || []);
+
+      // If branch/sem returned 0 subjects, fall back to general subjects catalog
+      if ((!list || list.length === 0) && (branchId || sem)) {
+        var fallbackRes = await fetch('/api/subjects');
+        var fallbackData = await fallbackRes.json();
+        list = (fallbackData && fallbackData.success && Array.isArray(fallbackData.subjects)) ? fallbackData.subjects : [];
       }
+
+      window.__ALL_EDIT_SUBJECTS__ = list;
+      renderEditSubjectOptions(list, curSubjId, curSubjName, curSubjCode);
     } catch (err) {
-      console.warn('Could not load subjects for department:', err);
+      console.warn('Could not load subjects catalog:', err);
     }
+  }
+
+  function renderEditSubjectOptions(list, selectedId, fallbackName, fallbackCode) {
+    var subjSelect = document.getElementById('editDocSubject');
+    if (!subjSelect) return;
+
+    var targetId = selectedId || subjSelect.value;
+    var html = '<option value="">-- Select Subject from List --</option>';
+    var foundSelected = false;
+
+    if (Array.isArray(list)) {
+      list.forEach(function(s) {
+        var isSel = (String(s.id) === String(targetId));
+        if (isSel) foundSelected = true;
+        var code = s.subject_code || '';
+        var semLabel = s.semester ? (' [Sem ' + s.semester + ']') : '';
+        var disp = (code ? (s.name + ' (' + code + ')') : s.name) + semLabel;
+        html += `<option value="${s.id}" data-name="${s.name}" data-code="${code}" data-sem="${s.semester || ''}" ${isSel ? 'selected' : ''}>${disp}</option>`;
+      });
+    }
+
+    if (!foundSelected && targetId && fallbackName) {
+      var disp = fallbackCode ? (fallbackName + ' (' + fallbackCode + ')') : fallbackName;
+      html = `<option value="${targetId}" data-name="${fallbackName}" data-code="${fallbackCode || ''}" selected>${disp}</option>` + html;
+    }
+
+    html += '<option value="__ADD_NEW__" style="color:#2563eb; font-weight:700;">＋ Add New Subject...</option>';
+    subjSelect.innerHTML = html;
+
+    // Automatically sync subject code if current option has it
+    var currentOption = subjSelect.options[subjSelect.selectedIndex];
+    if (currentOption && currentOption.value && currentOption.value !== '__ADD_NEW__') {
+      var c = currentOption.getAttribute('data-code');
+      var codeInp = document.getElementById('editDocSubjectCode');
+      if (c && codeInp && !codeInp.value) {
+        codeInp.value = c;
+      }
+    }
+  }
+
+  function filterEditSubjectOptions(query) {
+    var list = window.__ALL_EDIT_SUBJECTS__ || [];
+    var q = (query || '').trim().toLowerCase();
+    var subjSelect = document.getElementById('editDocSubject');
+    var curVal = subjSelect ? subjSelect.value : '';
+
+    if (!q) {
+      renderEditSubjectOptions(list, curVal);
+      return;
+    }
+
+    var filtered = list.filter(function(s) {
+      var n = (s.name || '').toLowerCase();
+      var c = (s.subject_code || '').toLowerCase();
+      return n.indexOf(q) !== -1 || c.indexOf(q) !== -1;
+    });
+
+    renderEditSubjectOptions(filtered, curVal);
+  }
+
+  function onEditCollegeOrBranchChange() {
+    updateGeneratedTitlePreview();
+    loadEditSubjectsList();
   }
 
   function onEditSubjectSelectChange() {
@@ -3102,11 +3177,16 @@ body.zen-active .image-canvas img {
     }
     toggleAddNewSubjectBox(false);
     var selectedOpt = subjSelect.options[subjSelect.selectedIndex];
-    if (selectedOpt) {
+    if (selectedOpt && selectedOpt.value) {
       var code = selectedOpt.getAttribute('data-code');
       var codeInput = document.getElementById('editDocSubjectCode');
-      if (code && codeInput) {
-        codeInput.value = code;
+      if (codeInput) {
+        codeInput.value = code || '';
+      }
+      var sem = selectedOpt.getAttribute('data-sem');
+      var semSelect = document.getElementById('editDocSemester');
+      if (sem && semSelect) {
+        semSelect.value = sem;
       }
     }
     updateGeneratedTitlePreview();

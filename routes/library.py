@@ -1123,7 +1123,7 @@ def api_edit_document(doc_id):
             'difficulty_level', 'uploader_note', 'image_alt', 'is_paid',
             'price', 'coupon_code', 'coupon_discount', 'status'
         }
-        valid_doc_cols = set(doc.keys()).intersection(DOC_VALID_COLUMNS)
+        valid_doc_cols = DOC_VALID_COLUMNS
 
         # Build updates mapping
         update_payload = {}
