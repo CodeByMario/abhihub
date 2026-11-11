@@ -697,6 +697,12 @@ def api_update_profile():
 
         if update_data:
             client.table('profiles').update(update_data).eq('id', user_id).execute()
+            if 'college_id' in update_data:
+                try:
+                    from methods.gamification_service import on_user_joined_college
+                    on_user_joined_college(user_id, update_data['college_id'])
+                except Exception as _g_err:
+                    logging.debug(f"[Gamification] on_user_joined_college error: {_g_err}")
             return jsonify({'success': True}), 200
         
         return jsonify({'success': False, 'message': 'No valid fields provided'}), 400
@@ -1017,12 +1023,114 @@ def api_get_colleges():
         result = get_colleges_with_document_counts()
         return result.get('data', []) if result.get('success') else []
 
+    colleges = cache.get_cached('dropdowns:colleges:v2', level=cache.L1, ttl=cache.SHORT, fetcher=fetch_all_colleges) if cache else fetch_all_colleges()
+
+    if request.args.get('has_documents', '').lower() in ('1', 'true', 'yes') or request.args.get('has_resources', '').lower() in ('1', 'true', 'yes'):
+        filtered = [c for c in (colleges or []) if (c.get('doc_count') or c.get('document_count') or 0) > 0]
+        return jsonify({'success': True, 'colleges': filtered}), 200
+
+    response = jsonify({'success': True, 'colleges': colleges}), 200
     if cache:
-        colleges = cache.get_cached('dropdowns:colleges:v2', level=cache.L1, ttl=cache.SHORT, fetcher=fetch_all_colleges)
-        response = jsonify({'success': True, 'colleges': colleges}), 200
         cache.set_cache_headers(response[0], max_age=cache.LONG, stale_while_revalidate=True, stale_if_error=86400)
-        return response
-    return jsonify({'success': True, 'colleges': fetch_all_colleges()}), 200
+    return response
+
+
+@api_bp.route('/api/colleges/check-availability', methods=['GET', 'POST'])
+def api_check_college_availability():
+    """Check resource availability, waitlist count, or log requested college."""
+    from methods.supabase_helper import init_supabase_admin, init_supabase, get_colleges_with_document_counts
+    client = init_supabase_admin() or init_supabase()
+
+    if request.method == 'POST':
+        data = request.get_json() or {}
+        college_id = data.get('college_id')
+        custom_name = data.get('college_name', '').strip()
+        email = (data.get('email') or '').strip().lower()
+        if client and (college_id or custom_name) and email:
+            try:
+                # Deduplicate: check if email already registered for this request
+                q = client.table('college_waitlist').select('id').eq('email', email)
+                if college_id:
+                    q = q.eq('college_id', college_id)
+                elif custom_name:
+                    q = q.ilike('college_name', custom_name)
+                exist = q.limit(1).execute()
+                if not (exist.data or []):
+                    client.table('college_waitlist').insert({
+                        'college_id': college_id or None,
+                        'college_name': custom_name or None,
+                        'email': email
+                    }).execute()
+            except Exception:
+                pass
+        return jsonify({'success': True, 'message': 'College request logged'}), 200
+
+    college_id = request.args.get('college_id')
+    college_name = request.args.get('name', '').strip()
+
+    colleges_res = get_colleges_with_document_counts()
+    colleges = colleges_res.get('data', []) if colleges_res.get('success') else []
+
+    matched = None
+    if college_id:
+        matched = next((c for c in colleges if str(c.get('id')) == str(college_id)), None)
+    elif college_name:
+        matched = next((c for c in colleges if c.get('name', '').lower() == college_name.lower()), None)
+
+    doc_count = int(matched.get('doc_count') or matched.get('document_count') or 0) if matched else 0
+    waitlist_count = int(matched.get('waitlist_count') or 0) if matched else 0
+
+    if not matched and college_name and client:
+        try:
+            wl_res = client.table('college_waitlist').select('id', count='exact').ilike('college_name', f"%{college_name}%").execute()
+            waitlist_count = wl_res.count or len(wl_res.data or [])
+        except Exception:
+            waitlist_count = 0
+
+    return jsonify({
+        'success': True,
+        'has_content': doc_count > 0,
+        'document_count': doc_count,
+        'waitlist_count': waitlist_count,
+        'college': matched
+    }), 200
+
+
+@api_bp.route('/api/gamification/badges', methods=['GET'])
+def api_get_badges():
+    """Return user's badges with lock status, unlock criteria, and college scarcity counters."""
+    from methods.gamification_service import get_all_badges_with_user_status
+    user_id = session.get('user', {}).get('uid') or request.args.get('user_id')
+    college_id = request.args.get('college_id')
+    if not user_id:
+        return jsonify({'success': False, 'message': 'Authentication required'}), 401
+
+    badges = get_all_badges_with_user_status(user_id, college_id=college_id)
+    return jsonify({'success': True, 'badges': badges}), 200
+
+
+@api_bp.route('/api/ambassador/status', methods=['GET'])
+def api_ambassador_status():
+    """Get ambassador unlock progress and founding status for a college."""
+    from methods.gamification_service import get_college_ambassador_status
+    college_id = request.args.get('college_id')
+    if not college_id:
+        return jsonify({'success': False, 'message': 'college_id is required'}), 400
+
+    status = get_college_ambassador_status(college_id)
+    return jsonify({'success': True, 'status': status}), 200
+
+
+@api_bp.route('/api/ambassador/leaderboard', methods=['GET'])
+def api_ambassador_leaderboard():
+    """Get college inviter leaderboard."""
+    from methods.gamification_service import get_college_referral_leaderboard
+    college_id = request.args.get('college_id')
+    if not college_id:
+        return jsonify({'success': False, 'message': 'college_id is required'}), 400
+
+    leaderboard = get_college_referral_leaderboard(college_id)
+    return jsonify({'success': True, 'leaderboard': leaderboard}), 200
 
 
 @api_bp.route('/api/branches', methods=['GET'])

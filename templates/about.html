@@ -1,5 +1,12 @@
+{% set current_host = (request.url_root.rstrip('/') if (request and request.url_root) else (BASE_URL | default('https://www.abhihub.edu.eu.org', true))) %}
 {% set seo_description = "The story and mission of AbhiHub: an engineering study platform engineered for autonomous universities, verified PYQs, handwritten topper notes, and 90% creator royalties." %}
 {% set seo_title = 'Our Story & Academic Mission | About AbhiHub' %}
+{% set og_title = seo_title %}
+{% set og_description = seo_description %}
+{% set og_image = current_host ~ '/api/og/page/about.png' %}
+{% set twitter_image = og_image %}
+{% set og_image_width = '1200' %}
+{% set og_image_height = '630' %}
 {% extends 'p_struct.html' %}
 
 {% block content %}

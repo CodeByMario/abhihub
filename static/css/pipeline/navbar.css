@@ -251,8 +251,34 @@
   .navbar--bottom .navbar__label { font-size:.64rem; }
 }
 
+.navbar__label .label-short { display: none; }
 @media (max-width:380px) {
   .navbar--bottom .navbar__label { font-size:.59rem; letter-spacing:0; }
+}
+
+@media (max-width:340px) {
+  .navbar--bottom {
+    padding: .3rem .1rem calc(.3rem + env(safe-area-inset-bottom, 0px));
+    gap: 0;
+  }
+  .navbar--bottom .navbar__item {
+    padding: .25rem 2px;
+    gap: 2px;
+  }
+  .navbar--bottom .navbar__icon {
+    width: 26px;
+    height: 22px;
+  }
+  .navbar--bottom .navbar__icon .icon {
+    width: 17px;
+    height: 17px;
+  }
+  .navbar--bottom .navbar__label {
+    font-size: 0.56rem;
+    letter-spacing: -0.02em;
+  }
+  .navbar__label .label-full { display: none; }
+  .navbar__label .label-short { display: inline; }
 }
 
 /* Notification dot */
@@ -336,4 +362,73 @@
   .nav-search-overlay {
     padding: var(--spacing-3);
   }
+}
+
+
+/* ==========================================================================
+   Desktop Primary Top Navigation (>= 1024px) & Mobile Dock Isolation
+   ========================================================================== */
+
+.nav-desktop-cluster {
+    display: none;
+}
+
+@media (min-width: 1024px) {
+    .nav-desktop-cluster {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin: 0 auto;
+    }
+
+    .nav-desktop-link {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.42rem 0.95rem;
+        border-radius: 99px;
+        font-size: 0.875rem;
+        font-weight: 550;
+        color: var(--text-secondary, #4a5568);
+        text-decoration: none;
+        transition: color 0.15s ease, background-color 0.15s ease;
+        min-height: 36px;
+    }
+
+    .nav-desktop-link:hover {
+        color: var(--primary-600, #2563eb);
+        background: rgba(37, 99, 235, 0.06);
+    }
+
+    .nav-desktop-link.active {
+        color: var(--primary-600, #2563eb);
+        background: rgba(37, 99, 235, 0.1);
+        font-weight: 700;
+    }
+
+    [data-theme="dark"] .nav-desktop-link {
+        color: var(--text-secondary, #94a3b8);
+    }
+    [data-theme="dark"] .nav-desktop-link:hover {
+        color: #60a5fa;
+        background: rgba(96, 165, 250, 0.12);
+    }
+    [data-theme="dark"] .nav-desktop-link.active {
+        color: #93c5fd;
+        background: rgba(96, 165, 250, 0.2);
+    }
+
+    /* Hide floating bottom dock completely on laptop / desktop */
+    .navbar--bottom {
+        display: none !important;
+    }
+
+    body {
+        padding-bottom: 0 !important;
+    }
+}
+
+@media (max-width: 1023px) {
+    body {
+        padding-bottom: calc(var(--nav-bottom-height, 68px) + env(safe-area-inset-bottom, 0px)) !important;
+    }
 }

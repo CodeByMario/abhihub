@@ -1279,6 +1279,13 @@
     .exam-pack-banner { flex-direction: column; align-items: flex-start; }
 }
 
+@media (max-width: 360px) {
+    .home-hero { padding: 1.15rem 0.75rem 1.35rem; border-radius: 14px; }
+    .hero-greeting { font-size: clamp(1rem, 4.8vw, 1.15rem); line-height: 1.25; }
+    .hero-college-badge { font-size: 0.7rem; padding: 2px 6px; }
+    .pcard { flex: 0 0 145px; padding: 0.75rem 0.65rem; }
+}
+
 /* Fix bottom overlay spacing */
 body { padding-bottom: 90px !important; }
 .dashboard-float-support-btn { bottom: 90px !important; }

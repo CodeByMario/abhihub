@@ -575,7 +575,8 @@ const SearchManager = {
             const collegeSelect = document.getElementById('searchCollege');
             if (collegeSelect && colData.success) {
                 collegeSelect.innerHTML = '<option value="">All Colleges</option>';
-                colData.colleges.forEach(c => {
+                const validColleges = (colData.colleges || []).filter(c => (Number(c.doc_count) || Number(c.document_count) || 0) > 0);
+                validColleges.forEach(c => {
                     const opt = document.createElement('option');
                     opt.value = c.id || c.name;
                     opt.textContent = c.name;

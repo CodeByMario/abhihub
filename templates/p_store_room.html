@@ -619,6 +619,11 @@
   .queue-filters {
     display: flex;
     gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  @media (max-width: 480px) {
+    .queue-filters { width: 100%; }
+    .control-select { flex: 1 1 100%; min-height: 42px; font-size: 0.875rem; }
   }
 
   .control-select {

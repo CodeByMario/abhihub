@@ -1,0 +1,30 @@
+import os
+
+BRAND_CONFIG = {
+    "name": "AbhiHub",
+    "tagline": "Notes & Papers for your college",
+    "mission": "World's #1 PYQ & Notes Platform • Made in India",
+    "domain": os.getenv("BASE_DOMAIN", "www.abhihub.edu.eu.org").strip().lower(),
+    "base_url": os.getenv("BASE_URL", "https://www.abhihub.edu.eu.org").strip().rstrip("/"),
+    "watermark": "abhihub.edu.eu.org",
+    "colors": {
+        "bg_dark": "#0b0f19",
+        "bg_dark_card": "#131c31",
+        "bg_light": "#f8fafc",
+        "bg_light_card": "#ffffff",
+        "primary": "#0071e3",
+        "purple": "#6834d5",
+        "purple_light": "#ede9fe",
+        "emerald": "#10b981",
+        "amber": "#f59e0b",
+        "text_dark": "#0f172a",
+        "text_light": "#ffffff",
+        "text_muted": "#94a3b8",
+        "text_subtle": "#64748b",
+        "border_dark": "#22324f",
+        "border_light": "#e2e8f0",
+    },
+    "default_og_image": "/api/og/default.png",
+    "image_width": 1200,
+    "image_height": 630,
+}

@@ -816,18 +816,22 @@
     .arch-segmented-control {
       overflow-x: auto;
       flex-wrap: nowrap;
-      padding: 3px;
+      padding: 4px;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
       width: 100%;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
     }
     .arch-segmented-control::-webkit-scrollbar {
       display: none;
     }
     .arch-segment-item {
-      flex: 1;
+      flex: 0 0 auto;
+      min-width: fit-content;
       justify-content: center;
-      padding: 0.45rem 0.75rem;
+      padding: 0.45rem 0.95rem;
+      scroll-snap-align: start;
     }
     .arch-select-wrap {
       width: 100%;

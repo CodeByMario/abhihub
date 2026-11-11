@@ -56,6 +56,9 @@
   display: flex;
   flex-direction: column;
   position: relative;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.24s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
   box-shadow: var(--card-shadow);
   overflow: hidden;
@@ -243,6 +246,13 @@
   color: var(--apple-text-muted);
 }
 
+.arch-card-desc span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Card Footer (Author & Action Button) */
 .arch-card-footer {
   display: flex;
@@ -343,7 +353,7 @@
 
 @media (max-width: 768px) {
   .apple-cards-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
   }
 }

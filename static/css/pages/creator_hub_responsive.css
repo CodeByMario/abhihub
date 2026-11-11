@@ -1,0 +1,260 @@
+/* ==========================================================================
+   AbhiHub - Creator Hub Responsive Architecture (Mobile + Laptop)
+   Compliant with Apple HIG & Material M3 standards • Fluid Grid & Carousels
+   ========================================================================== */
+
+/* ── Quick Actions Row ── */
+.ch-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  overflow-x: auto;
+  padding: 0.25rem 0 0.5rem;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.ch-quick-actions::-webkit-scrollbar {
+  display: none;
+}
+
+.ch-action-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  background: var(--ch-card-bg, #ffffff);
+  border: 1px solid var(--ch-card-border, #e3e6ec);
+  color: var(--ch-text-main, #14181f);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-height: 40px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+}
+.ch-action-pill:hover {
+  border-color: var(--ch-primary, #2f4bc0);
+  color: var(--ch-primary, #2f4bc0);
+}
+.ch-action-pill.ch-action-primary {
+  background: var(--ch-primary, #2f4bc0);
+  border-color: var(--ch-primary, #2f4bc0);
+  color: #ffffff !important;
+}
+
+/* ── Mobile Floating Action Button (FAB) ── */
+.ch-fab-btn {
+  display: none;
+}
+
+/* ── Carousel Dots ── */
+.ch-carousel-dots {
+  display: none;
+}
+
+/* ── Mobile Responsive Overrides (< 768px) ── */
+@media (max-width: 768px) {
+  .ch-wrapper {
+    padding-bottom: 6rem;
+  }
+
+  .ch-main {
+    padding: 16px 14px 40px;
+    gap: 18px;
+  }
+
+  .ch-subbar-inner {
+    padding: 10px 14px;
+    gap: 12px;
+  }
+
+  /* Subbar nav tabs: horizontally scrollable with snap */
+  .ch-nav-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+  }
+  .ch-nav-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .ch-nav-tab {
+    flex-shrink: 0;
+    font-size: 13px;
+    padding: 6px 12px;
+  }
+
+  .ch-header-actions {
+    display: none; /* Accessible via Quick Actions row */
+  }
+
+  .ch-greeting {
+    font-size: 20px;
+  }
+
+  /* KPI Cards as Horizontal Carousel with Scroll Snap & Peek */
+  .ch-grid-4.ch-stats-carousel {
+    display: flex !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
+    scroll-behavior: smooth;
+    gap: 12px !important;
+    padding: 4px 2px 12px !important;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .ch-grid-4.ch-stats-carousel::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ch-grid-4.ch-stats-carousel .ch-card {
+    flex: 0 0 84% !important;
+    min-width: 0;
+    scroll-snap-align: center;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+    border-radius: 16px;
+    padding: 18px 16px;
+  }
+
+  /* Carousel Pagination Indicator Dots */
+  .ch-carousel-dots {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    margin-top: -6px;
+    margin-bottom: 8px;
+  }
+  .ch-carousel-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 99px;
+    background: var(--ch-card-border, #CBD5E1);
+    transition: all 0.2s ease;
+  }
+  .ch-carousel-dot.active {
+    width: 20px;
+    background: var(--ch-primary, #2F4BC0);
+  }
+
+  /* 2-Column Grid collapses into stacked order */
+  .ch-grid-2 {
+    grid-template-columns: 1fr !important;
+    gap: 14px;
+  }
+
+  /* Responsive Table to Cards Transformation */
+  .table-responsive {
+    overflow-x: visible;
+  }
+
+  .table-responsive table {
+    min-width: 100% !important;
+    border: none;
+  }
+
+  .table-responsive thead {
+    display: none; /* Visually hidden, replaced by field labels */
+  }
+
+  .table-responsive tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .table-responsive tr {
+    display: block;
+    background: var(--ch-card-bg, #ffffff);
+    border: 1px solid var(--ch-card-border, #e3e6ec);
+    border-radius: 14px;
+    padding: 14px 14px 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  }
+
+  .table-responsive td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--ch-row-border, #eef0f4);
+    font-size: 13.5px;
+    text-align: right;
+  }
+
+  .table-responsive td:first-child {
+    display: block;
+    text-align: left;
+    border-bottom: 1px solid var(--ch-row-border, #eef0f4);
+    padding-bottom: 10px;
+    margin-bottom: 2px;
+  }
+
+  .table-responsive td:last-child {
+    border-bottom: none;
+    padding-top: 10px;
+  }
+
+  .table-responsive td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--ch-text-muted, #566070);
+    font-size: 12px;
+    text-align: left;
+    margin-right: 12px;
+  }
+
+  .table-responsive td:first-child::before,
+  .table-responsive td:last-child::before {
+    display: none;
+  }
+
+  /* Floating Action Button (FAB) */
+  .ch-fab-btn {
+    display: inline-flex;
+    position: fixed;
+    bottom: calc(var(--nav-bottom-height, 68px) + 16px);
+    right: 16px;
+    z-index: 850;
+    background: var(--ch-primary, #2F4BC0);
+    color: #ffffff !important;
+    padding: 12px 20px;
+    border-radius: 999px;
+    box-shadow: 0 8px 24px rgba(47, 75, 192, 0.4);
+    font-size: 14px;
+    font-weight: 700;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    touch-action: manipulation;
+  }
+  .ch-fab-btn:active {
+    transform: scale(0.96);
+  }
+}
+
+/* ── Laptop Multi-Column Enhancements (≥ 1024px) ── */
+@media (min-width: 1024px) {
+  .ch-main {
+    max-width: 1240px;
+    padding: 32px 24px 64px;
+    gap: 26px;
+  }
+  .ch-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+  }
+  .ch-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+  }
+}

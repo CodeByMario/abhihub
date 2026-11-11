@@ -117,7 +117,7 @@
                 <div style="font-weight:700;color:var(--st-red);font-size:0.925rem;">Permanently Delete Account</div>
                 <div style="font-size:0.8rem;color:var(--st-text-muted);">Purges all uploads, bookmarks, study points, and creator royalties. This cannot be undone.</div>
               </div>
-              <a href="/delete-account" class="st-btn danger" style="min-height:36px;padding:0.4rem 0.95rem;text-decoration:none;">
+              <a href="/delete-account" class="st-btn danger" onclick="return confirm('⚠️ Are you sure you want to permanently delete your account? This will purge all your study points, uploads, and data. This action is irreversible.')" style="min-height:36px;padding:0.4rem 0.95rem;text-decoration:none;">
                 Delete Account
               </a>
             </div>

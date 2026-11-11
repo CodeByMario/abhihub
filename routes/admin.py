@@ -1995,6 +1995,11 @@ def approve_document():
         if uploader_id:
             recalculate_and_persist_user_rank(uploader_id)
             try:
+                from methods.gamification_service import on_document_approved
+                on_document_approved(doc_id, uploader_id, doc.get('college_id'))
+            except Exception as _g_err:
+                logging.debug(f"[Gamification] on_document_approved skipped: {_g_err}")
+            try:
                 notif_msg = f"Your upload '{doc_title}' has been reviewed, approved, and is now live on AbhiHub."
                 if remark:
                     notif_msg += f"\nAdmin Remark: {remark}"

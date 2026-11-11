@@ -134,6 +134,21 @@
                 placeholder="College Roll No. or Registration (Optional)">
             </div>
 
+            <!-- Privacy & Public Profile Settings -->
+            <div style="margin-top:1.25rem; padding:1rem; background:var(--st-bg, #f8fafc); border-radius:10px; border:1px solid var(--st-border);">
+              <div style="font-weight:700; font-size:0.9rem; color:var(--st-text-main); margin-bottom:0.5rem;">🔒 Public Profile Privacy</div>
+              <div style="display:flex; flex-direction:column; gap:0.5rem; font-size:0.85rem;">
+                <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                  <input type="checkbox" name="show_identity" value="true" {% if profile and profile.show_identity %}checked{% endif %}>
+                  <span>Show my real full name on my public profile (Default: off, shows username)</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                  <input type="checkbox" name="is_private" value="true" {% if profile and profile.is_private %}checked{% endif %}>
+                  <span>Make my profile private (only verified classmates can view notes & badges)</span>
+                </label>
+              </div>
+            </div>
+
             <!-- Save CTA -->
             <div class="st-btn-row" style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--st-border);">
               <button type="submit" id="stSaveAccountBtn" class="st-btn st-btn-primary">
@@ -144,6 +159,98 @@
             </div>
           </div>
         </form>
+
+        <!-- Card 2.5: Badges, Ranks & Gamification -->
+        <div class="st-card" id="stBadgesCard">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:1.25rem;">
+            <h2 style="margin:0;">
+              <span class="st-card-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
+              </span>
+              Badges &amp; Campus Ranks
+            </h2>
+            <div style="font-size:0.85rem; font-weight:700; color:#3b82f6;">
+              ⭐ {{ profile.reputation_score or 0 }} Reputation Points
+            </div>
+          </div>
+
+          <!-- Rank Progress Bar -->
+          <div style="background:var(--st-bg, #f8fafc); padding:1rem; border-radius:10px; margin-bottom:1.5rem; border:1px solid var(--st-border);">
+            <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:600; color:var(--st-text-main);">
+              <span>Current Rank: <strong>{{ profile.rank_title or 'Rising Scholar' }}</strong></span>
+              <span>Next Badge: <strong>Top Seller</strong> (Progress: 60%)</span>
+            </div>
+            <div style="width:100%; height:8px; background:#e2e8f0; border-radius:999px; overflow:hidden; margin-top:0.5rem;">
+              <div style="width:60%; height:100%; background:linear-gradient(90deg, #3b82f6, #10b981); border-radius:999px;"></div>
+            </div>
+          </div>
+
+          <!-- Badges Grid -->
+          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:1rem;">
+            {% for b in (badges or []) %}
+            <div style="border:1px solid var(--st-border); border-radius:12px; padding:1rem; display:flex; flex-direction:column; justify-content:space-between; position:relative; {% if not b.is_earned %}opacity:0.55; filter:grayscale(90%); background:var(--st-bg, #f9fafb);{% else %}background:#ffffff; box-shadow:0 2px 10px rgba(0,0,0,0.03); border-color:#93c5fd;{% endif %}">
+              <div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                  <span style="font-size:1.75rem;">{{ b.icon }}</span>
+                  <span style="font-size:0.7rem; font-weight:700; padding:0.2rem 0.5rem; border-radius:999px; {% if b.rarity == 'Legendary' %}background:#fef3c7; color:#92400e;{% elif b.rarity == 'Rare' %}background:#e0e7ff; color:#3730a3;{% else %}background:#f1f5f9; color:#475569;{% endif %}">{{ b.rarity }}</span>
+                </div>
+                <div style="font-weight:700; font-size:0.95rem; color:var(--st-text-main); margin-bottom:0.25rem;">{{ b.name }}</div>
+                <div style="font-size:0.78rem; color:var(--st-text-muted); line-height:1.35; margin-bottom:0.75rem;">{{ b.description }}</div>
+              </div>
+
+              <div style="border-top:1px solid var(--st-border); padding-top:0.6rem; font-size:0.75rem;">
+                {% if b.is_earned %}
+                  <div style="color:#059669; font-weight:600; display:flex; justify-content:space-between; align-items:center;">
+                    <span>✓ Unlocked</span>
+                    <button type="button" style="border:none; background:transparent; color:#3b82f6; font-size:0.75rem; cursor:pointer; font-weight:700;" onclick="shareBadge('{{ b.name }}', '{{ b.icon }}')">Share</button>
+                  </div>
+                {% else %}
+                  <div style="color:#64748b;">
+                    {% if b.claim_holder %}
+                      <span>Claimed by <a href="/u/{{ b.claim_holder.user_id }}" style="color:#3b82f6; text-decoration:none; font-weight:600;">@{{ b.claim_holder.username }}</a></span>
+                    {% else %}
+                      <span>{{ b.scarcity_note }}</span>
+                    {% endif %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <script>
+        function triggerConfettiBurst() {
+          const count = 30;
+          for (let i = 0; i < count; i++) {
+            const p = document.createElement('div');
+            p.style.position = 'fixed';
+            p.style.zIndex = '9999';
+            p.style.left = '50%';
+            p.style.top = '40%';
+            p.style.width = '8px';
+            p.style.height = '8px';
+            p.style.backgroundColor = ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6'][Math.floor(Math.random() * 5)];
+            p.style.borderRadius = '2px';
+            p.style.transform = `translate(${(Math.random() - 0.5) * 350}px, ${(Math.random() - 0.5) * 350}px) rotate(${Math.random() * 360}deg)`;
+            p.style.transition = 'all 0.9s cubic-bezier(0.25, 1, 0.5, 1)';
+            p.style.opacity = '1';
+            document.body.appendChild(p);
+            setTimeout(() => { p.style.opacity = '0'; }, 600);
+            setTimeout(() => { p.remove(); }, 1000);
+          }
+        }
+
+        function shareBadge(name, icon) {
+          triggerConfettiBurst();
+          const text = `I just unlocked the ${icon} ${name} badge on AbhiHub! Check out my profile: ${window.location.origin}/u/{{ user.uid if user else '' }}`;
+          if (navigator.share) {
+            navigator.share({ title: 'My AbhiHub Badge', text: text, url: window.location.href }).catch(() => {});
+          } else {
+            navigator.clipboard.writeText(text).then(() => { alert(`🎉 Badge Celebrated! Copied link to share: ${icon} ${name}`); });
+          }
+        }
+        </script>
 
         <!-- Card 3: Password & Account Security -->
         <div class="st-card">

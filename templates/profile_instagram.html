@@ -1,15 +1,29 @@
+{% set current_host = (request.url_root.rstrip('/') if (request and request.url_root) else (BASE_URL | default('https://www.abhihub.edu.eu.org', true))) %}
+{% set profile_username = (peer.username if peer else '') or 'creator' %}
+{% set seo_title = (peer.display_name or profile_username) ~ ' (@' ~ profile_username ~ ') | AbhiHub Creator' %}
+{% set seo_description = 'Browse verified study resources, notes, and academic papers uploaded by @' ~ profile_username ~ ' on AbhiHub.' %}
+{% set og_title = seo_title %}
+{% set og_description = seo_description %}
+{% set og_type = 'profile' %}
+{% set og_image = current_host ~ '/api/og/profile/' ~ profile_username ~ '.png' %}
+{% set twitter_image = og_image %}
+{% set og_image_width = '1200' %}
+{% set og_image_height = '630' %}
 {% extends 'p_struct.html' %}
+
 {% block page_head %}
-<meta name="robots" content="noindex, follow">
-<meta property="og:title"       content="{{ og_title | e }}">
-<meta property="og:description" content="{{ og_description | e }}">
-<meta property="og:image"       content="{{ og_image or url_for('static', filename='images/android-chrome-512x512.png', _external=True) }}">
-<meta property="og:url"         content="{{ BASE_URL | default('https://www.abhihub.edu.eu.org') }}{{ request.path }}">
-<meta property="og:type"        content="profile">
-<meta name="twitter:card"       content="summary_large_image">
-<meta name="twitter:title"      content="{{ og_title | e }}">
-<meta name="twitter:description" content="{{ og_description | e }}">
-<meta name="twitter:image"      content="{{ og_image or url_for('static', filename='images/android-chrome-512x512.png', _external=True) }}">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ProfilePage",
+  "mainEntity": {
+    "@type": "Person",
+    "name": {{ ((peer.display_name if peer else '') or profile_username) | tojson }},
+    "alternateName": {{ ("@" ~ profile_username) | tojson }},
+    "url": {{ (current_host ~ request.path) | tojson }}
+  }
+}
+</script>
 {% endblock %}
 
 {% block content %}
@@ -774,6 +788,13 @@
       {% endif %}
     </div>
 
+    {% if peer.get('is_private') %}
+    <div style="background:rgba(255,255,255,0.08); padding:0.25rem 0.8rem; border-radius:999px; font-size:0.78rem; color:#cbd5e1; display:inline-flex; align-items:center; gap:0.35rem; margin-bottom:0.45rem; border:1px solid rgba(255,255,255,0.15);">🔒 Private Profile</div>
+    {% endif %}
+    {% if is_founding_ambassador %}
+    <div style="background:#fef3c7; color:#92400e; padding:0.25rem 0.8rem; border-radius:999px; font-size:0.8rem; font-weight:800; margin-bottom:0.45rem; display:inline-block; border:1px solid #fde68a;">👑 Founding Campus Ambassador</div>
+    {% endif %}
+
     {% if peer.get('rank_title') %}
     <div class="up-rank-badge">🏆 {{ peer.get('rank_title') }}</div>
     {% endif %}
@@ -838,6 +859,31 @@
       🔗 Share Profile
     </button>
   </div>
+
+  <!-- ── Earned Badges & Honors ── -->
+  {% if badges and badges|length > 0 %}
+  <div class="up-card">
+    <div class="up-card-title">
+      <span>🏅 Earned Badges &amp; Campus Honors</span>
+      <span class="up-card-badge">{{ badges|length }} Badges</span>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:0.75rem; margin-top:0.75rem;">
+      {% for b in badges %}
+      <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:0.85rem; display:flex; flex-direction:column; gap:0.35rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:1.5rem;">{{ b.icon }}</span>
+          <span style="font-size:0.68rem; font-weight:700; padding:0.15rem 0.45rem; border-radius:999px; {% if b.rarity == 'Legendary' %}background:#fef3c7; color:#92400e;{% elif b.rarity == 'Rare' %}background:#e0e7ff; color:#3730a3;{% else %}background:#f1f5f9; color:#475569;{% endif %}">{{ b.rarity }}</span>
+        </div>
+        <div style="font-weight:700; font-size:0.9rem; color:#ffffff;">{{ b.name }}</div>
+        <div style="font-size:0.75rem; color:#94a3b8; line-height:1.3;">{{ b.description }}</div>
+        {% if b.earned_at %}
+        <div style="font-size:0.68rem; color:#64748b; margin-top:auto; padding-top:0.35rem;">Unlocked {{ b.earned_at[:10] }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 
   <!-- ── Academic Credentials ── -->
   <div class="up-card">
@@ -1027,6 +1073,27 @@
     </div>
     {% endif %}
   </div>
+
+  <!-- ── Buyer & Student Reviews ── -->
+  {% if buyer_reviews and buyer_reviews|length > 0 %}
+  <div class="up-card">
+    <div class="up-card-title">
+      <span>💬 Verified Student Reviews</span>
+      <span class="up-card-badge">{{ buyer_reviews|length }} Reviews</span>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:0.75rem; margin-top:0.75rem;">
+      {% for r in buyer_reviews %}
+      <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:0.85rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+          <strong style="color:#ffffff; font-size:0.88rem;">{{ r.reviewer_name }}</strong>
+          <span style="color:#94a3b8; font-size:0.75rem;">{{ r.created_at }}</span>
+        </div>
+        <p style="margin:0; font-size:0.82rem; color:#cbd5e1; line-height:1.4;">{{ r.content }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 
   <!-- ── Referred Materials ── -->
   {% if referred %}

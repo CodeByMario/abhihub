@@ -1,41 +1,7 @@
 {% extends 'p_struct.html' %}
 
 {% block page_head %}
-  <title>{{ seo_title | default("Creator Channel | AbhiHub") }}</title>
-  <meta name="description" content="{{ seo_description | default("Explore verified study notes and question papers on AbhiHub.") }}">
-  <meta name="keywords" content="{{ seo_keywords | default("notes, papers, AbhiHub") }}">
-  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
-  {% if canonical_url %}<link rel="canonical" href="{{ canonical_url }}">{% endif %}
-
-  <!-- OpenGraph Metadata (WhatsApp, Twitter, LinkedIn, Facebook, Discord) -->
-  <meta property="og:site_name" content="AbhiHub">
-  <meta property="og:type" content="profile">
-  <meta property="og:title" content="{{ seo_title | default('Creator Channel | AbhiHub') }}">
-  <meta property="og:description" content="{{ seo_description | default('Explore verified study notes and question papers on AbhiHub.') }}">
-  {% if canonical_url %}<meta property="og:url" content="{{ canonical_url }}">{% endif %}
-  {% if og_image %}
-  <meta property="og:image" content="{{ og_image }}">
-  <meta property="og:image:secure_url" content="{{ og_image }}">
-  <meta property="og:image:type" content="image/png">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="{{ channel.title | default('Creator Channel') }} - AbhiHub">
-  {% elif channel and channel.avatar_url %}
-  <meta property="og:image" content="{{ channel.avatar_url }}">
-  {% endif %}
-
-  <!-- Twitter Card Metadata -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:site" content="@AbhiHub">
-  <meta name="twitter:title" content="{{ seo_title | default('Creator Channel | AbhiHub') }}">
-  <meta name="twitter:description" content="{{ seo_description | default('Explore verified study notes and question papers on AbhiHub.') }}">
-  {% if og_image %}
-  <meta name="twitter:image" content="{{ og_image }}">
-  {% elif channel and channel.avatar_url %}
-  <meta name="twitter:image" content="{{ channel.avatar_url }}">
-  {% endif %}
-
-  <!-- Schema.org ProfilePage Structured Data for Google Indexing -->
+  <!-- Schema.org ProfilePage Structured Data for Google Indexing (SEO tags handled centrally by seo_head.html) -->
   {% if channel %}
   <script type="application/ld+json">
   {
@@ -74,13 +40,22 @@
     font-family: inherit;
   }
   .channel-banner {
-    height: 180px;
     width: 100%;
+    aspect-ratio: 16 / 5;
+    min-height: 120px;
+    max-height: 260px;
     border-radius: 20px 20px 0 0;
     background: linear-gradient(135deg, #4f46e5, #06b6d4 50%, #3b82f6);
     background-size: cover;
     background-position: center;
+    object-fit: cover;
     position: relative;
+  }
+  @media (max-width: 640px) {
+    .channel-banner {
+      aspect-ratio: 16 / 7;
+      min-height: 110px;
+    }
   }
   .channel-header-card {
     background: #ffffff;

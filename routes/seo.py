@@ -87,6 +87,101 @@ def favicon():
     return send_file('static/images/favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 
+# ==============================================================================
+# Central OpenGraph Image Generation Endpoints (1200x630 Branded PNGs)
+# ==============================================================================
+
+@seo_bp.route('/api/og/home.png')
+@seo_bp.route('/api/og/home')
+def og_image_home():
+    from methods.og_engine import generate_home_og
+    img_bytes = generate_home_og()
+    resp = make_response(img_bytes)
+    resp.headers['Content-Type'] = 'image/png'
+    resp.headers['Cache-Control'] = 'public, max-age=86400, stale-while-revalidate=604800'
+    return resp
+
+
+@seo_bp.route('/api/og/college/<college_slug>.png')
+@seo_bp.route('/api/og/college/<college_slug>')
+def og_image_college(college_slug):
+    import app
+    from methods.og_engine import generate_college_og
+    clean_slug = college_slug.strip().lower()
+    college_data = {'name': clean_slug.upper(), 'abbreviation': clean_slug.upper(), 'city': 'India'}
+    try:
+        getter = getattr(app, 'get_college_by_slug', None)
+        if getter:
+            c_obj = getter(clean_slug)
+            if c_obj:
+                college_data = c_obj
+    except Exception:
+        pass
+    img_bytes = generate_college_og(college_data)
+    resp = make_response(img_bytes)
+    resp.headers['Content-Type'] = 'image/png'
+    resp.headers['Cache-Control'] = 'public, max-age=86400, stale-while-revalidate=604800'
+    return resp
+
+
+@seo_bp.route('/api/og/profile/<username>.png')
+@seo_bp.route('/api/og/profile/<username>')
+def og_image_profile(username):
+    from methods.og_engine import generate_profile_og
+    clean_user = username.strip().lstrip('@').lower()
+    user_data = {'username': clean_user, 'full_name': clean_user.capitalize(), 'college': 'AbhiHub Contributor'}
+    img_bytes = generate_profile_og(user_data)
+    resp = make_response(img_bytes)
+    resp.headers['Content-Type'] = 'image/png'
+    resp.headers['Cache-Control'] = 'public, max-age=86400, stale-while-revalidate=604800'
+    return resp
+
+
+@seo_bp.route('/api/og/leaderboard.png')
+@seo_bp.route('/api/og/leaderboard')
+def og_image_leaderboard():
+    from methods.og_engine import generate_leaderboard_og
+    img_bytes = generate_leaderboard_og()
+    resp = make_response(img_bytes)
+    resp.headers['Content-Type'] = 'image/png'
+    resp.headers['Cache-Control'] = 'public, max-age=86400, stale-while-revalidate=604800'
+    return resp
+
+
+@seo_bp.route('/api/og/ambassador.png')
+@seo_bp.route('/api/og/ambassador')
+def og_image_ambassador():
+    from methods.og_engine import generate_ambassador_og
+    img_bytes = generate_ambassador_og()
+    resp = make_response(img_bytes)
+    resp.headers['Content-Type'] = 'image/png'
+    resp.headers['Cache-Control'] = 'public, max-age=86400, stale-while-revalidate=604800'
+    return resp
+
+
+@seo_bp.route('/api/og/page/<page_name>.png')
+@seo_bp.route('/api/og/page/<page_name>')
+def og_image_page(page_name):
+    from methods.og_engine import generate_static_page_og
+    clean = page_name.replace('-', ' ').title()
+    img_bytes = generate_static_page_og(clean, f'AbhiHub Academic Platform - {clean}')
+    resp = make_response(img_bytes)
+    resp.headers['Content-Type'] = 'image/png'
+    resp.headers['Cache-Control'] = 'public, max-age=86400, stale-while-revalidate=604800'
+    return resp
+
+
+@seo_bp.route('/api/og/default.png')
+@seo_bp.route('/api/og/default')
+def og_image_default():
+    from methods.og_engine import generate_default_og
+    img_bytes = generate_default_og()
+    resp = make_response(img_bytes)
+    resp.headers['Content-Type'] = 'image/png'
+    resp.headers['Cache-Control'] = 'public, max-age=86400, stale-while-revalidate=604800'
+    return resp
+
+
 import xml.etree.ElementTree as ET
 
 

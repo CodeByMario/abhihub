@@ -166,10 +166,10 @@ a:hover { color: var(--primary-700); }
 
 /* ── Responsive base & Mobile Touch / Zoom Rules ── */
 @media (max-width: 768px) {
-    :root { font-size: 14px; }
-    h1 { font-size: var(--text-3xl); }
-    h2 { font-size: var(--text-2xl); }
-    h3 { font-size: var(--text-xl); }
+    :root { font-size: 16px; }
+    h1 { font-size: clamp(1.6rem, 5vw, 2.5rem); }
+    h2 { font-size: clamp(1.3rem, 4vw, 2rem); }
+    h3 { font-size: clamp(1.1rem, 3vw, 1.5rem); }
 
     /* Prevent iOS Safari 16px auto-zoom on form inputs */
     input, select, textarea,
@@ -177,19 +177,26 @@ a:hover { color: var(--primary-700); }
         font-size: 16px !important;
     }
 
-    /* Enforce 44px accessible touch targets */
+    /* Enforce 44px accessible touch targets & touch manipulation */
     .shell-back-btn,
     .shell-notif-btn,
     .welcome-action-btn,
     .exam-pack-btn,
     .exam-pack-close,
     .buy-credits-close,
+    .file-info-modal__close,
+    .viewer-back,
     .pwa-popup-close,
-    .entity-modal-close {
-        min-width: 44px;
-        min-height: 44px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
+    .entity-modal-close,
+    .ap-nav-icon-btn,
+    .r2-btn,
+    .btn,
+    .st-btn {
+        min-width: 44px !important;
+        min-height: 44px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        touch-action: manipulation !important;
     }
 }

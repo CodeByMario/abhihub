@@ -34,7 +34,7 @@
     <span class="navbar__icon" aria-hidden="true">
       <svg class="icon"><use xlink:href="#icon-user"></use></svg>
     </span>
-    <span class="navbar__label">Creator Hub</span>
+    <span class="navbar__label"><span class="label-full">Creator Hub</span><span class="label-short">Creator</span></span>
   </a>
 
   {% if session.get('user', {}).get('email', '').lower() in ['codebymario@gmail.com', 'info@abhihub.edu.eu.org', 'admin@abhihub.edu.eu.org'] %}

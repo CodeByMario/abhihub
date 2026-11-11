@@ -1079,6 +1079,7 @@
 .apple-preview-card {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
@@ -1086,6 +1087,36 @@
   padding: 14px;
   box-sizing: border-box;
   animation: fadeIn 0.2s ease-out;
+}
+
+.preview-card-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.preview-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.apple-change-btn.edit-btn,
+#editFrontBtn {
+  background: #e0e7ff;
+  color: #4338ca;
+  border: 1px solid #c7d2fe;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.apple-change-btn.edit-btn:hover,
+#editFrontBtn:hover {
+  background: #c7d2fe;
 }
 
 @keyframes fadeIn {
@@ -2363,5 +2394,119 @@ body, .page-container, input, button, select, textarea {
   }
   .page-container {
     padding: 1rem 0.65rem 3.5rem !important;
+  }
+}
+
+/* ── Mobile Upload & Image Editor Enhancements (<= 640px) ── */
+@media (max-width: 640px) {
+  .apple-preview-card {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    padding: 12px 14px !important;
+  }
+  .preview-card-main {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  .preview-filename {
+    font-size: 0.95rem !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    line-height: 1.35 !important;
+  }
+  .preview-submeta {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    margin-top: 4px !important;
+  }
+  .preview-card-actions {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+    width: 100% !important;
+    border-top: 1px solid #e2e8f0 !important;
+    padding-top: 10px !important;
+    margin-top: 2px !important;
+  }
+  .preview-card-actions .apple-change-btn {
+    min-height: 42px !important;
+    min-width: 44px !important;
+    padding: 8px 14px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Two-Sided Paper Card Mobile */
+  #twoSidedPaperCard {
+    padding: 0.85rem !important;
+  }
+  #twoSidedPaperCard label {
+    align-items: flex-start !important;
+    line-height: 1.4 !important;
+    min-height: 44px !important;
+  }
+
+  /* Image Editor Modal Mobile Responsiveness */
+  #imageEditorModal {
+    padding: 8px !important;
+    align-items: flex-end !important;
+  }
+  .image-editor-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 94vh !important;
+    padding: 1rem 0.85rem calc(1rem + env(safe-area-inset-bottom)) !important;
+    border-radius: 20px 20px 12px 12px !important;
+  }
+  .editor-presets-row {
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    flex-wrap: nowrap !important;
+    padding-bottom: 6px !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .editor-presets-row::-webkit-scrollbar {
+    display: none;
+  }
+  .editor-presets-row button {
+    flex-shrink: 0 !important;
+    min-height: 38px !important;
+  }
+  .editor-actions-bar {
+    flex-direction: column !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+  .editor-actions-tools {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 6px !important;
+    width: 100% !important;
+  }
+  .editor-actions-tools button {
+    width: 100% !important;
+    min-height: 44px !important;
+    justify-content: center !important;
+    padding: 6px 4px !important;
+    font-size: 12px !important;
+  }
+  .editor-actions-submit {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+  .editor-actions-submit button {
+    width: 100% !important;
+    min-height: 46px !important;
+    justify-content: center !important;
+    font-size: 14.5px !important;
   }
 }

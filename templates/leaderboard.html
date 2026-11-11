@@ -1,4 +1,12 @@
+{% set current_host = (request.url_root.rstrip('/') if (request and request.url_root) else (BASE_URL | default('https://www.abhihub.edu.eu.org', true))) %}
+{% set seo_title = "Campus Contributor Leaderboard | Top Study Creators | AbhiHub" %}
 {% set seo_description = "Check out the AbhiHub Leaderboard! See top student contributors uploading helpful study notes and PYQs." %}
+{% set og_title = seo_title %}
+{% set og_description = seo_description %}
+{% set og_image = current_host ~ '/api/og/leaderboard.png' %}
+{% set twitter_image = og_image %}
+{% set og_image_width = '1200' %}
+{% set og_image_height = '630' %}
 {% extends 'p_struct.html' %}
 {% block content %}
 <style>
@@ -554,6 +562,28 @@
     .ap-pagination-bar {
       flex-direction: column;
       align-items: center;
+    }
+    .ap-row-item {
+      padding: 0.75rem 0.85rem;
+      gap: 0.5rem;
+    }
+    .ap-row-left {
+      gap: 0.5rem;
+      min-width: 0;
+    }
+    .ap-row-name {
+      font-size: 0.875rem;
+      max-width: 130px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .ap-college-tag {
+      font-size: 0.65rem;
+      max-width: 90px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 </style>

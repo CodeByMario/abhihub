@@ -546,7 +546,9 @@ def update_account():
         'user_role': request.form.get('user_role'),
         'year_of_joining': request.form.get('year_of_joining'),
         'pursuing_year': request.form.get('pursuing_year') if request.form.get('pursuing_year') else None,
-        'registration_number': request.form.get('registration_number')
+        'registration_number': request.form.get('registration_number'),
+        'show_identity': bool(request.form.get('show_identity')),
+        'is_private': bool(request.form.get('is_private'))
     }
 
     result = create_or_update_student_profile(user_id, profile_data)
@@ -638,6 +640,35 @@ def onboarding():
     )
 
 
+@app_pages_bp.route('/ambassador')
+@auth_required
+def ambassador_program():
+    """Campus Ambassador onboarding flow and leaderboard."""
+    from methods.supabase_helper import get_student_profile
+    from methods.gamification_service import get_college_ambassador_status, get_college_referral_leaderboard
+    user_info = session.get('user', {})
+    user_id = user_info.get('uid')
+    profile_result = get_student_profile(user_id)
+    profile = profile_result.get('data') if profile_result.get('success') else {}
+
+    college_id = profile.get('college_id') or request.args.get('college_id')
+    college_name = profile.get('college_name') or 'Your College'
+    referral_code = profile.get('referral_code') or (f"AMB-{user_id[:6].upper()}" if user_id else "AMB-PIONEER")
+
+    status = get_college_ambassador_status(college_id) if college_id else {'approved_uploads': 0}
+    leaderboard = get_college_referral_leaderboard(college_id) if college_id else []
+
+    return render_template(
+        'app/ambassador_onboarding.html',
+        profile=profile,
+        college_id=college_id,
+        college_name=college_name,
+        referral_code=referral_code,
+        approved_count=status.get('approved_uploads', 0),
+        leaderboard=leaderboard
+    )
+
+
 @app_pages_bp.route('/settings')
 @auth_required
 def settings():
@@ -663,12 +694,17 @@ def settings():
     except Exception:
         pass
 
+    from methods.gamification_service import get_all_badges_with_user_status
+    col_id = profile.get('college_id') if profile else None
+    user_badges = get_all_badges_with_user_status(user_id, college_id=col_id) if user_id else []
+
     return render_template('settings.html',
                            user_data=merged_user_data,
                            user=user_info,
                            profile=profile,
                            colleges=colleges,
-                           branches=branches)
+                           branches=branches,
+                           badges=user_badges)
 
 
 @app_pages_bp.route('/dashboard/setting')
@@ -1778,23 +1814,43 @@ def instagram_profile(user_id):
     import app
     from methods.supabase_helper import init_supabase, init_supabase_admin
 
-    if not app.validate_uuid(user_id):
-        abort(404)
     client = init_supabase()
     if not client:
         abort(500)
+
+    target_id = user_id
+    if not app.validate_uuid(user_id):
+        clean_name = user_id.lstrip('@').strip().lower()
+        try:
+            m1 = client.table('profiles').select('id').ilike('email', f"{clean_name}@%").limit(1).execute()
+            if m1.data:
+                target_id = m1.data[0]['id']
+            else:
+                m2 = client.table('profiles').select('id').ilike('full_name', clean_name).limit(1).execute()
+                if m2.data:
+                    target_id = m2.data[0]['id']
+                else:
+                    abort(404)
+        except Exception:
+            abort(404)
+
     try:
         pr = client.table('profiles') \
-            .select('id, full_name, email, rank_title, reputation_score, is_verified, referral_code, college_id, department_id, colleges(name), departments(name, abbreviation)') \
-            .eq('id', user_id).single().execute()
+            .select('id, full_name, email, rank_title, reputation_score, is_verified, referral_code, college_id, department_id, show_identity, is_private, colleges(name), departments(name, abbreviation)') \
+            .eq('id', target_id).single().execute()
         if not pr.data:
             abort(404)
         p = pr.data
+
+        show_id = bool(p.get('show_identity'))
+        is_private = bool(p.get('is_private'))
+        display_name = (p.get('full_name') if show_id else (p.get('email', '').split('@')[0])) or 'Student'
+
         academic = {}
         try:
             st = client.table('students') \
                 .select('pursuing_year, year_of_joining') \
-                .eq('profile_id', user_id).limit(1).execute()
+                .eq('profile_id', target_id).limit(1).execute()
             if st.data:
                 academic = st.data[0]
         except Exception:
@@ -1804,8 +1860,8 @@ def instagram_profile(user_id):
         dept_name = dept.get('name') or dept.get('abbreviation') or ''
         peer = {
             'id': p.get('id'),
-            'name': p.get('full_name') or 'Student',
-            'email': p.get('email', ''),
+            'name': display_name,
+            'email': p.get('email', '') if show_id else '',  # Never leak unless opted in
             'rank_title': p.get('rank_title', 'Student'),
             'reputation_score': p.get('reputation_score', 0),
             'is_verified': p.get('is_verified', False),
@@ -1814,16 +1870,18 @@ def instagram_profile(user_id):
             'department_name': dept_name,
             'pursuing_year': academic.get('pursuing_year') or '',
             'year_of_joining': academic.get('year_of_joining') or '',
+            'is_private': is_private,
         }
     except Exception as e:
         logging.error(f"[u/profile] {e}")
         abort(404)
 
     uploads = []
+    buyer_reviews = []
     try:
         docs = client.table('documents') \
             .select('id, title, document_category, view_count, subjects(name)') \
-            .eq('uploader_id', user_id).eq('status', 'approved') \
+            .eq('uploader_id', target_id).eq('status', 'approved') \
             .order('created_at', desc=True).limit(12).execute()
         for d in (docs.data or []):
             uploads.append({
@@ -1960,6 +2018,30 @@ def instagram_profile(user_id):
     og_title = f"{peer['name']} on AbhiHub"
     og_description = f"{peer['name']} has shared {len(uploads)} study materials on AbhiHub."
 
+    from methods.gamification_service import get_user_badges, get_college_ambassador_status
+    user_badges = get_user_badges(target_id)
+    amb_info = get_college_ambassador_status(p.get('college_id')) if p.get('college_id') else {}
+    is_founding_ambassador = bool((amb_info.get('founding_ambassador') or {}).get('id') == target_id)
+
+    if uploads:
+        try:
+            doc_ids = [u['record_id'] for u in uploads]
+            rev_res = client.table('document_comments') \
+                .select('id, content, created_at, user_id, profiles(full_name, email)') \
+                .in_('document_id', doc_ids).eq('is_deleted', False).limit(6).execute()
+            for r in (rev_res.data or []):
+                rp = r.get('profiles') or {}
+                reviewer_name = rp.get('full_name') or (rp.get('email', '').split('@')[0]) or 'Student'
+                buyer_reviews.append({
+                    'id': r.get('id'),
+                    'content': r.get('content'),
+                    'reviewer_name': reviewer_name,
+                    'created_at': (r.get('created_at') or '')[:10]
+                })
+        except Exception:
+            pass
+
+    og_img_url = url_for('seo.og_image_default', _external=True) if is_private else url_for('seo.og_image_profile', username=peer['username'], _external=True)
     return render_template('profile_instagram.html',
                            peer=peer,
                            uploads=uploads,
@@ -1969,7 +2051,11 @@ def instagram_profile(user_id):
                            campus_peers=campus_peers,
                            og_title=og_title,
                            og_description=og_description,
-                           og_image=None)
+                           og_image=og_img_url,
+                           noindex=is_private,
+                           badges=user_badges,
+                           is_founding_ambassador=is_founding_ambassador,
+                           buyer_reviews=buyer_reviews)
 
 
 # Backwards compatibility alias

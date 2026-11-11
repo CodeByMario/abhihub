@@ -328,7 +328,7 @@
         }
     </style>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="application-version" content="v{{ APP_VERSION }}">
     <script>window.__APP_VERSION__ = "v{{ APP_VERSION }}";</script>
     <meta name="language" content="en">
@@ -530,6 +530,31 @@
                 <span class="app-version-badge" title="App Version">v{{ APP_VERSION }}</span>
             </a>
 
+            <!-- Desktop Top Primary Navigation (1024px+) -->
+            <div class="nav-desktop-cluster" role="menubar" aria-label="Primary navigation">
+                {% set cur_path = request.path if request else '' %}
+                <a href="{{ url_for('app_pages.home') }}" class="nav-desktop-link {% if cur_path in ('/', '/app/home', '/home') %}active{% endif %}" data-page="home">
+                    <span>Home</span>
+                </a>
+                <a href="{{ url_for('app_pages.upload') }}" class="nav-desktop-link {% if cur_path.startswith('/upload') %}active{% endif %}" data-page="upload">
+                    <span>Upload</span>
+                </a>
+                <a href="{{ url_for('library.leaderboard') }}" class="nav-desktop-link {% if cur_path.startswith('/leaderboard') %}active{% endif %}" data-page="ranking">
+                    <span>Ranking</span>
+                </a>
+                <a href="{{ url_for('channels.creator_hub') }}" class="nav-desktop-link {% if cur_path.startswith('/creator-hub') %}active{% endif %}" data-page="creator-hub">
+                    <span>Creator Hub</span>
+                </a>
+                <a href="{{ url_for('app_pages.settings') }}" class="nav-desktop-link {% if cur_path.startswith('/settings') %}active{% endif %}" data-page="settings">
+                    <span>Settings</span>
+                </a>
+                {% if session.get('user', {}).get('email', '').lower() in ['codebymario@gmail.com', 'info@abhihub.edu.eu.org', 'admin@abhihub.edu.eu.org'] %}
+                <a href="{{ url_for('admin.admin_control_panel') }}" class="nav-desktop-link {% if cur_path.startswith('/admin') %}active{% endif %}" data-page="admin">
+                    <span>Admin</span>
+                </a>
+                {% endif %}
+            </div>
+
             <!-- Apple Unified Right Navigation Cluster -->
             <div class="nav-right-cluster">
                 <!-- Search Link (Opens Right 30% Drawer) -->
@@ -718,7 +743,7 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <div class="entity-modal-body">
                     <div class="entity-field-group" id="entitySemesterField" style="display: none;">
-                        <label>Semester *</label>
+                        <label for="entitySemester">Semester *</label>
                         <select id="entitySemester"
                             style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 1rem;">
                             <option value="">Select Semester</option>
@@ -733,16 +758,16 @@
                         </select>
                     </div>
                     <div class="entity-field-group" id="entityNameField">
-                        <label>Name *</label>
-                        <input type="text" id="entityName" required placeholder="Full Name">
+                        <label for="entityName">Name *</label>
+                        <input type="text" id="entityName" required placeholder="Full Name" autocomplete="name" aria-label="Full Name">
                     </div>
                     <div class="entity-field-group" id="entityAbbrField" style="display: none;">
-                        <label>Abbreviation</label>
-                        <input type="text" id="entityAbbr" placeholder="e.g. CSE">
+                        <label for="entityAbbr">Abbreviation</label>
+                        <input type="text" id="entityAbbr" placeholder="e.g. CSE" autocomplete="off" aria-label="Abbreviation">
                     </div>
                     <div class="entity-field-group" id="entityCodeField" style="display: none;">
-                        <label>Subject Code</label>
-                        <input type="text" id="entityCode" placeholder="e.g. CS101">
+                        <label for="entityCode">Subject Code</label>
+                        <input type="text" id="entityCode" placeholder="e.g. CS101" autocomplete="off" aria-label="Subject Code">
                     </div>
                 </div>
                 <div class="entity-modal-footer">
@@ -2153,14 +2178,14 @@
         <form id="gam-form" onsubmit="return false;" style="display:flex; flex-direction:column; gap:0.75rem;">
           <div>
             <label for="gam-email" style="display:block; font-size:0.8rem; font-weight:600; color:#334155; margin-bottom:0.25rem;">Email</label>
-            <input type="email" id="gam-email" required placeholder="College email (e.g. you@ghrce.raisoni.net)" style="width:100%; padding:0.6rem 0.75rem; border:1px solid #cbd5e1; border-radius:8px; font-size:0.875rem; box-sizing:border-box;">
+            <input type="email" id="gam-email" required placeholder="College email (e.g. you@ghrce.raisoni.net)" autocomplete="email" aria-label="College email" style="width:100%; padding:0.6rem 0.75rem; border:1px solid #cbd5e1; border-radius:8px; font-size:0.875rem; box-sizing:border-box;">
           </div>
           <div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
               <label for="gam-password" style="font-size:0.8rem; font-weight:600; color:#334155;">Password</label>
               <a href="{{ url_for('auth.reset_password') }}" style="font-size:0.75rem; color:#4f46e5; text-decoration:none;">Forgot?</a>
             </div>
-            <input type="password" id="gam-password" required placeholder="••••••••" style="width:100%; padding:0.6rem 0.75rem; border:1px solid #cbd5e1; border-radius:8px; font-size:0.875rem; box-sizing:border-box;">
+            <input type="password" id="gam-password" required placeholder="••••••••" autocomplete="current-password" aria-label="Password" style="width:100%; padding:0.6rem 0.75rem; border:1px solid #cbd5e1; border-radius:8px; font-size:0.875rem; box-sizing:border-box;">
           </div>
           <button type="submit" id="gam-submit-btn" style="width:100%; padding:0.7rem; background:#4f46e5; color:#ffffff; border:none; border-radius:10px; font-size:0.9rem; font-weight:700; cursor:pointer; transition:background 0.2s; margin-top:0.25rem;">Sign In</button>
         </form>

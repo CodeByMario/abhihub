@@ -221,6 +221,12 @@ body { background-color: var(--s-bg); }
 @media(max-width: 768px) {
   .seo-content-grid { grid-template-columns: 1fr; }
 }
+@media(max-width: 360px) {
+  .pcard { padding: 0.85rem 0.65rem !important; }
+  .pcard-badge { font-size: 0.6rem !important; padding: 2px 6px !important; }
+  .pcard-meta { font-size: 0.7rem !important; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pcard-views { font-size: 0.7rem !important; flex-shrink: 0; }
+}
 </style>
 {% endblock %}
 

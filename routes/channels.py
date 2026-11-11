@@ -76,7 +76,15 @@ def public_channel_view(handle):
                 canonical_url=canonical_url,
                 og_image=og_image
             )
-        return render_template('channel_view.html', channel=None, handle=handle, notes=[]), 404
+        return render_template(
+            'channel_view.html',
+            channel=None,
+            handle=handle,
+            notes=[],
+            noindex=True,
+            seo_title='Channel Not Found (404) | AbhiHub',
+            seo_description='The creator channel you are looking for does not exist on AbhiHub.'
+        ), 404
 
     # Increment view count
     increment_channel_views(channel.get('id'), channel.get('views_count', 0))

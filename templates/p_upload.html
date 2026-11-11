@@ -93,22 +93,29 @@
 
         <!-- Live File Preview & Verification Card -->
         <div class="apple-preview-card" id="filePreviewCard" style="display: none;">
-          <div class="preview-media-box" id="previewMediaBox">
-            <img id="imagePreviewEl" class="preview-img-thumb" src="" alt="File preview" style="display: none;">
-            <div id="pdfPreviewFallback" class="pdf-preview-badge">
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-              <span class="preview-file-type-pill" id="fileTypeIcon">PDF</span>
+          <div class="preview-card-main">
+            <div class="preview-media-box" id="previewMediaBox">
+              <img id="imagePreviewEl" class="preview-img-thumb" src="" alt="File preview" style="display: none;">
+              <div id="pdfPreviewFallback" class="pdf-preview-badge">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                <span class="preview-file-type-pill" id="fileTypeIcon">PDF</span>
+              </div>
+            </div>
+            <div class="preview-details">
+              <span class="preview-filename" id="selectedFileName">document.pdf</span>
+              <div class="preview-submeta">
+                <span class="preview-filesize" id="selectedFileSize">0 KB</span>
+                <span class="preview-status-tag" id="compressionSavingsTag">Ready to upload</span>
+              </div>
             </div>
           </div>
-          <div class="preview-details">
-            <span class="preview-filename" id="selectedFileName">document.pdf</span>
-            <div class="preview-submeta">
-              <span class="preview-filesize" id="selectedFileSize">0 KB</span>
-              <span class="preview-status-tag" id="compressionSavingsTag">Ready to upload</span>
-            </div>
+          <div class="preview-card-actions" id="previewCardActions">
+            <button type="button" class="apple-change-btn edit-btn" id="editFrontBtn" onclick="openImageEditor('front')" style="display: none;" title="Crop or rotate front page">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></svg>
+              <span>Crop / Rotate</span>
+            </button>
+            <button type="button" class="apple-change-btn" id="changeFileBtn" title="Choose a different file">Change</button>
           </div>
-          <button type="button" class="apple-change-btn" id="editFrontBtn" onclick="openImageEditor('front')" style="display: none; background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; margin-right: 0.4rem;" title="Crop or rotate front page">Crop / Rotate</button>
-          <button type="button" class="apple-change-btn" id="changeFileBtn" title="Choose a different file">Change</button>
         </div>
 
         <!-- Two-Sided Paper (Back Side) Option -->
@@ -234,7 +241,7 @@
 
             <!-- Category Icon Cards (Replacing dropdown) -->
             <div class="apple-field">
-              <label class="apple-label">Category</label>
+              <span class="apple-label">Category</span>
               <div class="category-chips-grid" id="categoryChipGroup">
                 <button type="button" class="cat-chip-btn active" data-val="notes">
                   <span class="cat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
@@ -406,7 +413,7 @@
 
             <!-- Academic Year Chips -->
             <div class="apple-field" style="margin-top: 0.25rem;">
-              <label class="apple-label">Academic Year</label>
+              <span class="apple-label">Academic Year</span>
               <div class="year-chips-wrap" id="yearChipGroup">
                 <button type="button" class="year-chip-btn" data-val="2026">2026</button>
                 <button type="button" class="year-chip-btn active" data-val="2025">2025</button>
@@ -462,7 +469,7 @@
 
               <!-- Program Chips -->
               <div class="apple-field" style="margin-top: 0.75rem;">
-                <label class="apple-label" style="font-size: 11.5px; color: #64748b; margin-bottom: 5px;">Program / Degree</label>
+                <span class="apple-label" style="font-size: 11.5px; color: #64748b; margin-bottom: 5px;">Program / Degree</span>
                 <div class="chip-options-wrap" id="programChipGroup">
                   <button type="button" class="chip-option-btn active" data-val="b.tech">B.Tech</button>
                   <button type="button" class="chip-option-btn" data-val="bca">BCA</button>
@@ -478,7 +485,7 @@
               <!-- Semester Badge Selector -->
               <div class="apple-field" style="margin-top: 0.75rem;">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
-                  <label class="apple-label" style="margin: 0;">Semester</label>
+                  <span class="apple-label" style="margin: 0;">Semester</span>
                   <span id="semProgramHint" style="font-size: 11px; color: #64748b;">8 Semesters (B.Tech)</span>
                 </div>
                 <div class="sem-badges-wrap" id="semesterBadgeGroup" style="margin-top: 5px;">
@@ -672,18 +679,18 @@
 </div>
 
 <!-- ── Image Editor & Crop Modal ── -->
-<div id="imageEditorModal" class="popup-overlay" style="display:none; z-index:99999;" role="dialog" aria-modal="true" aria-labelledby="editorModalTitle">
-  <div class="popup-card" style="max-width: 720px; width: 95%; max-height: 94vh; display: flex; flex-direction: column; padding: 1.25rem; border-radius: 18px; overflow-y: auto;">
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
+<div id="imageEditorModal" class="popup-overlay image-editor-overlay" style="display:none; z-index:99999;" role="dialog" aria-modal="true" aria-labelledby="editorModalTitle">
+  <div class="popup-card image-editor-card" style="max-width: 720px; width: 95%; max-height: 94vh; display: flex; flex-direction: column; padding: 1.25rem; border-radius: 18px; overflow-y: auto;">
+    <div class="image-editor-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
       <div>
         <h3 id="editorModalTitle" style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #1e293b;">Edit &amp; Enhance Document</h3>
         <span id="editorSideBadge" style="display: inline-block; font-size: 0.72rem; font-weight: 700; background: #e0e7ff; color: #4338ca; padding: 2px 8px; border-radius: 9999px; margin-top: 4px;">PAGE 1: FRONT</span>
       </div>
-      <button type="button" onclick="closeImageEditor(false)" style="border: none; background: #f1f5f9; color: #64748b; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center;" aria-label="Close editor">✕</button>
+      <button type="button" onclick="closeImageEditor(false)" class="editor-close-btn" style="border: none; background: #f1f5f9; color: #64748b; width: 36px; height: 36px; min-height: 36px; border-radius: 50%; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center;" aria-label="Close editor">✕</button>
     </div>
 
     <!-- Quick Document Scan & Presets Row -->
-    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem;">
+    <div class="editor-presets-row" style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem;">
       <span style="font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Presets:</span>
       <button type="button" id="presetDocScanBtn" onclick="applyEditorPreset('docscan')" style="padding: 0.35rem 0.7rem; font-size: 0.78rem; font-weight: 600; background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Boost text contrast and clean white paper background for OCR">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
@@ -763,8 +770,8 @@
     </div>
 
     <!-- Editing Toolbar Bottom Row -->
-    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: space-between; align-items: center; margin-top: 0.75rem; padding-top: 0.65rem; border-top: 1px solid #e2e8f0;">
-      <div style="display: flex; gap: 0.4rem; align-items: center;">
+    <div class="editor-actions-bar" style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: space-between; align-items: center; margin-top: 0.75rem; padding-top: 0.65rem; border-top: 1px solid #e2e8f0;">
+      <div class="editor-actions-tools" style="display: flex; gap: 0.4rem; align-items: center;">
         <button type="button" onclick="rotateEditorImage(-90)" class="apple-btn-secondary" style="padding: 0.4rem 0.65rem; font-size: 0.78rem; background: #f1f5f9; border-radius: 8px; border: 1px solid #cbd5e1; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Rotate 90 degrees counter-clockwise">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
           <span>↺ 90°</span>
@@ -780,7 +787,7 @@
         <button type="button" onclick="resetEditorImage()" class="apple-btn-secondary" style="padding: 0.4rem 0.6rem; font-size: 0.78rem; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; color: #64748b; cursor: pointer;" title="Reset all adjustments">Reset</button>
       </div>
 
-      <div style="display: flex; gap: 0.5rem; margin-left: auto;">
+      <div class="editor-actions-submit" style="display: flex; gap: 0.5rem; margin-left: auto;">
         <button type="button" onclick="closeImageEditor(false)" class="apple-btn-secondary" style="padding: 0.45rem 0.85rem; font-size: 0.82rem; background: #f1f5f9; border: none; border-radius: 8px; color: #475569; cursor: pointer;">Cancel</button>
         <button type="button" onclick="applyEditorEdits()" class="apple-btn-primary" style="padding: 0.45rem 1.1rem; font-size: 0.82rem; background: #0071E3; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -1655,6 +1662,77 @@ document.addEventListener('DOMContentLoaded', function () {
     else if (currentStep === 1 && stagedFile) goToStep2Btn.click();
   });
 
+  // --- Phase 5: Draft Persistence & Swipe Gestures ---
+  const DRAFT_KEY = 'abhihub_upload_draft_v1';
+  function saveUploadDraft() {
+    try {
+      const draft = {
+        title: document.getElementById('docTitleInput')?.value || '',
+        subject: document.getElementById('subjectInput')?.value || '',
+        unit: document.getElementById('unitInput')?.value || '',
+        academicYear: document.getElementById('academicYearSelect')?.value || '',
+        timestamp: Date.now()
+      };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    } catch(e) {}
+  }
+
+  function restoreUploadDraft() {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (!saved) return;
+      const draft = JSON.parse(saved);
+      if (draft.title && document.getElementById('docTitleInput')) document.getElementById('docTitleInput').value = draft.title;
+      if (draft.subject && document.getElementById('subjectInput')) document.getElementById('subjectInput').value = draft.subject;
+      if (draft.unit && document.getElementById('unitInput')) document.getElementById('unitInput').value = draft.unit;
+      if (draft.academicYear && document.getElementById('academicYearSelect')) document.getElementById('academicYearSelect').value = draft.academicYear;
+    } catch(e) {}
+  }
+
+  const uploadFormEl = document.getElementById('uploadForm');
+  if (uploadFormEl) {
+    uploadFormEl.addEventListener('input', saveUploadDraft);
+    restoreUploadDraft();
+  }
+
+  // Swipe navigation between wizard steps (advances ONLY if validation passes)
+  const workspaceEl = document.getElementById('uploadWorkspaceTab');
+  if (workspaceEl) {
+    let touchStartX = 0;
+    let touchStartY = 0;
+    workspaceEl.addEventListener('touchstart', (e) => {
+      if (e.touches && e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    workspaceEl.addEventListener('touchend', (e) => {
+      if (window.innerWidth > 768) return;
+      if (!e.changedTouches || e.changedTouches.length === 0) return;
+      const diffX = e.changedTouches[0].clientX - touchStartX;
+      const diffY = Math.abs(e.changedTouches[0].clientY - touchStartY);
+
+      if (Math.abs(diffX) > 65 && diffY < 50) {
+        if (diffX < 0) {
+          // Swipe Left -> Next Step (Guarded by Step Validation)
+          if (currentStep === 1 && stagedFile && !goToStep2Btn.disabled) {
+            goToStep2Btn.click();
+          } else if (currentStep === 2) {
+            goToStep3Btn.click(); // Automatically validates required fields!
+          }
+        } else if (diffX > 0) {
+          // Swipe Right -> Previous Step
+          if (currentStep === 3) {
+            backToStep2Btn.click();
+          } else if (currentStep === 2) {
+            backToStep1Btn.click();
+          }
+        }
+      }
+    }, { passive: true });
+  }
+
   // Drag & drop listeners
   if (dropArea) {
     dropArea.addEventListener('click', () => fileInput.click());
@@ -2158,6 +2236,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (modal) modal.style.display = 'flex';
+        document.body.classList.add('image-editor-open');
   }
 
   // Copy share URL button
@@ -2671,6 +2750,7 @@ window.loadUploadHistory = async function () {
   window.closeImageEditor = function(apply) {
     const modal = document.getElementById('imageEditorModal');
     if (modal) modal.style.display = 'none';
+    document.body.classList.remove('image-editor-open');
     window._editorImageObj = null;
   };
 

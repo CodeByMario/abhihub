@@ -1,0 +1,265 @@
+{% extends "p_struct.html" %}
+
+{% block title %}Campus Ambassador & Creator Program — AbhiHub{% endblock %}
+
+{% block content %}
+<style>
+.amb-container {
+  max-width: 860px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.amb-card {
+  background: var(--card, #ffffff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+}
+.amb-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.amb-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #fef3c7;
+  color: #92400e;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+.amb-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text, #111827);
+  margin: 0 0 0.5rem 0;
+}
+.amb-subtitle {
+  color: #6b7280;
+  font-size: 0.95rem;
+  max-width: 580px;
+  margin: 0 auto;
+}
+.amb-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.amb-step-card {
+  background: var(--bg-alt, #f9fafb);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 12px;
+  padding: 1.25rem;
+  position: relative;
+}
+.amb-step-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #3b82f6;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+.amb-step-title {
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 0.35rem;
+  color: var(--text, #111827);
+}
+.amb-step-desc {
+  font-size: 0.82rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+.amb-progress-box {
+  background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 2rem;
+}
+.amb-progress-bar-bg {
+  width: 100%;
+  height: 10px;
+  background: #e2e8f0;
+  border-radius: 9999px;
+  overflow: hidden;
+  margin: 0.75rem 0 0.5rem 0;
+}
+.amb-progress-bar-fill {
+  height: 100%;
+  background: #10b981;
+  border-radius: 9999px;
+  transition: width 0.4s ease;
+}
+.amb-share-box {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.amb-share-input {
+  flex: 1;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--border, #d1d5db);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: var(--bg, #ffffff);
+}
+.amb-btn {
+  padding: 0.65rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.amb-btn-primary {
+  background: #3b82f6;
+  color: #ffffff;
+}
+.amb-btn-primary:hover {
+  background: #2563eb;
+}
+.amb-leaderboard {
+  margin-top: 2.5rem;
+}
+.amb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  margin-top: 0.75rem;
+}
+.amb-table th, .amb-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+}
+.amb-table th {
+  background: var(--bg-alt, #f9fafb);
+  font-weight: 600;
+  color: #4b5563;
+}
+@media (max-width: 640px) {
+  .amb-steps { grid-template-columns: 1fr; }
+}
+</style>
+
+<div class="amb-container">
+  <div class="amb-card">
+    <div class="amb-header">
+      <div class="amb-badge-pill">👑 Exclusive Campus Program</div>
+      <h1 class="amb-title">Founding Campus Ambassador</h1>
+      <p class="amb-subtitle">Be the pioneer who unlocks <strong>{{ college_name or 'your college' }}</strong> on AbhiHub. Lead your campus community and earn lifetime recognition.</p>
+    </div>
+
+    <!-- 3-Step Program Overview -->
+    <div class="amb-steps">
+      <div class="amb-step-card">
+        <div class="amb-step-num">1</div>
+        <div class="amb-step-title">Confirm College</div>
+        <div class="amb-step-desc">Establish your official college representation. Claim exclusive founding rights.</div>
+      </div>
+      <div class="amb-step-card">
+        <div class="amb-step-num">2</div>
+        <div class="amb-step-title">Upload First Resources</div>
+        <div class="amb-step-desc">Upload past exam papers or verified class notes to seed your college hub.</div>
+      </div>
+      <div class="amb-step-card">
+        <div class="amb-step-num">3</div>
+        <div class="amb-step-title">Invite Classmates</div>
+        <div class="amb-step-desc">Share your referral link with classmates. Earn referral bounties and badges.</div>
+      </div>
+    </div>
+
+    <!-- Live Progress Tracker -->
+    <div class="amb-progress-box">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <strong style="color:#1e3a8a;">Unlock Progress:</strong>
+          <span id="ambProgressText">Upload 3 items to unlock {{ college_name or 'your college' }} for everyone.</span>
+        </div>
+        <span id="ambUploadCount" style="font-weight:700; color:#047857;">{{ approved_count }}/3 Uploads</span>
+      </div>
+      <div class="amb-progress-bar-bg">
+        <div id="ambProgressBar" class="amb-progress-bar-fill" style="width: {{ (approved_count / 3 * 100) | round }}%;"></div>
+      </div>
+      <div style="display:flex; gap:0.5rem; margin-top:0.75rem;">
+        <a href="/upload" class="amb-btn amb-btn-primary">⚡ Upload Notes / Papers Now</a>
+      </div>
+    </div>
+
+    <!-- Referral Link & Invitation Engine -->
+    <div style="background:var(--bg-alt, #f9fafb); padding:1.25rem; border-radius:12px; border:1px solid var(--border, #e5e7eb);">
+      <h3 style="margin:0 0 0.35rem 0; font-size:1.05rem; font-weight:700;">Your Campus Referral Link</h3>
+      <p style="margin:0; font-size:0.83rem; color:#6b7280;">Share with your WhatsApp study groups. Each friend who signs up counts toward your Referral Champion badge.</p>
+      <div class="amb-share-box">
+        <input type="text" id="ambRefInput" class="amb-share-input" readonly value="{{ request.base_url.rstrip('/') }}/signup?ref={{ referral_code }}">
+        <button type="button" class="amb-btn amb-btn-primary" onclick="copyAmbLink()">Copy</button>
+        <a href="https://api.whatsapp.com/send?text=Hey!%20Join%20me%20on%20AbhiHub%20to%20get%20and%20share%20notes%20for%20our%20college:%20{{ request.base_url.rstrip('/') }}/signup?ref={{ referral_code }}" target="_blank" rel="noopener" class="amb-btn" style="background:#25d366; color:#ffffff;">Share WhatsApp</a>
+      </div>
+      <span id="ambCopyNotice" style="display:none; font-size:0.78rem; color:#10b981; margin-top:0.35rem;">✓ Copied to clipboard!</span>
+    </div>
+
+    <!-- College Leaderboard -->
+    <div class="amb-leaderboard">
+      <h3 style="margin:0 0 0.25rem 0; font-size:1.15rem; font-weight:700;">Campus Leaderboard — Top Inviters</h3>
+      <p style="margin:0; font-size:0.83rem; color:#6b7280;">Leading contributors from {{ college_name or 'your college' }}.</p>
+      
+      <table class="amb-table">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Student</th>
+            <th>Status</th>
+            <th>Reputation</th>
+          </tr>
+        </thead>
+        <tbody id="ambLeaderboardBody">
+          {% for leader in leaderboard %}
+          <tr>
+            <td>#{{ leader.rank }}</td>
+            <td><strong>{{ leader.name }}</strong></td>
+            <td>{% if leader.rank == 1 %}👑 Founding Ambassador{% else %}Student Ambassador{% endif %}</td>
+            <td>⭐ {{ leader.reputation_score }} pts</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" style="text-align:center; color:#9ca3af; padding:1.5rem;">No ambassadors yet. Be the first to invite your peers!</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+function copyAmbLink() {
+  const inp = document.getElementById('ambRefInput');
+  if (inp) {
+    inp.select();
+    navigator.clipboard.writeText(inp.value).then(() => {
+      const notice = document.getElementById('ambCopyNotice');
+      if (notice) {
+        notice.style.display = 'block';
+        setTimeout(() => { notice.style.display = 'none'; }, 2500);
+      }
+    });
+  }
+}
+</script>
+{% endblock %}

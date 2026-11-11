@@ -67,6 +67,12 @@
   transform: scale(0.97);
 }
 
+body.image-editor-open #abhiAiLauncher,
+body.modal-open #abhiAiLauncher,
+body.has-active-modal #abhiAiLauncher {
+  display: none !important;
+}
+
 /* ── Dimming Backdrop ───────────────────────────────────────────── */
 #tarikaBackdrop {
   display: none;
@@ -673,7 +679,7 @@
   <!-- Composer Input -->
   <div class="tarika-composer-box">
     <div class="tarika-input-pill">
-      <input type="text" id="tarikaInput" class="tarika-input-field" placeholder="Ask any question or problem..." autocomplete="off" spellcheck="false">
+      <input type="text" id="tarikaInput" class="tarika-input-field" placeholder="Ask any question or problem..." autocomplete="off" spellcheck="false" aria-label="Ask Tarika AI">
       <button type="button" id="tarikaSendBtn" class="tarika-send-btn" aria-label="Send" title="Send (Enter)">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
       </button>

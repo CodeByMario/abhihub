@@ -3,6 +3,7 @@
 
 {% block content %}
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/creator_hub_responsive.css') }}">
 <style>
   :root {
     --ch-font: 'Inter', system-ui, -apple-system, sans-serif;
@@ -257,7 +258,7 @@
   }
   table {
     width: 100%;
-    min-width: 500px;
+    min-width: 0;
     border-collapse: collapse;
     font-size: 14px;
   }
@@ -476,8 +477,26 @@
       </div>
     </div>
 
-    <!-- 4 Primary KPI Cards -->
-    <section class="ch-grid-4" aria-label="Key numbers">
+    <!-- Quick Actions (Mobile Priority Bar) -->
+    <div class="ch-quick-actions" role="toolbar" aria-label="Quick Actions">
+      <a href="{{ url_for('app_pages.upload') }}" class="ch-action-pill ch-action-primary">
+        <i class="fa-solid fa-cloud-arrow-up"></i> Upload Material
+      </a>
+      {% if channel and channel.handle %}
+      <a href="{{ url_for('channels.public_channel_view', handle=channel.handle) }}" target="_blank" class="ch-action-pill">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i> Live Channel
+      </a>
+      {% endif %}
+      <a href="{{ url_for('app_pages.settings') }}#payout" class="ch-action-pill">
+        <i class="fa-solid fa-wallet"></i> Payout Setup
+      </a>
+      <a href="{{ url_for('channels.channel_studio') }}" class="ch-action-pill">
+        <i class="fa-solid fa-sliders"></i> Channel Settings
+      </a>
+    </div>
+
+    <!-- 4 Primary KPI Cards (Horizontal Snap Carousel on Mobile) -->
+    <section class="ch-grid-4 ch-stats-carousel" id="chStatsCarousel" aria-label="Key numbers">
       <div class="ch-card">
         <p class="lbl">Gross sales</p>
         <p class="big">₹{{ '%.2f'|format(gross_sales) }}</p>
@@ -499,6 +518,14 @@
         <p class="note">Released as 9-day verification window clears</p>
       </div>
     </section>
+
+    <!-- Carousel Indicator Dots -->
+    <div class="ch-carousel-dots" id="chCarouselDots" aria-hidden="true">
+      <span class="ch-carousel-dot active" onclick="scrollStatsCarousel(0)"></span>
+      <span class="ch-carousel-dot" onclick="scrollStatsCarousel(1)"></span>
+      <span class="ch-carousel-dot" onclick="scrollStatsCarousel(2)"></span>
+      <span class="ch-carousel-dot" onclick="scrollStatsCarousel(3)"></span>
+    </div>
 
     <!-- Two Column Grid: Next Payout & Calculation Breakdown -->
     <section class="ch-grid-2" id="payouts">
@@ -619,14 +646,14 @@
             <tbody>
               {% for p in group_items %}
               <tr id="doc-row-{{ p.id }}">
-                <td>
+                <td data-label="Material">
                   <strong style="color: var(--ch-text-main);">{{ p.group or p.title }}</strong>
                   <div style="font-size: 11.5px; color: var(--ch-text-muted);">Added {{ p.created_at }} &bull; {{ p.views }} views</div>
                 </td>
-                <td>
+                <td data-label="Category">
                   <span class="pill sch" style="font-size: 11px;">{{ p.category }}</span>
                 </td>
-                <td class="c">
+                <td class="c" data-label="Access">
                   <label class="switch">
                     <input type="checkbox" id="toggle-{{ p.id }}" {% if p.is_paid %}checked{% endif %} onchange="handlePaidToggle('{{ p.id }}')">
                     <span class="slider"></span>
@@ -635,19 +662,19 @@
                     {{ 'Paid' if p.is_paid else 'Free' }}
                   </div>
                 </td>
-                <td>
+                <td data-label="Price">
                   <div class="price-input-wrap">
                     <span style="font-size: 13px; font-weight: 600; color: var(--ch-text-muted); margin-right: 2px;">₹</span>
                     <input type="number" min="0" max="999" step="1" id="price-{{ p.id }}" class="price-input" value="{{ '%.0f'|format(p.price) if p.price else '19' }}" {% if not p.is_paid %}disabled style="opacity: 0.5;"{% endif %}>
                   </div>
                 </td>
-                <td class="r" style="font-weight: 600;">
+                <td class="r" data-label="Sales" style="font-weight: 600;">
                   {{ p.sales_count }}
                 </td>
-                <td class="r" style="font-weight: 700; color: var(--ch-text-main);">
+                <td class="r" data-label="Gross Revenue" style="font-weight: 700; color: var(--ch-text-main);">
                   ₹{{ '%.2f'|format(p.gross_revenue) }}
                 </td>
-                <td class="r">
+                <td class="r" data-label="Action">
                   <button class="btn btn-sm" onclick="saveMonetization('{{ p.id }}')" id="save-btn-{{ p.id }}" style="padding: 4px 10px; font-size: 12px;">
                     Save
                   </button>
@@ -718,10 +745,10 @@
           <tbody>
             {% for c in customers %}
             <tr>
-              <td class="c" style="font-weight: 700; color: var(--ch-text-muted);">
+              <td class="c" data-label="Rank" style="font-weight: 700; color: var(--ch-text-muted);">
                 {{ loop.index }}
               </td>
-              <td>
+              <td data-label="Student">
                 <div style="display: flex; align-items: center; gap: 10px;">
                   <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--ch-sch-bg); color: var(--ch-primary); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px;">
                     {{ c.name[:1]|upper if c.name else 'S' }}
@@ -732,7 +759,7 @@
                   </div>
                 </div>
               </td>
-              <td>
+              <td data-label="Tier">
                 {% if c.vip_tier == 'superfan' %}
                   <span class="pill" style="background: rgba(147, 51, 234, 0.12); color: #9333ea;">Superfan</span>
                 {% elif c.vip_tier == 'vip' %}
@@ -741,13 +768,13 @@
                   <span class="pill sch">Supporter</span>
                 {% endif %}
               </td>
-              <td class="c" style="font-weight: 600;">
+              <td class="c" data-label="Unlocked" style="font-weight: 600;">
                 {{ c.total_notes }} note{{ 's' if c.total_notes != 1 else '' }}
               </td>
-              <td class="r" style="font-weight: 700; color: var(--ch-text-main);">
+              <td class="r" data-label="Contributed" style="font-weight: 700; color: var(--ch-text-main);">
                 ₹{{ '%.2f'|format(c.total_spent) }}
               </td>
-              <td class="r" style="font-size: 12.5px; color: var(--ch-text-muted);">
+              <td class="r" data-label="Last Active" style="font-size: 12.5px; color: var(--ch-text-muted);">
                 {{ c.last_active or 'Recently' }}
               </td>
             </tr>
@@ -804,12 +831,12 @@
           <tbody>
             {% for po in payouts %}
             <tr>
-              <td>{{ (po.created_at or '')[:10] }}</td>
-              <td>
+              <td data-label="Date">{{ (po.created_at or '')[:10] }}</td>
+              <td data-label="Destination">
                 <strong>{{ po.payout_method|upper if po.payout_method else 'BANK' }}</strong>
                 &bull; {{ po.account_number_masked or po.upi_id or 'Account' }}
               </td>
-              <td>
+              <td data-label="Status">
                 {% if po.status == 'completed' %}
                   <span class="pill ok"><i class="fa-solid fa-check"></i> Paid</span>
                 {% elif po.status == 'scheduled' %}
@@ -820,8 +847,8 @@
                   <span class="pill wait"><i class="fa-solid fa-hourglass-half"></i> Processing</span>
                 {% endif %}
               </td>
-              <td class="r" style="font-weight: 700;">₹{{ '%.2f'|format(po.amount|float) }}</td>
-              <td class="r" style="font-size: 12.5px; color: var(--ch-text-muted);">
+              <td class="r" data-label="Amount" style="font-weight: 700;">₹{{ '%.2f'|format(po.amount|float) }}</td>
+              <td class="r" data-label="UTR / Ref" style="font-size: 12.5px; color: var(--ch-text-muted);">
                 {{ po.transaction_ref or '&ndash;' }}
               </td>
             </tr>
@@ -979,5 +1006,68 @@
       alert('Network error submitting payout request.');
     }
   }
+  // Responsive Carousel & Gesture Logic
+  function scrollStatsCarousel(index) {
+    const carousel = document.getElementById('chStatsCarousel');
+    if (!carousel) return;
+    const card = carousel.children[index];
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }
+
+  (function() {
+    const carousel = document.getElementById('chStatsCarousel');
+    const dots = document.querySelectorAll('#chCarouselDots .ch-carousel-dot');
+    if (carousel && dots.length > 0) {
+      carousel.addEventListener('scroll', function() {
+        const scrollLeft = carousel.scrollLeft;
+        const cardWidth = carousel.children[0] ? carousel.children[0].offsetWidth : 260;
+        const activeIndex = Math.min(Math.round(scrollLeft / cardWidth), dots.length - 1);
+        dots.forEach((dot, idx) => {
+          dot.classList.toggle('active', idx === activeIndex);
+        });
+      }, { passive: true });
+    }
+
+    // Swipe navigation between Creator Studio tabs on mobile
+    let touchStartX = 0;
+    let touchStartY = 0;
+    const mainEl = document.querySelector('.ch-main');
+    const tabs = Array.from(document.querySelectorAll('.ch-nav-tab'));
+
+    if (mainEl && tabs.length > 0) {
+      mainEl.addEventListener('touchstart', function(e) {
+        if (e.touches && e.touches.length === 1) {
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+        }
+      }, { passive: true });
+
+      mainEl.addEventListener('touchend', function(e) {
+        if (window.innerWidth > 768) return;
+        if (!e.changedTouches || e.changedTouches.length === 0) return;
+        const diffX = e.changedTouches[0].clientX - touchStartX;
+        const diffY = Math.abs(e.changedTouches[0].clientY - touchStartY);
+
+        if (Math.abs(diffX) > 60 && diffY < 50) {
+          const currentActiveIdx = tabs.findIndex(t => t.classList.contains('active'));
+          if (currentActiveIdx !== -1) {
+            if (diffX < 0 && currentActiveIdx < tabs.length - 1) {
+              tabs[currentActiveIdx + 1].click();
+            } else if (diffX > 0 && currentActiveIdx > 0) {
+              tabs[currentActiveIdx - 1].click();
+            }
+          }
+        }
+      }, { passive: true });
+    }
+  })();
 </script>
+
+<!-- Mobile Floating Upload Button -->
+<a href="{{ url_for('app_pages.upload') }}" class="ch-fab-btn" aria-label="Upload New Material">
+  <i class="fa-solid fa-cloud-arrow-up"></i>
+  <span>Upload</span>
+</a>
 {% endblock %}

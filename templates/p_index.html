@@ -1,4 +1,12 @@
-{% set seo_description = "AbhiHub Engineering Command Deck — Access university question papers (PYQs), topper notes, lab manuals, and peer study exchange for engineering colleges." %}
+{% set current_host = (request.url_root.rstrip('/') if (request and request.url_root) else (BASE_URL | default('https://www.abhihub.edu.eu.org', true))) %}
+{% set seo_title = "AbhiHub — Engineering PYQs, Handwritten Notes & Creator Marketplace" %}
+{% set seo_description = "India's verified peer study platform. Access university previous year question papers (PYQs), topper notes, and exam prep resources." %}
+{% set og_title = seo_title %}
+{% set og_description = seo_description %}
+{% set og_image = current_host ~ '/api/og/home.png' %}
+{% set twitter_image = og_image %}
+{% set og_image_width = '1200' %}
+{% set og_image_height = '630' %}
 {% extends 'p_struct.html' %}
 
 {% block page_head %}

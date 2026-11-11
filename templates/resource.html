@@ -1661,11 +1661,11 @@ body.zen-active .image-canvas img {
           </div>
           <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:0.75rem;">
             <div>
-              <label class="ap-field-micro-label">Subject Name</label>
+              <label class="ap-field-micro-label" for="newSubjectName">Subject Name</label>
               <input type="text" id="newSubjectName" placeholder="e.g. Distributed Systems" class="ap-text-input micro" oninput="updateGeneratedTitlePreview()">
             </div>
             <div>
-              <label class="ap-field-micro-label">Subject Code (Optional)</label>
+              <label class="ap-field-micro-label" for="newSubjectCode">Subject Code (Optional)</label>
               <input type="text" id="newSubjectCode" placeholder="e.g. CS602" class="ap-text-input micro uppercase" oninput="updateGeneratedTitlePreview()">
             </div>
           </div>
@@ -1674,7 +1674,7 @@ body.zen-active .image-canvas img {
         <!-- Academic Details: Semester, Category, Unit/Detail, Year/Date Grid -->
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:0.75rem; margin-bottom:0.85rem;">
           <div>
-            <label class="ap-field-micro-label">Semester</label>
+            <label class="ap-field-micro-label" for="editDocSemester">Semester</label>
             <select id="editDocSemester" class="ap-select-input" onchange="updateGeneratedTitlePreview()">
               {% set cur_sem = document.semester or (document.subject.semester if document.subject else 1) %}
               {% for s in range(1, 9) %}
@@ -1684,7 +1684,7 @@ body.zen-active .image-canvas img {
           </div>
 
           <div>
-            <label class="ap-field-micro-label">Category</label>
+            <label class="ap-field-micro-label" for="editDocCategory">Category</label>
             {% set cur_cat = (document.document_category or 'notes')|lower %}
             <select id="editDocCategory" class="ap-select-input" onchange="updateGeneratedTitlePreview()">
               <option value="notes" {% if cur_cat == 'notes' %}selected{% endif %}>Notes</option>
@@ -1698,12 +1698,12 @@ body.zen-active .image-canvas img {
           </div>
 
           <div>
-            <label class="ap-field-micro-label">Unit / Detail</label>
+            <label class="ap-field-micro-label" for="editDocDetail">Unit / Detail</label>
             <input type="text" id="editDocDetail" value="{{ document.unit or document.exam_type or '' }}" placeholder="e.g. Unit U1,U2 or End-Sem" class="ap-text-input" oninput="updateGeneratedTitlePreview()">
           </div>
 
           <div>
-            <label class="ap-field-micro-label">Year / Exam Date</label>
+            <label class="ap-field-micro-label" for="editDocYear">Year / Exam Date</label>
             <input type="text" id="editDocYear" value="{{ document.year or '2025' }}" placeholder="e.g. 2025" class="ap-text-input" oninput="updateGeneratedTitlePreview()">
           </div>
         </div>
@@ -1719,7 +1719,7 @@ body.zen-active .image-canvas img {
         </div>
 
         <div class="ap-field-row">
-          <label class="ap-field-label">Description</label>
+          <label class="ap-field-label" for="editDocDescription">Description</label>
           <textarea id="editDocDescription" rows="3" class="ap-textarea-input" placeholder="Add a detailed description or key topics covered...">{{ document.display_description or '' }}</textarea>
         </div>
 
@@ -1736,17 +1736,17 @@ body.zen-active .image-canvas img {
 
           <div id="pricingFieldsWrap" style="display:{% if pricing and pricing.is_paid %}flex{% else %}none{% endif %}; flex-wrap:wrap; gap:1rem; margin-top:0.75rem;">
             <div style="flex:1; min-width:140px;">
-              <label class="ap-field-micro-label">Price (INR ₹)</label>
+              <label class="ap-field-micro-label" for="editDocPrice">Price (INR ₹)</label>
               <input type="number" id="editDocPrice" min="0" step="1" value="{{ pricing.price if pricing and pricing.price else 0 }}" class="ap-text-input micro">
             </div>
 
             <div style="flex:1; min-width:140px;">
-              <label class="ap-field-micro-label">Promo / Coupon Code</label>
+              <label class="ap-field-micro-label" for="editDocCoupon">Promo / Coupon Code</label>
               <input type="text" id="editDocCoupon" placeholder="e.g. EXAM50" value="{{ pricing.coupon_code if pricing and pricing.coupon_code else '' }}" class="ap-text-input micro uppercase">
             </div>
 
             <div style="flex:1; min-width:140px;">
-              <label class="ap-field-micro-label">Coupon Discount (%)</label>
+              <label class="ap-field-micro-label" for="editDocDiscount">Coupon Discount (%)</label>
               <input type="number" id="editDocDiscount" min="0" max="100" value="{{ pricing.coupon_discount if pricing and pricing.coupon_discount else 0 }}" class="ap-text-input micro">
             </div>
           </div>
@@ -1766,7 +1766,7 @@ body.zen-active .image-canvas img {
 
           <div class="ap-admin-grid">
             <div>
-              <label class="ap-field-micro-label">Status Control</label>
+              <label class="ap-field-micro-label" for="adminStatusAction">Status Control</label>
               <select id="adminStatusAction" class="ap-select-input">
                 <option value="approved" {% if document.status == 'approved' or not document.status %}selected{% endif %}>Live &amp; Approved</option>
                 <option value="hidden" {% if document.status == 'hidden' %}selected{% endif %}>Temporary Hold / Hidden</option>
@@ -1775,7 +1775,7 @@ body.zen-active .image-canvas img {
             </div>
 
             <div>
-              <label class="ap-field-micro-label">Predefined Reason for Owner</label>
+              <label class="ap-field-micro-label" for="adminReasonPreset">Predefined Reason for Owner</label>
               <select id="adminReasonPreset" class="ap-select-input">
                 <option value="Name error fix">1. Name error fix</option>
                 <option value="Subject or Category correction">2. Subject or Category correction</option>
@@ -1788,7 +1788,7 @@ body.zen-active .image-canvas img {
           </div>
 
           <div style="margin-bottom:0.85rem;">
-            <label class="ap-field-micro-label">Admin Note for File Owner (Predefined details)</label>
+            <label class="ap-field-micro-label" for="adminCustomNote">Admin Note for File Owner (Predefined details)</label>
             <input type="text" id="adminCustomNote" placeholder="e.g. Corrected typo in unit title and verified syllabus" class="ap-text-input">
           </div>
 
@@ -1915,7 +1915,7 @@ body.zen-active .image-canvas img {
 
     <div class="ap-inspector-body" style="padding:1.5rem; display:flex; flex-direction:column; gap:1rem;">
       <div>
-        <label class="ap-field-micro-label">Issue Category</label>
+        <label class="ap-field-micro-label" for="rReportType">Issue Category</label>
         <select id="rReportType" class="ap-select-input">
           <option value="Wrong content">Wrong content / Incorrect syllabus</option>
           <option value="Broken / unreadable file">Broken / unreadable file</option>
@@ -1926,7 +1926,7 @@ body.zen-active .image-canvas img {
       </div>
 
       <div>
-        <label class="ap-field-micro-label">Details &amp; Observations</label>
+        <label class="ap-field-micro-label" for="rReportMsg">Details &amp; Observations</label>
         <textarea id="rReportMsg" placeholder="Describe the issue with specific page numbers or notes..." class="ap-textarea-input" style="height:90px;"></textarea>
       </div>
 

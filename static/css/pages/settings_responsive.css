@@ -1,0 +1,336 @@
+/* ==========================================================================
+   AbhiHub - Settings Responsive Architecture (Mobile List-to-Detail + Laptop)
+   WCAG 2.2 AA Compliant • Mobile-First Responsive Standard v2.0
+   ========================================================================== */
+
+/* ── Base & Laptop Enhancements (≥ 769px) ── */
+.st-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+  box-sizing: border-box;
+}
+
+.st-grid {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 2rem;
+  align-items: start;
+}
+
+.st-content {
+  min-width: 0;
+  max-width: 860px;
+}
+
+/* Nav Item Layout */
+.st-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.st-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.75rem 1rem;
+  min-height: 48px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  transition: all 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.st-nav-item:hover {
+  background: var(--st-surface-hover, #f1f5f9);
+}
+
+.st-nav-item.active {
+  background: var(--st-sky-tint, rgba(37, 99, 235, 0.08));
+  border-color: rgba(37, 99, 235, 0.2);
+}
+
+.st-nav-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.st-nav-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--st-text-main, #1a202c);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.st-nav-sub {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--st-text-muted, #64748b);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.st-nav-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.st-nav-val {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--st-text-muted, #64748b);
+}
+
+.st-chevron {
+  display: none;
+}
+
+.st-mobile-detail-header {
+  display: none !important;
+}
+
+/* ── Mobile List-to-Detail Pattern (< 768px) ── */
+@media (max-width: 768px) {
+  .st-container {
+    padding: 0.75rem 0.85rem 5.5rem;
+  }
+
+  .st-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  /* List vs Detail State Toggle */
+  .st-container:not(.mobile-detail-open) .st-sidebar {
+    display: block !important;
+    width: 100%;
+  }
+
+  .st-container:not(.mobile-detail-open) .st-content {
+    display: none !important;
+  }
+
+  .st-container.mobile-detail-open .st-sidebar {
+    display: none !important;
+  }
+
+  .st-container.mobile-detail-open .st-content {
+    display: block !important;
+    width: 100%;
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  /* Mobile Detail Header */
+  .st-mobile-detail-header {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.25rem 0.85rem;
+    border-bottom: 1px solid var(--st-border, #e2e8f0);
+    margin-bottom: 1.25rem;
+    position: sticky;
+    top: 0;
+    background: var(--st-bg, #f8fafc);
+    z-index: 50;
+  }
+
+  .st-mobile-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--st-navy, #2563eb);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem 0.25rem;
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+  }
+
+  .st-mobile-detail-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--st-text-main, #1a202c);
+  }
+
+  /* Apple Inset Grouped Settings List */
+  .st-nav {
+    background: var(--st-surface, #ffffff);
+    border: 1px solid var(--st-border, #e2e8f0);
+    border-radius: 16px;
+    overflow: hidden;
+    padding: 0;
+    gap: 0;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  }
+
+  .st-nav-item {
+    padding: 1rem 1.15rem;
+    border-radius: 0 !important;
+    border: none;
+    border-bottom: 1px solid var(--st-border, #e2e8f0);
+    min-height: 58px;
+    justify-content: space-between;
+  }
+
+  .st-nav-item:last-child {
+    border-bottom: none;
+  }
+
+  .st-nav-item.active {
+    background: transparent !important;
+  }
+
+  .st-nav-item:active {
+    background: var(--st-surface-hover, #f1f5f9) !important;
+  }
+
+  .st-chevron {
+    display: inline-block;
+    color: var(--st-text-sub, #94a3b8);
+  }
+
+  .st-card {
+    padding: 1.25rem 1rem !important;
+    border-radius: 14px;
+    margin-bottom: 1rem;
+  }
+
+  /* Sticky Save Confirmation Bar */
+  .st-sticky-save-bar {
+    position: fixed;
+    bottom: calc(var(--nav-bottom-height, 68px) + 12px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(540px, calc(100% - 1.5rem));
+    background: var(--st-surface, #ffffff);
+    border: 1px solid var(--st-border, #e2e8f0);
+    border-radius: 16px;
+    padding: 0.75rem 1.15rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+    z-index: 950;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .st-save-bar-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 0.75rem;
+  }
+
+  .st-save-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--st-amber, #d97706);
+  }
+
+  .st-save-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--st-amber, #d97706);
+    animation: pulse 1.8s infinite;
+  }
+
+  .st-save-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .st-btn-ghost {
+    background: transparent;
+    border: none;
+    color: var(--st-text-muted, #64748b);
+    font-weight: 600;
+    padding: 6px 12px;
+    cursor: pointer;
+    border-radius: 8px;
+    min-height: 40px;
+  }
+
+  /* Form Elements Touch Friendliness */
+  .st-form-input, .st-form-select {
+    min-height: 48px !important;
+    font-size: 16px !important;
+    border-radius: 10px;
+  }
+
+  .st-segmented-bar {
+    max-width: 100% !important;
+  }
+
+  .st-segmented-btn {
+    min-height: 44px;
+    font-size: 0.9rem;
+  }
+
+  /* Wallet & Transactions Tables to Cards on Mobile */
+  .st-section table {
+    display: block !important;
+    width: 100% !important;
+  }
+  .st-section thead {
+    display: none !important;
+  }
+  .st-section tbody {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+  .st-section tr {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    background: var(--st-surface, #ffffff) !important;
+    border: 1px solid var(--st-border, #e2e8f0) !important;
+    border-radius: 12px !important;
+    padding: 12px 14px !important;
+  }
+  .st-section td {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 5px 0 !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+    font-size: 0.85rem !important;
+  }
+  .st-section td:last-child {
+    border-bottom: none !important;
+  }
+}
+
+/* Dark mode adjustments for sticky save bar */
+[data-theme="dark"] .st-sticky-save-bar {
+  background: var(--st-surface-elevated, #21213b);
+  border-color: var(--st-border, #334155);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+}
