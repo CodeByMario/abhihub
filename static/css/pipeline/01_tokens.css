@@ -122,10 +122,25 @@
     --radius-2xl:  1.5rem;
     --radius-full: 9999px;
 
-    /* ── Transitions ── */
+    /* ── Transitions & Apple Motion System ── */
     --transition-fast:   0.15s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-slow:   0.3s  cubic-bezier(0.4, 0, 0.2, 1);
+
+    --motion-duration-instant: 120ms;
+    --motion-duration-small:   180ms;
+    --motion-duration-medium:  280ms;
+    --motion-duration-large:   400ms;
+    --motion-duration-hero:    550ms;
+
+    --motion-ease-standard:   cubic-bezier(0.25, 0.1, 0.25, 1);
+    --motion-ease-decelerate: cubic-bezier(0.22, 1, 0.36, 1);
+    --motion-ease-accelerate: cubic-bezier(0.64, 0, 0.78, 0);
+    --motion-ease-spring:     cubic-bezier(0.175, 0.885, 0.32, 1.1);
+
+    --motion-dist-sm: 4px;
+    --motion-dist-md: 12px;
+    --motion-dist-lg: 24px;
 
     /* ── Accessibility ── */
     --focus-ring: 2px solid var(--primary-600);
@@ -210,4 +225,164 @@
     --gray-700:           #e5e7eb;
     --gray-800:           #f3f4f6;
     --gray-900:           #f9fafb;
+}
+
+/* ── Apple-Style Motion System Utilities & Keyframes ── */
+@keyframes motionFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes motionFadeUp {
+    from { opacity: 0; transform: translateY(var(--motion-dist-md, 12px)); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes motionScaleIn {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes motionSheetUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+/* Micro-Interaction Classes */
+.motion-press,
+button:not(:disabled):active,
+.btn:not(:disabled):active,
+.action-pill:active,
+.bottom-dock-item:active {
+    transform: scale(0.97) !important;
+    transition: transform var(--motion-duration-instant, 120ms) var(--motion-ease-standard, ease) !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .motion-card,
+    .apple-card,
+    .media-card,
+    .creator-card {
+        transition: transform var(--motion-duration-small, 180ms) var(--motion-ease-decelerate, ease-out),
+                    box-shadow var(--motion-duration-small, 180ms) var(--motion-ease-decelerate, ease-out) !important;
+    }
+    .motion-card:hover,
+    .apple-card:hover,
+    .media-card:hover,
+    .creator-card:hover {
+        transform: translateY(-3px) !important;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08) !important;
+    }
+}
+
+.motion-fade-up {
+    animation: motionFadeUp var(--motion-duration-medium, 280ms) var(--motion-ease-decelerate, ease-out) both;
+}
+
+.motion-scale-in {
+    animation: motionScaleIn var(--motion-duration-medium, 280ms) var(--motion-ease-decelerate, ease-out) both;
+}
+
+.motion-sheet {
+    animation: motionSheetUp var(--motion-duration-large, 400ms) var(--motion-ease-spring, ease) both;
+}
+
+/* ── Form Inputs & Invalid Shake ── */
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+    transition: border-color var(--motion-duration-small, 180ms) var(--motion-ease-standard, ease),
+                box-shadow var(--motion-duration-small, 180ms) var(--motion-ease-standard, ease),
+                transform var(--motion-duration-instant, 120ms) var(--motion-ease-standard, ease);
+}
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--primary, #0071E3);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.18);
+}
+@keyframes motionShake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-3px); }
+    40%, 80% { transform: translateX(3px); }
+}
+.motion-invalid,
+.is-invalid,
+input:invalid:not(:placeholder-shown) {
+    animation: motionShake 220ms var(--motion-ease-standard, ease);
+}
+
+/* ── Subject & Category Filter Pills ── */
+.filter-pill,
+.chip,
+.nav-pill,
+.category-pill {
+    transition: background-color var(--motion-duration-small, 180ms) var(--motion-ease-standard, ease),
+                color var(--motion-duration-small, 180ms) var(--motion-ease-standard, ease),
+                border-color var(--motion-duration-small, 180ms) var(--motion-ease-standard, ease),
+                transform var(--motion-duration-instant, 120ms) var(--motion-ease-standard, ease),
+                box-shadow var(--motion-duration-small, 180ms) var(--motion-ease-standard, ease);
+}
+.filter-pill:active,
+.chip:active,
+.category-pill:active {
+    transform: scale(0.96) !important;
+}
+
+/* ── Bottom Navigation Dock Micro-Interactions ── */
+.navbar--bottom .navbar__item {
+    transition: color var(--motion-duration-small, 180ms) var(--motion-ease-standard, ease),
+                transform var(--motion-duration-instant, 120ms) var(--motion-ease-standard, ease);
+}
+.navbar--bottom .navbar__item svg,
+.navbar--bottom .navbar__item i,
+.navbar--bottom .navbar__item .navbar__icon {
+    transition: transform var(--motion-duration-small, 180ms) var(--motion-ease-spring, cubic-bezier(0.175, 0.885, 0.32, 1.1));
+}
+.navbar--bottom .navbar__item--active svg,
+.navbar--bottom .navbar__item--active i,
+.navbar--bottom .navbar__item--active .navbar__icon,
+.navbar--bottom .navbar__item.active svg,
+.navbar--bottom .navbar__item.active i,
+.navbar--bottom .navbar__item.active .navbar__icon {
+    transform: scale(1.08) translateY(-1px);
+}
+
+/* ── Modals & Overlays Spring Motion ── */
+.modal-backdrop,
+.dialog-backdrop {
+    transition: opacity var(--motion-duration-medium, 280ms) var(--motion-ease-standard, ease),
+                backdrop-filter var(--motion-duration-medium, 280ms) var(--motion-ease-standard, ease);
+}
+.modal-dialog,
+.modal-content,
+.apple-modal {
+    animation: motionScaleIn var(--motion-duration-large, 350ms) var(--motion-ease-decelerate, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+/* ── Gamification Badge & Interactive Icons ── */
+@keyframes motionBadgePop {
+    0% { transform: scale(0.85); opacity: 0; }
+    60% { transform: scale(1.05); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+.badge-unlock-modal,
+.badge-pop {
+    animation: motionBadgePop var(--motion-duration-hero, 550ms) var(--motion-ease-spring, cubic-bezier(0.175, 0.885, 0.32, 1.1)) both;
+}
+.btn-like.liked svg,
+.btn-bookmark.bookmarked svg,
+.btn-favorite.active svg {
+    animation: motionBadgePop var(--motion-duration-small, 220ms) var(--motion-ease-spring, cubic-bezier(0.175, 0.885, 0.32, 1.1)) both;
+}
+
+/* Strict Accessibility & Reduced-Motion Safety */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }

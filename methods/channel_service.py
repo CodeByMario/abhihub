@@ -5,6 +5,7 @@ and document association without modifying existing document tables.
 """
 import logging
 import re
+import time
 from datetime import datetime, timezone
 from methods.supabase_helper import init_supabase, init_supabase_admin, SUPABASE_URL, SUPABASE_KEY, SUPABASE_AVAILABLE
 from supabase import create_client, ClientOptions
@@ -195,6 +196,11 @@ def increment_channel_views(channel_id: str, current_views: int = 0):
     except Exception as e:
         logger.warning(f"[CHANNEL] increment_channel_views error: {e}")
 
+_CHANNEL_NOTES_CACHE = {}
+_CHANNEL_NOTES_TTL = 180
+_FEATURED_CHANNELS_CACHE = {}
+_FEATURED_CACHE_TTL = 120
+
 def get_channel_notes(user_id: str):
     """
     Fetches all notes/documents published by this channel's owner.
@@ -202,6 +208,11 @@ def get_channel_notes(user_id: str):
     """
     if not user_id:
         return []
+
+    now_ts = time.time()
+    cached = _CHANNEL_NOTES_CACHE.get(str(user_id))
+    if cached and (now_ts - cached['ts'] < _CHANNEL_NOTES_TTL):
+        return cached['data']
 
     client = _get_client("abhihub")
     if not client:
@@ -248,6 +259,7 @@ def get_channel_notes(user_id: str):
                 'file_url': r.get('file_url') or '',
                 'created_at': r.get('created_at', '')
             })
+        _CHANNEL_NOTES_CACHE[str(user_id)] = {'data': items, 'ts': now_ts}
         return items
     except Exception as e:
         logger.error(f"[CHANNEL] get_channel_notes error: {e}")
@@ -313,6 +325,12 @@ def ensure_seed_channels():
 
 def get_featured_channels(limit=10, user_college_id=None):
     """Fetches active creator channels, prioritizing user's college first then AbhiHub."""
+    cache_key = f"{limit}:{user_college_id}"
+    now_ts = time.time()
+    cached = _FEATURED_CHANNELS_CACHE.get(cache_key)
+    if cached and (now_ts - cached['ts'] < _FEATURED_CACHE_TTL):
+        return cached['data']
+
     try:
         ensure_seed_channels()
     except Exception as e:
@@ -366,6 +384,7 @@ def get_featured_channels(limit=10, user_college_id=None):
                 other_channels.append(ch)
 
         channels = (campus_channels + other_channels)[:limit]
+        _FEATURED_CHANNELS_CACHE[cache_key] = {'data': channels, 'ts': now_ts}
     except Exception as e:
         logger.error(f"[CHANNEL] get_featured_channels error: {e}")
 

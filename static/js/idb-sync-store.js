@@ -98,7 +98,18 @@
         const store = tx.objectStore(storeName);
         if (clearFirst) store.clear();
         for (const item of (items || [])) {
-          if (item) store.put(item);
+          if (!item || typeof item !== 'object') continue;
+          if (store.keyPath && !item[store.keyPath]) {
+            if (store.keyPath === 'id') {
+              item.id = item.document_id || item.doc_id || item.file_id || item.key || item._id;
+            } else if (store.keyPath === 'key') {
+              item.key = item.id || item.store || item.name || 'default';
+            }
+          }
+          if (store.keyPath && !item[store.keyPath]) continue;
+          try {
+            store.put(item);
+          } catch (_) {}
         }
         tx.oncomplete = () => resolve(true);
         tx.onerror = () => reject(tx.error);

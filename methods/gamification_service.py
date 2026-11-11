@@ -1,3 +1,4 @@
+import time
 """
 AbhiHub Gamification, Badges & Ambassador Program Service.
 Normalized relational data access with resilient table fallbacks.
@@ -82,11 +83,20 @@ def _get_client():
     return init_supabase_admin() or init_supabase()
 
 
+_BADGES_CACHE = {}
+_BADGES_CACHE_TTL = 60.0
+
 def get_user_badges(user_id: str) -> List[Dict[str, Any]]:
     """Retrieve all badges earned by a user, including permanent timestamp."""
     client = _get_client()
     if not client or not user_id:
         return []
+
+    now = time.time()
+    if user_id in _BADGES_CACHE:
+        c_time, c_data = _BADGES_CACHE[user_id]
+        if now - c_time < _BADGES_CACHE_TTL:
+            return c_data
 
     earned_badges = []
     # 1. Check normalized user_badges table
@@ -108,28 +118,12 @@ def get_user_badges(user_id: str) -> List[Dict[str, Any]]:
                     'college_id': row.get('college_id'),
                     'claimed_by_username': row.get('claimed_by_username')
                 })
+            _BADGES_CACHE[user_id] = (now, earned_badges)
             return earned_badges
     except Exception as e:
-        log.debug(f"[Gamification] user_badges query fallback: {e}")
+        log.debug(f"[Gamification] user_badges query: {e}")
 
-    # 2. Resilient fallback to profiles.badges JSON column
-    try:
-        p_res = client.table('profiles').select('badges, created_at, college_id').eq('id', user_id).single().execute()
-        raw_badges = (p_res.data or {}).get('badges') or []
-        created_at = (p_res.data or {}).get('created_at')
-        college_id = (p_res.data or {}).get('college_id')
-
-        for item in raw_badges:
-            slug = item if isinstance(item, str) else item.get('slug')
-            if slug in BADGE_DEFINITIONS:
-                earned_badges.append({
-                    **BADGE_DEFINITIONS[slug],
-                    'earned_at': (item.get('earned_at') if isinstance(item, dict) else created_at) or created_at,
-                    'college_id': college_id
-                })
-    except Exception as e:
-        log.warning(f"[Gamification] get_user_badges failed: {e}")
-
+    _BADGES_CACHE[user_id] = (now, earned_badges)
     return earned_badges
 
 

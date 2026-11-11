@@ -806,7 +806,7 @@ body.zen-active .image-canvas img {
             style="display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;background:#fff5f5;padding:2rem;">
             <p style="color:#ef4444;font-weight:700;">Image preview unavailable</p>
           </div>
-          <img id="previewImage" src="/api/view-doc/{{ document.id }}/file?preview=1"
+          <img id="previewImage" fetchpriority="high" src="/api/view-doc/{{ document.id }}/file?preview=1"
             data-watermark-text="AbhiHub{% if watermark_email %} · {{ watermark_email }}{% endif %}{% if watermark_student_id %} · {{ watermark_student_id }}{% endif %}"
             alt="{{ document.title }} limited preview"
             style="max-width:100%;height:auto;max-height:75vh;object-fit:contain;opacity:0;transition:opacity 0.2s;cursor:zoom-in;"
@@ -828,7 +828,7 @@ body.zen-active .image-canvas img {
             <p style="color:#ef4444;font-weight:700;">Image failed to load</p>
           </div>
           {% set image_fname = (document.file_url.split('/')[-1] if document.file_url and '/' in document.file_url else 'image.jpg') %}
-          <img id="previewImage" src="{{ direct_pdf_url or ('/api/view-doc/' ~ document.id ~ '/' ~ image_fname) }}"
+          <img id="previewImage" fetchpriority="high" src="{{ direct_pdf_url or ('/api/view-doc/' ~ document.id ~ '/' ~ image_fname) }}"
             data-watermark-text="AbhiHub{% if watermark_email %} · {{ watermark_email }}{% endif %}{% if watermark_student_id %} · {{ watermark_student_id }}{% endif %}"
             alt="{{ document.title }} - {{ subj_name }} {{ file_type }}"
             style="max-width:100%;height:auto;max-height:75vh;object-fit:contain;opacity:0;transition:opacity 0.2s;cursor:zoom-in;"
@@ -2877,7 +2877,57 @@ body.zen-active .image-canvas img {
   async function toggleResourceInteraction(action, docId) {
     var endpoint = action === 'toggleLike' ? '/api/interactions/like' : '/api/interactions/bookmark';
     var buttons = Array.from(document.querySelectorAll('[data-action="' + action + '"]'));
-    buttons.forEach(function (button) { button.disabled = true; });
+    if (!buttons.length) return;
+
+    var wasActive = buttons[0].classList.contains(action === 'toggleLike' ? 'liked' : 'bookmarked');
+    var willBeActive = !wasActive;
+
+    // Instant tactile feedback
+    if (typeof window.triggerHaptic === 'function') {
+      window.triggerHaptic(willBeActive ? [12, 18] : [10]);
+    }
+
+    // 0ms Optimistic UI update
+    buttons.forEach(function (button) {
+      button.classList.toggle(action === 'toggleLike' ? 'liked' : 'bookmarked', willBeActive);
+      button.setAttribute('aria-pressed', String(willBeActive));
+
+      if (action === 'toggleLike') {
+        var count = button.querySelector('.like-count');
+        if (count) {
+          var cur = parseInt(count.textContent, 10) || 0;
+          count.textContent = Math.max(0, cur + (willBeActive ? 1 : -1));
+        }
+        var icon = button.querySelector('.like-heart-icon, svg');
+        if (icon) {
+          icon.setAttribute('fill', willBeActive ? '#ef4444' : 'none');
+          icon.setAttribute('stroke', willBeActive ? '#ef4444' : 'currentColor');
+          if (willBeActive) {
+            icon.classList.remove('heart-pop-anim');
+            void icon.offsetWidth;
+            icon.classList.add('heart-pop-anim');
+          }
+        }
+      } else if (action === 'toggleBookmark') {
+        var bmCount = button.querySelector('.bookmark-count');
+        if (bmCount) {
+          var curBm = parseInt(bmCount.textContent, 10) || 0;
+          bmCount.textContent = Math.max(0, curBm + (willBeActive ? 1 : -1));
+        }
+        var bmLabel = button.querySelector('span:last-child');
+        if (bmLabel) bmLabel.textContent = willBeActive ? 'Saved to Library' : 'Save to Library';
+        var bmIcon = button.querySelector('svg');
+        if (bmIcon) {
+          bmIcon.setAttribute('fill', willBeActive ? 'currentColor' : 'none');
+          if (willBeActive) {
+            bmIcon.classList.remove('heart-pop-anim');
+            void bmIcon.offsetWidth;
+            bmIcon.classList.add('heart-pop-anim');
+          }
+        }
+      }
+    });
+
     try {
       var response = await fetch(endpoint, {
         method: 'POST',
@@ -2886,31 +2936,44 @@ body.zen-active .image-canvas img {
       });
       var data = await response.json();
       if (!response.ok || !data.success) {
+        // Rollback state on failure
+        buttons.forEach(function (button) {
+          button.classList.toggle(action === 'toggleLike' ? 'liked' : 'bookmarked', wasActive);
+          button.setAttribute('aria-pressed', String(wasActive));
+          if (action === 'toggleLike') {
+            var count = button.querySelector('.like-count');
+            if (count) {
+              var cur = parseInt(count.textContent, 10) || 0;
+              count.textContent = Math.max(0, cur + (wasActive ? 1 : -1));
+            }
+            var icon = button.querySelector('.like-heart-icon, svg');
+            if (icon) {
+              icon.setAttribute('fill', wasActive ? '#ef4444' : 'none');
+              icon.setAttribute('stroke', wasActive ? '#ef4444' : 'currentColor');
+            }
+          }
+        });
         var msg = typeof data.message === 'string' ? data.message : 'Please sign in to use this action.';
-        if (msg.includes('duplicate key') || msg.includes('23505') || msg.includes('{')) {
-          msg = 'Something went wrong. Please try again.';
-        }
         alert(msg);
         return;
       }
+      // Reconcile counts from server response
       buttons.forEach(function (button) {
         var active = action === 'toggleLike' ? data.is_liked : data.is_bookmarked;
         button.classList.toggle(action === 'toggleLike' ? 'liked' : 'bookmarked', Boolean(active));
-        button.setAttribute('aria-pressed', String(Boolean(active)));
         if (action === 'toggleLike') {
           var count = button.querySelector('.like-count');
-          if (count) count.textContent = data.like_count;
-          var icon = button.querySelector('.like-heart-icon, svg');
-          if (icon) icon.setAttribute('fill', active ? '#ef4444' : 'none');
+          if (count && typeof data.like_count !== 'undefined') count.textContent = data.like_count;
         } else if (action === 'toggleBookmark') {
-          var bmIcon = button.querySelector('svg');
-          if (bmIcon) bmIcon.setAttribute('fill', active ? 'currentColor' : 'none');
+          var bmCount = button.querySelector('.bookmark-count');
+          if (bmCount && typeof data.bookmark_count !== 'undefined') bmCount.textContent = data.bookmark_count;
         }
       });
     } catch (error) {
+      buttons.forEach(function (button) {
+        button.classList.toggle(action === 'toggleLike' ? 'liked' : 'bookmarked', wasActive);
+      });
       alert('Network error. Please try again.');
-    } finally {
-      buttons.forEach(function (button) { button.disabled = false; });
     }
   }
 

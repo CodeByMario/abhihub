@@ -269,3 +269,32 @@ def test_form_fields_accessibility_and_autocomplete():
     assert 'autocomplete="email"' in struct_tpl
     assert 'autocomplete="current-password"' in struct_tpl
 
+def test_upload_dark_theme_support():
+    """Verify p_upload.css defines dark theme rules for cards, drop zone, preview, and inputs."""
+    with open('static/css/pages/p_upload.css', 'r', encoding='utf-8') as f:
+        upload_css = f.read()
+    assert '[data-theme="dark"]' in upload_css
+    assert '[data-theme="dark"] .step-card' in upload_css
+    assert '[data-theme="dark"] .drop-zone' in upload_css
+    assert '[data-theme="dark"] .apple-preview-card' in upload_css
+    assert '[data-theme="dark"] .apple-segmented-control' in upload_css
+
+
+def test_channel_studio_mobile_layout():
+    """Verify channel_studio.html has responsive handle wrap and stacked YouTube import."""
+    with open('templates/channel_studio.html', 'r', encoding='utf-8') as f:
+        studio_tpl = f.read()
+    assert 'cs-handle-wrap' in studio_tpl
+    assert 'cs-yt-header-row' in studio_tpl
+    assert 'flex-direction: column !important;' in studio_tpl
+    assert 'word-break: break-all' in studio_tpl
+
+
+def test_app_shell_title_and_theme_sync():
+    """Verify app-shell.js sanitizes subpage titles and syncs theme on iframe load."""
+    with open('static/js/app-shell.js', 'r', encoding='utf-8') as f:
+        shell_js = f.read()
+    assert 'rawDocTitle' in shell_js
+    assert "pageDocTitle.split('•')[0].trim()" in shell_js
+    assert 'iframeEl.contentDocument.documentElement.setAttribute(\'data-theme\', shellTheme)' in shell_js
+

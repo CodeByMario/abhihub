@@ -202,8 +202,7 @@
       '    </button>',
       '  </div>',
       '</div>'
-    ].join('
-');
+    ].join('\n');
 
     overlay.querySelectorAll('.shield-browser-tab').forEach(function (tab) {
       tab.addEventListener('click', function () {
@@ -265,58 +264,117 @@
     resumeAppProcesses();
   }
 
+  var adBlockDetectedViaNetwork = false;
+  function probeNetworkAdBlock() {
+    if (window.location.search.includes('bypass_shield=1')) return;
+    try {
+      fetch('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js', {
+        method: 'HEAD',
+        mode: 'no-cors',
+        cache: 'no-store'
+      }).then(function () {
+        adBlockDetectedViaNetwork = false;
+      }).catch(function () {
+        adBlockDetectedViaNetwork = true;
+        if (!shieldActive) showExtensionShield();
+      });
+    } catch (e) {
+      adBlockDetectedViaNetwork = true;
+      if (!shieldActive) showExtensionShield();
+    }
+  }
+
   /**
    * Deterministic Extension Check:
-   * - AdGuard & AdBlockers inject cosmetic stylesheets into the page hiding standard ad selectors (.adsbygoogle, .ad-banner, .pub_300x250)
-   * - Scraper & Extension content scripts inject custom elements or attributes
-   * - ZERO flaky network calls to third parties (preventing false positives when offline or under tracking protection)
+   * - AdBlockers, Scrapers, IDM, Content Script Extensions
+   * - Performance Resource Timing audit for *-extension:// origins
+   * - MutationObserver detecting live injected extension scripts & tags
+   * - Zero false positives on standard navigation
    */
   function runExtensionCheck() {
     if (window.location.search.includes('test_extension=1') || window.__TEST_EXTENSION_SHIELD__) return true;
     if (window.location.search.includes('bypass_shield=1')) return false;
+
+    // Bypass in local development environment unless explicitly forced
+    var isLocal = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|.*\.local)$/.test(window.location.hostname);
+    if (isLocal && !window.location.search.includes('force_shield=1')) {
+      return false;
+    }
 
     var p = (window.location.pathname || '').toLowerCase();
     if (p.startsWith('/login') || p.startsWith('/signup') || p.startsWith('/register') || p.startsWith('/reset-password')) {
       return false;
     }
 
-    // 1. Cosmetic Bait Element Check (AdGuard, uBlock, AdBlock)
+    if (adBlockDetectedViaNetwork) return true;
+
+    // 1. Cosmetic Bait Element Check (AdGuard, uBlock, AdBlock, Brave)
     try {
       var bait = document.createElement('div');
       bait.id = 'ad-detector-box';
       bait.className = 'adsbygoogle ad-banner pub_300x250 text-ad adsbox banner-ad';
-      bait.style.width = '300px';
-      bait.style.height = '250px';
-      bait.style.position = 'absolute';
-      bait.style.left = '-9999px';
-      bait.style.top = '-9999px';
+      bait.style.cssText = 'width: 300px !important; height: 250px !important; position: fixed !important; top: 0 !important; left: -9999px !important; display: block !important;';
       bait.innerHTML = '&nbsp;';
       (document.body || document.documentElement).appendChild(bait);
 
       var computed = window.getComputedStyle(bait);
       var isHidden = (
+        bait.offsetHeight === 0 ||
+        bait.clientHeight === 0 ||
         computed.display === 'none' ||
-        computed.visibility === 'hidden'
+        computed.visibility === 'hidden' ||
+        computed.opacity === '0'
       );
       bait.remove();
       if (isHidden) return true;
     } catch (e) {}
 
-    // 2. Extension-Injected Content Script Selectors & Signatures (AdGuard, IDM, Tampermonkey)
+    // 2. Performance Resource Timing Audit for Extension Origins
+    try {
+      if (window.performance && typeof window.performance.getEntriesByType === 'function') {
+        var resources = window.performance.getEntriesByType('resource');
+        for (var i = 0; i < resources.length; i++) {
+          var resName = (resources[i].name || '').toLowerCase();
+          if (
+            resName.startsWith('chrome-extension://') ||
+            resName.startsWith('edge-extension://') ||
+            resName.startsWith('moz-extension://') ||
+            resName.startsWith('safari-extension://') ||
+            resName.startsWith('safari-web-extension://')
+          ) {
+            return true;
+          }
+        }
+      }
+    } catch (e) {}
+
+    // 3. Extension-Injected Content Script Selectors & Signatures
     try {
       var selectors = [
         '[id*="adguard"]', '[class*="adguard"]', '[data-adguard]',
         '[id*="ublock"]', '[class*="adblock"]', '[data-adblockkey]',
         '[id*="idm_"]', '[class*="idm_"]', '[id*="idm-"]', 'embed[type*="idm"]',
-        '[data-tampermonkey]', '[data-extension-id]',
-        'script[src^="chrome-extension:"]', 'script[src^="edge-extension:"]',
-        'link[href^="chrome-extension:"]', 'link[href^="edge-extension:"]'
+        '[data-tampermonkey]', '[data-extension-id]', '[data-crx]',
+        'script[src^="chrome-extension:"]', 'script[src^="edge-extension:"]', 'script[src^="moz-extension:"]',
+        'link[href^="chrome-extension:"]', 'link[href^="edge-extension:"]', 'link[href^="moz-extension:"]',
+        'iframe[src^="chrome-extension:"]', 'iframe[src^="edge-extension:"]', 'iframe[src^="moz-extension:"]',
+        'grammarly-desktop-integration', 'grammarly-extension',
+        'loom-container', 'loom-shadow-root',
+        '[id^="harpa"]', '[id^="monica"]', '[id*="sider"]', '[data-merlin]',
+        '[data-darkreader-mode]', '[data-darkreader-scheme]'
       ];
       if (document.querySelector(selectors.join(','))) {
         return true;
       }
 
-      if (window.__adguard || window.adguard || window.IDM || window.idm || window.tampermonkey) {
+      if (
+        window.__adguard || window.adguard ||
+        window.IDM || window.idm ||
+        window.tampermonkey || window.GM || window.GM_info || window.unsafeWindow ||
+        window.__REACT_DEVTOOLS_GLOBAL_HOOK__ ||
+        window.__REDUX_DEVTOOLS_EXTENSION__ ||
+        window.ethereum || window.solana || window.phantom
+      ) {
         return true;
       }
     } catch (e) {}
@@ -331,7 +389,67 @@
     }
   });
 
+  /* ── Live DOM MutationObserver to detect extensions injected after load ── */
+  try {
+    if (window.MutationObserver) {
+      var extObserver = new MutationObserver(function (mutations) {
+        for (var i = 0; i < mutations.length; i++) {
+          var added = mutations[i].addedNodes;
+          for (var j = 0; j < added.length; j++) {
+            var node = added[j];
+            if (node.nodeType === 1) {
+              var tagName = (node.tagName || '').toLowerCase();
+              var src = (node.getAttribute && (node.getAttribute('src') || node.getAttribute('href'))) || '';
+              if (
+                src.startsWith('chrome-extension:') ||
+                src.startsWith('edge-extension:') ||
+                src.startsWith('moz-extension:') ||
+                tagName.includes('grammarly') ||
+                tagName.includes('loom')
+              ) {
+                showExtensionShield();
+                return;
+              }
+            }
+          }
+        }
+      });
+      extObserver.observe(document.documentElement, { childList: true, subtree: true });
+    }
+  } catch (e) {}
+
+  /* ── Secure Environment Handlers ── */
+  // 1. Block unauthorized Right-Click (except inside inputs)
+  document.addEventListener('contextmenu', function (e) {
+    var target = e.target;
+    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+      return;
+    }
+    e.preventDefault();
+  }, { capture: true });
+
+  // 2. Block Developer Tools & Source Inspection Shortcuts
+  document.addEventListener('keydown', function (e) {
+    var key = (e.key || '').toLowerCase();
+    var ctrl = e.ctrlKey || e.metaKey;
+    var shift = e.shiftKey;
+
+    if (key === 'f12' || (ctrl && shift && ['i', 'j', 'c', 'k', 'm'].includes(key)) || (ctrl && key === 'u')) {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+  }, { capture: true });
+
+  // 3. Block Drag-and-Drop of images and sensitive elements
+  document.addEventListener('dragstart', function (e) {
+    if (e.target && (e.target.tagName === 'IMG' || e.target.tagName === 'A' || e.target.tagName === 'CANVAS')) {
+      e.preventDefault();
+    }
+  }, { capture: true });
+
   function startCheck() {
+    probeNetworkAdBlock();
     var hasExt = runExtensionCheck();
     if (hasExt) {
       showExtensionShield();

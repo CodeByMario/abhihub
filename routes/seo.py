@@ -4,7 +4,7 @@ from datetime import datetime
 from functools import wraps
 from flask import (
     Blueprint, current_app, request, make_response, render_template,
-    send_from_directory, send_file, abort
+    send_from_directory, send_file, abort, jsonify
 )
 from methods.supabase_helper import get_sitemap_urls
 from methods.seo_helper import is_resource_indexable
@@ -85,6 +85,11 @@ def premium_manifest():
 @seo_bp.route('/favicon.ico')
 def favicon():
     return send_file('static/images/favicon.ico', mimetype='image/vnd.microsoft.icon')
+
+
+@seo_bp.route('/.well-known/appspecific/com.chrome.devtools.json')
+def chrome_devtools_json():
+    return jsonify({}), 200
 
 
 # ==============================================================================

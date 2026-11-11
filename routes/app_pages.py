@@ -172,11 +172,21 @@ def home():
             cached_rank, _ = cache.l1.get(rank_c_key) if cache else (None, False)
             if cached_rank is not None:
                 global_rank, computed_score = cached_rank
+            elif user_uploads_count == 0:
+                global_rank, computed_score = '-', 0
+                if cache:
+                    cache.l1.set(rank_c_key, (global_rank, computed_score), ttl=600)
             else:
-                rank_list = app.calculate_user_ranks()
-                _rank_lookup = {e['uploader_id']: (str(i + 1), e.get('points', 0)) for i, e in enumerate(rank_list)}
-                global_rank = _rank_lookup.get(user_id, ('-', 0))[0]
-                computed_score = _rank_lookup.get(user_id, ('-', 0))[1]
+                from methods.supabase_helper import _RANKS_CACHE
+                if _RANKS_CACHE.get('data'):
+                    _rank_lookup = {e['uploader_id']: (str(i + 1), e.get('points', 0)) for i, e in enumerate(_RANKS_CACHE['data'])}
+                    global_rank = _rank_lookup.get(user_id, ('-', 0))[0]
+                    computed_score = _rank_lookup.get(user_id, ('-', 0))[1]
+                else:
+                    rank_list = app.calculate_user_ranks()
+                    _rank_lookup = {e['uploader_id']: (str(i + 1), e.get('points', 0)) for i, e in enumerate(rank_list)}
+                    global_rank = _rank_lookup.get(user_id, ('-', 0))[0]
+                    computed_score = _rank_lookup.get(user_id, ('-', 0))[1]
                 if cache:
                     cache.l1.set(rank_c_key, (global_rank, computed_score), ttl=600)
 
@@ -892,7 +902,28 @@ def app_shell():
     if request.headers.get('Sec-Fetch-Dest') == 'iframe':
         return redirect(target_path if target_path != '/app-shell' else url_for('app_pages.home'))
 
-    return render_template('app_shell.html', initial_path=target_path)
+    wallet_balance = 0.0
+    royalties_pct = 90
+    user_id = session.get('user', {}).get('uid')
+    if user_id:
+        try:
+            from methods.wallet_service import get_creator_wallet
+            w_info = get_creator_wallet(user_id)
+            if w_info and w_info.get('success'):
+                w_data = w_info.get('wallet', {})
+                withdrawable = float(w_data.get('withdrawable_balance') or 0.0)
+                pending = float(w_data.get('pending_balance') or 0.0)
+                wallet_balance = withdrawable if withdrawable > 0 else pending
+                royalties_pct = int(w_data.get('creator_commission_pct') or 90)
+        except Exception:
+            pass
+
+    return render_template(
+        'app_shell.html',
+        initial_path=target_path,
+        wallet_balance=wallet_balance,
+        royalties_pct=royalties_pct
+    )
 
 
 def get_campus_network_roster(college_id=None, branch_id=None, user_year=None, current_user_id=None):

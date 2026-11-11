@@ -492,7 +492,7 @@
       const envMeta = document.querySelector('meta[name="app-env"], meta[name="environment"]');
       if (envMeta && ['developer', 'development', 'dev'].includes((envMeta.content || '').toLowerCase())) return true;
       if (['developer', 'development', 'dev'].includes((document.documentElement.getAttribute('data-env') || '').toLowerCase())) return true;
-      if (typeof window !== 'undefined' && window.location && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) return true;
+      if (typeof window !== 'undefined' && window.location && window.location.search.includes('bypass_shield=1')) return true;
     } catch (e) {}
     return false;
   }
@@ -801,6 +801,12 @@
 
       // Allow emergency bypass via URL query param (?bypass_shield=1)
       if (window.location.search.includes('bypass_shield=1')) return false;
+
+      // Bypass in local development environment unless explicitly forced
+      const isLocal = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|.*\.local)$/.test(window.location.hostname);
+      if (isLocal && !window.location.search.includes('force_shield=1')) {
+        return false;
+      }
 
       // Bypass auth pages to avoid locking out credentials autofill
       const p = (window.location.pathname || '').toLowerCase();

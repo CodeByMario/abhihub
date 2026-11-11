@@ -14,10 +14,15 @@
   var isTestMode = Boolean(window.__ABHIHUB_TEST_MODE__);
 
   // Ephemeral session identifier
-  var sessionId = sessionStorage.getItem('abhihub_session_id');
-  if (!sessionId) {
+  var sessionId = null;
+  try {
+    sessionId = window.sessionStorage ? sessionStorage.getItem('abhihub_session_id') : null;
+    if (!sessionId && window.sessionStorage) {
+      sessionId = 's_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+      sessionStorage.setItem('abhihub_session_id', sessionId);
+    }
+  } catch (e) {
     sessionId = 's_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
-    try { sessionStorage.setItem('abhihub_session_id', sessionId); } catch (e) {}
   }
 
   // Active user context (Zero PII)

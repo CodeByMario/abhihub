@@ -3,10 +3,15 @@
   Conforms to Apple Product Showcase Design System
 #}
 {% macro render_apple_card(file, college_abbr='GHRCE') %}
-  {% set cat = (file.get('document_category') or file.get('type') or file.get('category') or 'notes')|lower %}
-  {% set is_pyq = ('pyq' in cat or 'paper' in cat) %}
-  {% set is_practical = ('practical' in cat or 'lab' in cat) %}
-  {% set is_syllabus = ('syllab' in cat or 'curriculum' in cat) %}
+  {% set file_title = file.get('title') or file.get('file_name') or file.get('file-name') or 'Document' %}
+  {% set raw_cat = (file.get('document_category') or file.get('type') or file.get('category') or '')|lower %}
+  {% set combined_text = (raw_cat ~ ' ' ~ file_title)|lower %}
+  {% set is_pyq = ('pyq' in combined_text or 'paper' in combined_text or 'exam' in combined_text or 'ese' in combined_text or 'mse' in combined_text or 'endsem' in combined_text or 'midsem' in combined_text or 'unit test' in combined_text) %}
+  {% set is_qb = ('question' in combined_text or 'qb' in combined_text or 'qbank' in combined_text) %}
+  {% set is_practical = ('practical' in combined_text or 'lab' in combined_text or 'manual' in combined_text or 'viva' in combined_text or 'experiment' in combined_text) %}
+  {% set is_syllabus = ('syllab' in combined_text or 'curriculum' in combined_text) %}
+  {% set is_assignment = ('assignment' in combined_text or 'submission' in combined_text) %}
+  {% set cat = 'pyq' if is_pyq else ('question bank' if is_qb else ('practical' if is_practical else ('syllabus' if is_syllabus else ('assignment' if is_assignment else ('notes'))))) %}
   {% set doc_id = file.get('document_id') or file.get('id') or file.get('doc_id') or file.get('record_id') %}
   {% set furl = ('/resources/' ~ doc_id) if doc_id else (file.get('file_url') or '#') %}
   {% set price_val = file.get('price_inr') if file.get('price_inr') is not none else file.get('price', 0) %}
@@ -20,14 +25,15 @@
   {% set dept_dict = dept_val if dept_val is mapping else (dept_val[0] if (dept_val is iterable and dept_val is not string and dept_val|length > 0) else {}) %}
   {% set dept_code = (dept_dict.get('abbreviation') or dept_dict.get('name')) if dept_dict is mapping else (dept_val if dept_val is string else None) %}
   {% set subj_code = (subj_dict.get('subject_code') if subj_dict is mapping else None) or dept_code or file.get('subject_code') or file.get('search_code') or file.get('branch_name') or 'ENG' %}
+  {% set raw_subj = subj_name or (file.get('subject') if file.get('subject') is string else None) or file.get('subject_name') %}
   {% set file_title = file.get('title') or file.get('file_name') or file.get('file-name') or 'Document' %}
-  {% set raw_subj = subj_name or (file.get('subject') if file.get('subject') is string else None) %}
-  {% set display_subject = raw_subj if (raw_subj and raw_subj != 'General Engineering' and raw_subj != 'General') else file_title %}
+  {% set display_subject = raw_subj if (raw_subj and raw_subj not in ('General Engineering', 'General', 'Other', 'Uncategorized')) else file_title %}
   
   {# Author / Uploader extraction #}
   {% set prof_val = file.get('uploader') or file.get('profiles') %}
   {% set prof_dict = prof_val if prof_val is mapping else (prof_val[0] if (prof_val is iterable and prof_val is not string and prof_val|length > 0) else {}) %}
-  {% set uploader_name = (prof_dict.get('full_name') if prof_dict is mapping else None) or (prof_val if prof_val is string else None) or file.get('uploader_name') or file.get('author') or 'Student Contributor' %}
+  {% set raw_author = (prof_dict.get('full_name') if prof_dict is mapping else None) or (prof_val if prof_val is string else None) or file.get('uploader_name') or file.get('author') %}
+  {% set uploader_name = raw_author if (raw_author and raw_author|lower not in ('unknown', 'none', 'null', '')) else 'Student Contributor' %}
   {% set initial = (uploader_name[:1] or 'S')|upper %}
 
   <a href="{{ furl }}" class="arch-apple-card note-card {% if is_pyq %}type-pyq{% elif is_practical %}type-practical{% elif is_syllabus %}type-syllabus{% else %}type-notes{% endif %}"
@@ -49,7 +55,7 @@
 
         <div class="arch-badge-group">
           <span class="arch-type-pill">
-            {% if is_pyq %}PYQ{% elif is_practical %}Lab{% elif is_syllabus %}Syllabus{% else %}Notes{% endif %}
+            {% if is_pyq %}PYQ{% elif is_qb %}Q-Bank{% elif is_practical %}Practical{% elif is_syllabus %}Syllabus{% elif is_assignment %}Assignment{% else %}Notes{% endif %}
           </span>
           {% if is_paid %}
             <span class="arch-price-tag paid">₹{{ price_val|int if price_val == price_val|int else price_val }}</span>
@@ -76,12 +82,21 @@
       <h3 class="arch-card-title">{{ display_subject }}</h3>
 
       <div class="arch-card-desc">
-        {% if file_title and file_title != display_subject %}
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-          <span>{{ file_title }}</span>
+        {% if is_pyq %}
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+          <span>Previous Year Exam Paper</span>
+        {% elif is_qb %}
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <span>Important Question Bank</span>
+        {% elif is_practical %}
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2v7.31"></path><path d="M14 9.3V2"></path><path d="M8.5 2h7"></path><path d="M14 9.3a6.5 6.5 0 1 1-4 0"></path></svg>
+          <span>Lab Manual & Practical</span>
+        {% elif is_syllabus %}
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          <span>Official Syllabus & Scheme</span>
         {% else %}
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
-          <span>Verified Semester Resource</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+          <span>Verified Semester Notes</span>
         {% endif %}
       </div>
 

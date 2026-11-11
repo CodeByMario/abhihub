@@ -238,6 +238,14 @@
         // Reset modal state on every iframe load
         document.body.classList.remove('modal-active');
 
+        // Sync shell data-theme to newly loaded iframe
+        try {
+            const shellTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            if (iframeEl.contentDocument && iframeEl.contentDocument.documentElement) {
+                iframeEl.contentDocument.documentElement.setAttribute('data-theme', shellTheme);
+            }
+        } catch (e) {}
+
         try {
             const innerWin = iframeEl.contentWindow;
             const innerDoc = iframeEl.contentDocument || innerWin.document;
@@ -297,7 +305,18 @@
                 return;
             }
 
-            const pageDocTitle = innerDoc ? innerDoc.title : 'AbhiHub';
+            const rawDocTitle = innerDoc ? innerDoc.title : 'AbhiHub';
+            let pageDocTitle = rawDocTitle;
+            if (pageDocTitle.includes('•')) {
+                pageDocTitle = pageDocTitle.split('•')[0].trim();
+            } else if (pageDocTitle.includes('—')) {
+                pageDocTitle = pageDocTitle.split('—')[0].trim();
+            } else if (pageDocTitle.includes(' - ')) {
+                pageDocTitle = pageDocTitle.split(' - ')[0].trim();
+            }
+            if (pageDocTitle.length > 24) {
+                pageDocTitle = pageDocTitle.slice(0, 22) + '…';
+            }
             updateChrome(innerPath, pageDocTitle);
             document.title = pageDocTitle ? pageDocTitle + ' — AbhiHub' : 'AbhiHub';
 
@@ -496,6 +515,23 @@
                     window.setTarikaDocContext(msg.docId, msg.docTitle);
                 }
                 break;
+
+            case 'GESTURE_SWIPE':
+                if (msg.action === 'OPEN_NOTIF') {
+                    if (typeof window.openNotifPanel === 'function') window.openNotifPanel();
+                } else if (msg.action === 'CLOSE_NOTIF') {
+                    if (typeof window.closeNotifPanel === 'function') window.closeNotifPanel();
+                } else if (msg.action === 'OPEN_TARIKA') {
+                    if (typeof window.openTarikaDrawer === 'function') window.openTarikaDrawer();
+                    else if (typeof window.toggleAbhiAiDrawer === 'function') window.toggleAbhiAiDrawer();
+                } else if (msg.action === 'CLOSE_TARIKA') {
+                    if (typeof window.closeTarikaDrawer === 'function') window.closeTarikaDrawer();
+                } else if (msg.action === 'OPEN_SEARCH') {
+                    if (typeof window.openSearchDrawer === 'function') window.openSearchDrawer();
+                } else if (msg.action === 'CLOSE_SEARCH') {
+                    if (typeof window.closeSearchDrawer === 'function') window.closeSearchDrawer();
+                }
+                break;
         }
     });
 
@@ -611,16 +647,68 @@
         }
     });
 
+    const notifBackdrop = document.getElementById('shellNotifBackdrop');
+
+    function updateWalletBalance() {
+        fetch('/api/creator/wallet')
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.success && data.wallet) {
+                    const w = data.wallet;
+                    const bal = (w.withdrawable_balance > 0) ? w.withdrawable_balance : (w.pending_balance || 0);
+                    const el = document.getElementById('shellUserWallet');
+                    if (el) el.textContent = '₹' + Number(bal).toFixed(2);
+                    const pctEl = document.getElementById('shellCreatorPct');
+                    if (pctEl && w.creator_commission_pct) pctEl.textContent = w.creator_commission_pct + '%';
+                }
+            })
+            .catch(() => {});
+    }
+
+    window.openNotifPanel = function () {
+        notifOpen = true;
+        document.body.classList.add('notif-open');
+        if (typeof window.closeSearchDrawer === 'function') window.closeSearchDrawer();
+        if (typeof window.closeTarikaDrawer === 'function') window.closeTarikaDrawer();
+        if (notifPanel) {
+            notifPanel.style.transform = '';
+            notifPanel.classList.add('open');
+        }
+        if (notifBackdrop) {
+            notifBackdrop.style.display = 'block';
+            requestAnimationFrame(() => notifBackdrop.classList.add('active'));
+        }
+        fetchNotifications(false);
+        updateWalletBalance();
+    };
+
+    window.closeNotifPanel = function () {
+        notifOpen = false;
+        document.body.classList.remove('notif-open');
+        if (notifPanel) {
+            notifPanel.classList.remove('open');
+            notifPanel.style.transform = '';
+        }
+        if (notifBackdrop) {
+            notifBackdrop.classList.remove('active');
+            setTimeout(() => { if (!notifOpen && notifBackdrop) notifBackdrop.style.display = 'none'; }, 260);
+        }
+    };
+
+    if (notifBackdrop) {
+        notifBackdrop.addEventListener('click', function () {
+            window.closeNotifPanel();
+        });
+    }
+
+    window.toggleNotifPanel = function () {
+        if (notifOpen) window.closeNotifPanel();
+        else window.openNotifPanel();
+    };
+
     if (notifBell) {
         notifBell.addEventListener('click', function () {
-            notifOpen = !notifOpen;
-            if (notifOpen && typeof window.closeSearchDrawer === 'function') {
-                window.closeSearchDrawer();
-            }
-            if (notifPanel) notifPanel.style.display = notifOpen ? 'flex' : 'none';
-            if (notifOpen) {
-                fetchNotifications(false);
-            }
+            window.toggleNotifPanel();
         });
     }
 
@@ -648,8 +736,7 @@
                 if (notifId) {
                     fetch('/api/notifications/' + notifId + '/read', { method: 'POST' }).catch(() => {});
                 }
-                notifOpen = false;
-                notifPanel.style.display = 'none';
+                window.closeNotifPanel();
                 if (targetUrl) {
                     navigateTo(targetUrl);
                 }
@@ -671,9 +758,8 @@
     // Close panel on outside click
     document.addEventListener('click', function (e) {
         const wrap = document.getElementById('shellNotifWrap');
-        if (wrap && !wrap.contains(e.target) && notifOpen) {
-            notifOpen = false;
-            if (notifPanel) notifPanel.style.display = 'none';
+        if (wrap && !wrap.contains(e.target) && notifOpen && (!notifPanel || !notifPanel.contains(e.target))) {
+            window.closeNotifPanel();
         }
     });
 
@@ -733,9 +819,34 @@
 
     // Defer initial notification polling so it never contends with dashboard render
     if ('requestIdleCallback' in window) {
-        requestIdleCallback(function () { fetchNotifications(true); }, { timeout: 3000 });
+        requestIdleCallback(function () { fetchNotifications(true); updateWalletBalance(); }, { timeout: 3000 });
     } else {
-        setTimeout(function () { fetchNotifications(true); }, 2500);
+        setTimeout(function () { fetchNotifications(true); updateWalletBalance(); }, 2500);
+    }
+
+    // ── Apple-Style Scroll Reveal Observer ──
+    function initMotionReveals() {
+        if (!('IntersectionObserver' in window) || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+            return;
+        }
+        const observer = new IntersectionObserver((entries, obs) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('motion-fade-up');
+                    obs.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
+
+        document.querySelectorAll('.apple-card, .media-card, .motion-reveal').forEach(el => {
+            observer.observe(el);
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initMotionReveals);
+    } else {
+        initMotionReveals();
     }
 
     // Expose shell navigation to security module & custom context menu

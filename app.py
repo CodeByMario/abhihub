@@ -1326,9 +1326,10 @@ import traceback
 
 @app.route('/static/<path:filename>')
 def static_files(filename):
+    static_dir = os.path.join(app.root_path, 'static')
     if filename.endswith(".mjs"):
-        return send_from_directory("static", filename, mimetype="application/javascript")
-    return send_from_directory("static", filename)
+        return send_from_directory(static_dir, filename, mimetype="application/javascript")
+    return send_from_directory(static_dir, filename)
 
 
 

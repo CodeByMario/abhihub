@@ -192,8 +192,16 @@ def get_all_colleges() -> Dict:
                 log.error(f"[Supabase] admin get_all_colleges error: {e2}")
         return {"success": False, "data": []}
 
+_COLLEGES_COUNTS_CACHE = {}
+_COLLEGES_COUNTS_TTL = 300
+
 def get_colleges_with_document_counts() -> Dict:
     """Return colleges with counts for publicly published documents."""
+    now_ts = _time.time()
+    cached = _COLLEGES_COUNTS_CACHE.get('summary')
+    if cached and (now_ts - cached['ts'] < _COLLEGES_COUNTS_TTL):
+        return {"success": True, "data": cached['data']}
+
     colleges_result = get_all_colleges()
     colleges = colleges_result.get('data', []) if colleges_result.get('success') else []
     if not colleges:
@@ -244,6 +252,7 @@ def get_colleges_with_document_counts() -> Dict:
             college['doc_count'] = count
             college['waitlist_count'] = waitlist_counts.get(college.get('id'), 0)
         colleges.sort(key=lambda x: (x.get('doc_count', 0), x.get('waitlist_count', 0)), reverse=True)
+        _COLLEGES_COUNTS_CACHE['summary'] = {'data': colleges, 'ts': now_ts}
         return {"success": True, "data": colleges}
     except Exception as e:
         log.error("[Supabase] get_colleges_with_document_counts failed: %s", e)
@@ -1381,23 +1390,38 @@ def log_label_audit(user_id: str, document_id: str, action: str, details: dict) 
 def _doc_to_json(doc: dict, current_user_id: str = None) -> dict:
     title = doc.get('title', 'Untitled')
     url = doc.get('file_url', '')
-    raw_cat = str(doc.get('document_category', 'Other')).lower()
-    if raw_cat in ['papers', 'paper', 'pyq', 'exam']:
+    raw_cat = str(doc.get('document_category') or '').strip().lower()
+    title_lower = (title or '').lower()
+    search_text = f"{raw_cat} {title_lower}"
+
+    if any(k in search_text for k in ['pyq', 'paper', 'papers', 'exam', 'ese', 'mse', 'endsem', 'midsem', 'sessional', 'prelim', 'unit test']):
         doc_type = 'PYQ'
-    elif 'question' in raw_cat or 'qb' in raw_cat:
+    elif any(k in search_text for k in ['question', 'qb', 'qbank', 'imp questions', 'imp_questions']):
         doc_type = 'Question Bank'
-    elif raw_cat in ['practical', 'practicals', 'lab']:
+    elif any(k in search_text for k in ['practical', 'practicals', 'lab', 'experiment', 'manual', 'viva']):
         doc_type = 'Practical'
-    else:
+    elif any(k in search_text for k in ['syllab', 'curriculum']):
+        doc_type = 'Syllabus'
+    elif any(k in search_text for k in ['assignment', 'assisment', 'submission']):
+        doc_type = 'Assignment'
+    elif raw_cat in ['notes', 'note'] or 'note' in title_lower:
+        doc_type = 'Notes'
+    elif raw_cat and raw_cat not in ('other', 'none', 'null'):
         doc_type = raw_cat.capitalize()
+    else:
+        doc_type = 'Notes'
     
     prof = doc.get('profiles') or doc.get('profiles!documents_uploader_id_fkey') or {}
-    author = prof.get('full_name') or (prof.get('email') and prof.get('email').split('@')[0]) or 'Unknown'
+    author = prof.get('full_name') or (prof.get('email') and prof.get('email').split('@')[0]) or ''
+    if not author or author.lower() in ('unknown', 'none', 'null'):
+        author = 'Student Contributor'
     author_email = prof.get('email') or ''
     
     subj_data = doc.get('subjects') or doc.get('subjects!documents_subject_id_fkey') or {}
     subject = subj_data.get('name') or 'General'
     subject_code = subj_data.get('subject_code') or ''
+    # Prefer clean Subject name over raw upload filename
+    display_title = subject if (subject and subject not in ('General', 'Other', 'General Engineering', 'Uncategorized')) else title
     
     coll_data = doc.get('colleges') or doc.get('colleges!documents_college_id_fkey') or {}
     college_name = coll_data.get('name') or coll_data.get('abbreviation') or ''
@@ -1434,22 +1458,36 @@ def _doc_to_json(doc: dict, current_user_id: str = None) -> dict:
             is_bookmarked = any(str(b.get('user_id')) == str(current_user_id) for b in doc['bookmarks'])
     
     return {
-        'file-name': title,
+        'id': doc.get('id', ''),
+        'record_id': doc.get('id', ''),
+        'document_id': doc.get('id', ''),
+        'title': display_title,
+        'file-name': display_title,
+        'file_name': display_title,
+        'raw_title': title,
         'file-type': doc.get('file_type', 'pdf'),
+        'file_type': doc.get('file_type', 'pdf'),
         'file-path': file_path,
         'url': url,
+        'file_url': url,
         'type': doc_type,
+        'category': doc_type.lower(),
+        'document_category': doc.get('document_category') or doc_type.lower(),
         'subject': subject,
+        'subject_name': subject,
         'subject_code': subject_code,
         'year': str(year),
         'author': author,
+        'uploader_name': author,
         'author_email': author_email,
+        'profiles': prof,
+        'uploader': prof,
         'date': doc.get('created_at', '')[:10] if doc.get('created_at') else '',
+        'created_at': doc.get('created_at', ''),
         'size': format_file_size(doc.get('file_size_bytes') or 0),
         'cloudinary_id': doc.get('provider_public_id', ''),
         'source': doc.get('storage_provider', 'unknown'),
         'verified': doc.get('status') == 'approved',
-        'record_id': doc.get('id', ''),
         'view_count': doc.get('view_count', 0),
         'like_count': doc.get('like_count', 0),
         'comment_count': len(doc.get('document_comments') or []) if 'document_comments' in doc else doc.get('comment_count', 0),
@@ -1457,8 +1495,10 @@ def _doc_to_json(doc: dict, current_user_id: str = None) -> dict:
         'is_liked': is_liked,
         'is_bookmarked': is_bookmarked,
         'college': college_name or 'Other',
+        'college_name': college_name or 'Other',
         'is_paid': is_paid,
         'price': price_val,
+        'price_inr': price_val,
         'uploader_id': str(doc.get('uploader_id') or '')
     }
 
@@ -1476,18 +1516,11 @@ def get_all_files_merged(include_file_records=True, current_user_id=None) -> Dic
         # foreign-key relationship in PostgREST must not take down the entire
         # catalogue. Retry with progressively simpler projections.
         projections = (
-            'id, title, storage_provider, file_url, view_count, status, '
-            'college_id, subject_id, department_id, exam_type, created_at, '
-            'updated_at, bookmark_count, uploader_id, price, '
+            'id, title, document_category, file_type, storage_provider, file_url, view_count, status, '
+            'college_id, subject_id, department_id, exam_type, created_at, updated_at, bookmark_count, uploader_id, price, '
             'subjects(name, subject_code), colleges(name, abbreviation)',
-            'id, title, storage_provider, file_url, view_count, status, '
-            'college_id, subject_id, department_id, exam_type, created_at, '
-            'updated_at, is_bookmarked, uploader_id, price',
-            'id, title, storage_provider, file_url, view_count, status, '
-            'college_id, subject_id, department_id, exam_type, created_at, '
-            'updated_at, bookmark_count, uploader_id, price, '
-            'profiles!documents_uploader_id_fkey(full_name, email), '
-            'subjects(name, subject_code), colleges(name, abbreviation)',
+            'id, title, document_category, file_type, storage_provider, file_url, view_count, status, '
+            'college_id, subject_id, department_id, exam_type, created_at, updated_at, bookmark_count, uploader_id, price',
         )
         res = None
         last_error = None
@@ -1511,6 +1544,18 @@ def get_all_files_merged(include_file_records=True, current_user_id=None) -> Dic
             d for d in (res.data or [])
             if str(d.get('status') or '').lower() != 'rejected'
         ]
+        # Batch-resolve uploader profiles in a single indexed query without nested join timeouts
+        uploader_ids = list({d.get('uploader_id') for d in documents if d.get('uploader_id')})
+        if uploader_ids:
+            try:
+                p_res = client.table('profiles').select('id, full_name, email').in_('id', uploader_ids).execute()
+                profile_map = {p['id']: p for p in (p_res.data or []) if p.get('id')}
+                for d in documents:
+                    if not d.get('profiles') and d.get('uploader_id') in profile_map:
+                        d['profiles'] = profile_map[d['uploader_id']]
+            except Exception as pe:
+                logging.warning(f"[Supabase] Batch profile fetch failed: {pe}")
+
         files = [_doc_to_json(d, None) for d in documents]
         _cache[cache_key] = {'val': files, 'ts': _time.time() - (_CACHE_TTL - _FILES_CACHE_TTL)}
         return {'success': True, 'data': files, 'count': len(files)}
@@ -1601,6 +1646,7 @@ def invalidate_files_cache():
     for k in keys_to_del:
         del _cache[k]
     _DASHBOARD_SUMMARY_CACHE.clear()
+    _COLLEGES_COUNTS_CACHE.clear()
     try:
         from methods.search_api import invalidate_search_cache
         invalidate_search_cache()
@@ -2581,8 +2627,17 @@ def get_contribution_timeline(user_id: str) -> Dict:
         logging.error(f"Error fetching timeline: {e}")
         return {'success': False, 'timeline': []}
 
+_LEADERBOARD_CACHE = {}
+_LEADERBOARD_TTL = 180
+
 def get_leaderboard_data(college_id: str = None, limit: int = 50) -> Dict:
     """Fetch leaderboard data. Tries leaderboard_view first, falls back to calculate_user_ranks()."""
+    cache_key = f"{college_id or 'all'}:{limit}"
+    now_ts = _time.time()
+    cached = _LEADERBOARD_CACHE.get(cache_key)
+    if cached and (now_ts - cached['ts'] < _LEADERBOARD_TTL):
+        return {'success': True, 'data': cached['data']}
+
     client = init_supabase()
     if not client: return {'success': False, 'data': []}
 
@@ -2606,7 +2661,8 @@ def get_leaderboard_data(college_id: str = None, limit: int = 50) -> Dict:
         upload_counts = {}
         views_counts = {}
         try:
-            for r in calculate_user_ranks():
+            cached_ranks = _RANKS_CACHE.get('data') or calculate_user_ranks()
+            for r in cached_ranks:
                 u_id = r.get('uploader_id')
                 upload_counts[u_id] = r.get('upload_count', 0)
                 views_counts[u_id] = r.get('students_helped', 0)
@@ -2671,12 +2727,15 @@ def get_leaderboard_data(college_id: str = None, limit: int = 50) -> Dict:
     try:
         result = _build_from_view()
         if result:
+            _LEADERBOARD_CACHE[cache_key] = {'data': result, 'ts': now_ts}
             return {'success': True, 'data': result}
     except Exception as e:
         logging.info(f"[Leaderboard] View query unavailable ({e}), using calculate_user_ranks fallback")
 
     try:
         result = _build_from_ranks()
+        if result:
+            _LEADERBOARD_CACHE[cache_key] = {'data': result, 'ts': now_ts}
         return {'success': True, 'data': result}
     except Exception as e2:
         logging.error(f"[Leaderboard] Fallback also failed: {e2}")
@@ -3017,6 +3076,7 @@ def get_user_file_history(user_email: str = '', user_id: str = None, limit: int 
                 if doc and doc['id'] not in seen:
                     seen.add(doc['id'])
                     history.append({
+                        'id': doc['id'],
                         'file_name': doc.get('title', 'Unknown'),
                         'file_type': doc.get('file_type', 'pdf'),
                         'file_url': doc.get('file_url', ''),

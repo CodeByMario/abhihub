@@ -103,18 +103,22 @@ if (navbarSearchIcon && topSearchForm && closeTopSearch && searchInput) {
 function updateAccountRedDot() {
     const redDot = document.getElementById('accountRedDot');
     if (!redDot) return; // Element may not exist on all pages
-    if (!localStorage.getItem('accountVisited')) {
-        redDot.style.display = 'block';
-    } else {
-        redDot.style.display = 'none';
-    }
+    try {
+        if (!localStorage.getItem('accountVisited')) {
+            redDot.style.display = 'block';
+        } else {
+            redDot.style.display = 'none';
+        }
+    } catch (_) {}
 }
 updateAccountRedDot();
 const accountNavItem = document.getElementById('accountNavItem');
 if (accountNavItem) {
     accountNavItem.addEventListener('click', function () {
-        localStorage.setItem('accountVisited', '1');
-        updateAccountRedDot();
+        try {
+            localStorage.setItem('accountVisited', '1');
+            updateAccountRedDot();
+        } catch (_) {}
     });
 }
 

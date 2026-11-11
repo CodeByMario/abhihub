@@ -262,7 +262,11 @@
     box-shadow: var(--ap-shadow);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     cursor: pointer;
+    animation: motionFadeUp 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
+  .ap-podium-card.rank-2 { animation-delay: 60ms; }
+  .ap-podium-card.rank-1 { animation-delay: 0ms; }
+  .ap-podium-card.rank-3 { animation-delay: 120ms; }
   .ap-podium-card:hover {
     transform: translateY(-3px);
     box-shadow: var(--ap-shadow-hover);
@@ -400,10 +404,21 @@
     justify-content: space-between;
     padding: 0.85rem 1.25rem;
     border-bottom: 1px solid var(--ap-border-subtle);
-    transition: background 0.15s ease;
+    transition: background 0.15s ease, transform 0.12s ease;
     cursor: pointer;
     gap: 0.85rem;
+    animation: motionFadeUp 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
+  .ap-row-item:nth-child(1) { animation-delay: 30ms; }
+  .ap-row-item:nth-child(2) { animation-delay: 60ms; }
+  .ap-row-item:nth-child(3) { animation-delay: 90ms; }
+  .ap-row-item:nth-child(4) { animation-delay: 120ms; }
+  .ap-row-item:nth-child(5) { animation-delay: 150ms; }
+  .ap-row-item:nth-child(6) { animation-delay: 180ms; }
+  .ap-row-item:nth-child(7) { animation-delay: 210ms; }
+  .ap-row-item:nth-child(8) { animation-delay: 240ms; }
+  .ap-row-item:nth-child(9) { animation-delay: 270ms; }
+  .ap-row-item:nth-child(10) { animation-delay: 300ms; }
   .ap-row-item:last-child {
     border-bottom: none;
   }
