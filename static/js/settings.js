@@ -1486,9 +1486,12 @@ async function loadTransactionHistory(force = false) {
   if (_txHistoryLoaded && !force) return;
   _txHistoryLoaded = true;
 
+  const listEl = document.getElementById('stTransactionsList');
   const tbody = document.getElementById('stTransactionsTbody');
-  if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="5" style="padding:1.5rem;text-align:center;color:var(--st-text-muted);"> Fetching your transactions...</td></tr>';
+  const target = listEl || tbody;
+  if (!target) return;
+
+  target.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--st-text-muted);font-size:0.85rem;">Fetching your transactions...</div>';
 
   try {
     const res = await fetch('/api/user/transactions');
@@ -1501,11 +1504,10 @@ async function loadTransactionHistory(force = false) {
     if (successEl) successEl.textContent = txs.filter(t => t.status === 'completed' || t.status === 'verified').length;
 
     if (!txs.length) {
-      tbody.innerHTML = '<tr><td colspan="5" style="padding:2.5rem 1rem;text-align:center;color:var(--st-text-muted);">' +
-        '<div style="font-size:2rem;margin-bottom:0.5rem;"></div>' +
+      target.innerHTML = '<div style="padding:2.5rem 1rem;text-align:center;color:var(--st-text-muted);">' +
         '<div style="font-weight:700;color:var(--st-text-main);font-size:0.95rem;margin-bottom:0.35rem;">No payment transactions found</div>' +
-        '<div style="font-size:0.8rem;max-width:360px;margin:0 auto;line-height:1.4;">When you unlock paid notes or contribute to AbhiHub, all verified receipts will be recorded here.</div>' +
-        '</td></tr>';
+        '<div style="font-size:0.8rem;max-width:360px;margin:0 auto;line-height:1.4;">When you unlock paid notes or contribute, verified receipts will appear here.</div>' +
+        '</div>';
       return;
     }
 
@@ -1513,42 +1515,49 @@ async function loadTransactionHistory(force = false) {
     txs.forEach(t => {
       const isSuccess = (t.status === 'completed' || t.status === 'verified');
       const statusBadge = isSuccess
-        ? '<span style="background:#dcfce7;color:#15803d;padding:0.2rem 0.6rem;border-radius:6px;font-size:0.75rem;font-weight:700;"> PAID</span>'
-        : '<span style="background:#fee2e2;color:#991b1b;padding:0.2rem 0.6rem;border-radius:6px;font-size:0.75rem;font-weight:700;">FAILED</span>';
+        ? '<span class="st-tx-badge success">Paid</span>'
+        : '<span class="st-tx-badge failed">Failed</span>';
 
-      const itemName = t.doc_title || (t.doc_id ? ('Document #' + t.doc_id.slice(0, 8)) : 'Community Support');
-      const dateStr = t.date ? new Date(t.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recent';
+      const itemName = t.doc_title || (t.doc_id ? ('Document #' + t.doc_id.slice(0, 8)) : 'Study Pass / Support');
+      const dateStr = t.date ? new Date(t.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Recent';
+      const orderId = t.order_id ? '#' + t.order_id : '';
+      const hasActions = t.receipt_url || (t.doc_id && isSuccess);
 
-      html += '<tr style="border-bottom:1px solid var(--st-border);">';
-      html += '<td style="padding:0.75rem 0.5rem;">';
-      html += '<div style="font-family:monospace;font-weight:700;color:var(--st-text-main);font-size:0.82rem;">#' + (t.order_id || '') + '</div>';
-      html += '<div style="font-size:0.72rem;color:var(--st-text-muted);margin-top:0.15rem;">' + dateStr + '</div>';
-      html += '</td>';
-      html += '<td style="padding:0.75rem 0.5rem;">';
-      html += '<div style="font-weight:600;color:var(--st-text-main);max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + itemName + '</div>';
-      html += '<div style="font-size:0.72rem;color:#1d4ed8;font-weight:600;">Razorpay Secure</div>';
-      html += '</td>';
-      html += '<td style="padding:0.75rem 0.5rem;font-weight:800;color:var(--st-text-main);">₹' + (parseFloat(t.amount || 0).toFixed(2)) + '</td>';
-      html += '<td style="padding:0.75rem 0.5rem;">' + statusBadge + '</td>';
-      html += '<td style="padding:0.75rem 0.5rem;text-align:right;">';
-      html += '<div style="display:inline-flex;gap:0.4rem;align-items:center;">';
-      if (t.receipt_url) {
-        html += '<a href="' + t.receipt_url + '" class="st-btn st-btn-outline" style="padding:0.25rem 0.65rem;font-size:0.75rem;min-height:28px;">Receipt</a>';
+      html += '<div class="st-tx-card">';
+      html += '  <div class="st-tx-card-top">';
+      html += '    <div class="st-tx-item-name" title="' + itemName + '">' + itemName + '</div>';
+      html += '    <div class="st-tx-amount">₹' + (parseFloat(t.amount || 0).toFixed(2)) + '</div>';
+      html += '  </div>';
+      html += '  <div class="st-tx-card-meta">';
+      html += '    <div class="st-tx-meta-left">';
+      html += '      <span>' + dateStr + '</span>';
+      if (orderId) {
+        html += '      <span style="opacity:0.4;">•</span>';
+        html += '      <span class="st-tx-id" title="' + orderId + '">' + orderId + '</span>';
       }
-      if (t.doc_id && isSuccess) {
-        html += '<a href="/resource/' + t.doc_id + '" class="st-btn st-btn-primary" style="padding:0.25rem 0.65rem;font-size:0.75rem;min-height:28px;">Open Doc</a>';
+      html += '    </div>';
+      html += '    <div>' + statusBadge + '</div>';
+      html += '  </div>';
+
+      if (hasActions) {
+        html += '  <div class="st-tx-actions">';
+        if (t.receipt_url) {
+          html += '    <a href="' + t.receipt_url + '" target="_blank" rel="noopener" class="st-btn st-btn-outline" style="padding:0.25rem 0.75rem;font-size:0.74rem;min-height:30px;border-radius:980px;">Receipt ↗</a>';
+        }
+        if (t.doc_id && isSuccess) {
+          html += '    <a href="/resource/' + t.doc_id + '" class="st-btn st-btn-primary" style="padding:0.25rem 0.75rem;font-size:0.74rem;min-height:30px;border-radius:980px;">Open Doc ↗</a>';
+        }
+        html += '  </div>';
       }
       html += '</div>';
-      html += '</td>';
-      html += '</tr>';
     });
 
-    tbody.innerHTML = html;
+    target.innerHTML = html;
     if (force && typeof showStToast === 'function') {
-      showStToast(' Payment history refreshed');
+      showStToast('Payment history refreshed');
     }
   } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="5" style="padding:1.5rem;text-align:center;color:#ef4444;">Failed to load transactions. Please retry.</td></tr>';
+    target.innerHTML = '<div style="padding:1.5rem;text-align:center;color:#ef4444;font-size:0.85rem;">Failed to load transactions. Please retry.</div>';
   }
 }
 

@@ -1267,8 +1267,8 @@ def admin_get_user_stats(user_id):
         w_data = get_creator_wallet(user_id)
         wallet_info = w_data.get('wallet', {}) if w_data.get('success') else {}
 
-        # Fetch user's KYC application details
-        kyc_res = client.table('user_kyc_details').select('*').eq('user_id', user_id).limit(1).execute()
+        # Fetch user's KYC application details (project non-sensitive status columns only)
+        kyc_res = client.table('user_kyc_details').select('id, user_id, full_name, is_verified, submitted_at, verified_at, rejection_reason').eq('user_id', user_id).limit(1).execute()
         kyc_info = kyc_res.data[0] if kyc_res.data else None
 
         return jsonify({
@@ -1971,12 +1971,13 @@ def approve_document():
         if not client:
             return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
             
-        doc_res = client.table('documents').select('uploader_id, title').eq('id', doc_id).limit(1).execute()
+        doc_res = client.table('documents').select('uploader_id, title, college_id').eq('id', doc_id).limit(1).execute()
         if not doc_res.data:
             return jsonify({'success': False, 'error': 'Document not found'}), 404
             
-        uploader_id = doc_res.data[0].get('uploader_id')
-        doc_title = doc_res.data[0].get('title') or 'Document'
+        doc = doc_res.data[0]
+        uploader_id = doc.get('uploader_id')
+        doc_title = doc.get('title') or 'Document'
         remark = (data.get('remark') or data.get('notes') or '').strip()
 
         admin_user = session.get('user', {})
@@ -2130,6 +2131,7 @@ def batch_moderate_documents():
 
 
 @admin_bp.route('/api/admin/file-reports')
+@auth_required
 @admin_required
 def admin_file_reports():
     """API endpoint for admin to view all file reports and logs with full student profiles."""
@@ -2213,6 +2215,7 @@ def admin_file_reports():
 
 
 @admin_bp.route('/api/admin/file-reports/<report_id>/status', methods=['POST'])
+@auth_required
 @admin_required
 def admin_update_file_report_status(report_id):
     """Update a failure report status (open, resolved, closed)."""
@@ -2247,6 +2250,7 @@ def admin_update_file_report_status(report_id):
 
 
 @admin_bp.route('/api/admin/file-reports/<report_id>/delete-file', methods=['POST', 'DELETE'])
+@auth_required
 @admin_required
 def admin_delete_file_completely(report_id):
     """Permanently delete a reported file from database, Cloudinary, and any cloud storage."""

@@ -95,9 +95,59 @@
     gap: 1.5rem;
   }
 
+  /* ── Apple Segmented Control (Mobile) ─────────────── */
+  .cs-segmented-control {
+    display: none;
+    background: rgba(118, 118, 128, 0.12);
+    border-radius: var(--radius-pill);
+    padding: 3px;
+    margin-bottom: 1.25rem;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    border: 1px solid var(--apple-border);
+  }
+
+  .cs-seg-btn {
+    border: none;
+    background: transparent;
+    padding: 10px 14px;
+    border-radius: var(--radius-pill);
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--apple-text-secondary);
+    cursor: pointer;
+    transition: all 0.18s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .cs-seg-btn.active {
+    background: var(--apple-surface);
+    color: var(--apple-text);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .cs-seg-counter {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: var(--radius-pill);
+    background: var(--apple-blue-subtle);
+    color: var(--apple-blue);
+  }
+
   @media (max-width: 880px) {
     .cs-grid {
       grid-template-columns: 1fr;
+    }
+    .cs-segmented-control {
+      display: grid;
+    }
+    .cs-tab-hidden {
+      display: none !important;
     }
   }
 
@@ -114,6 +164,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
     margin-bottom: 1.5rem;
     padding-bottom: 0.85rem;
     border-bottom: 1px solid var(--apple-border);
@@ -135,6 +187,8 @@
     padding: 3px 10px;
     border-radius: var(--radius-pill);
     border: 1px solid var(--apple-border);
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   /* ── Form Section Grouping ────────────────────────── */
@@ -216,59 +270,146 @@
   }
 
   @media (max-width: 600px) {
+    .cs-container {
+      padding: 0 0.85rem calc(115px + env(safe-area-inset-bottom, 24px)) !important;
+      margin: 0.75rem auto 0 !important;
+    }
+    .cs-hero {
+      padding: 1.35rem 1.15rem !important;
+      border-radius: 18px !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 1.1rem !important;
+    }
+    .cs-hero-content {
+      width: 100% !important;
+    }
+    .cs-title {
+      font-size: 1.65rem !important;
+      line-height: 1.15 !important;
+      margin-bottom: 0.5rem !important;
+    }
+    .cs-subtitle {
+      font-size: 13.5px !important;
+      line-height: 1.45 !important;
+    }
+    .cs-hero .cs-btn-secondary {
+      width: 100% !important;
+      min-height: 44px !important;
+      justify-content: center !important;
+    }
+    .cs-card {
+      padding: 1.25rem 1rem !important;
+      border-radius: 18px !important;
+      margin-bottom: 1.25rem !important;
+    }
+    .cs-card-header {
+      margin-bottom: 1.1rem !important;
+      padding-bottom: 0.75rem !important;
+    }
+    .cs-card-title {
+      font-size: 1.1rem !important;
+    }
+    .cs-section-group {
+      padding: 1rem 0.85rem !important;
+      border-radius: 14px !important;
+      margin-bottom: 1rem !important;
+    }
     .cs-handle-wrap {
       flex-direction: column !important;
       align-items: stretch !important;
+      border-radius: 12px !important;
     }
     .cs-handle-prefix {
-      padding: 0.5rem 0.75rem !important;
+      padding: 0.55rem 0.85rem !important;
       border-right: none !important;
       border-bottom: 1px solid var(--apple-border) !important;
-      font-size: 11.5px !important;
+      font-size: 12px !important;
       background: var(--apple-surface-sub) !important;
+      color: var(--apple-text-secondary) !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
     }
     .cs-handle-input {
       width: 100% !important;
       box-sizing: border-box !important;
       padding: 0.75rem 0.85rem !important;
-      font-size: 14.5px !important;
+      font-size: 16px !important; /* 16px to prevent iOS auto-zoom */
+    }
+    .cs-input,
+    .cs-textarea {
+      font-size: 16px !important; /* 16px to prevent iOS auto-zoom */
+      padding: 0.75rem 0.85rem !important;
+      border-radius: 12px !important;
     }
     .cs-live-preview {
-      word-break: break-all !important;
-      overflow-wrap: break-word !important;
       line-height: 1.4 !important;
+      font-size: 12px !important;
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 4px !important;
+    }
+    .cs-live-preview .cs-label {
+      white-space: nowrap !important;
+    }
+    .cs-live-preview strong {
+      word-break: break-all !important;
+      overflow-wrap: anywhere !important;
     }
     .cs-yt-header-row {
       flex-direction: column !important;
-      align-items: flex-start !important;
+      align-items: stretch !important;
       gap: 8px !important;
       margin-bottom: 0.5rem !important;
     }
     .cs-yt-header-row button {
       width: 100% !important;
-      min-height: 38px !important;
+      min-height: 40px !important;
       justify-content: center !important;
-    }
-    .cs-container {
-      padding: 0 0.85rem calc(var(--nav-bottom-height, 80px) + 2rem) !important;
-      margin: 1rem auto !important;
-    }
-    .cs-hero {
-      padding: 1.35rem 1.1rem !important;
-      border-radius: 16px !important;
-    }
-    .cs-card {
-      padding: 1.35rem 1.1rem !important;
-      border-radius: 16px !important;
-    }
-    .cs-section-group {
-      padding: 1.1rem 0.9rem !important;
-      border-radius: 14px !important;
     }
     .cs-btn-primary {
       min-height: 48px !important;
       font-size: 15px !important;
       justify-content: center !important;
+      border-radius: var(--radius-pill) !important;
+    }
+    .cs-btn-secondary {
+      min-height: 44px !important;
+    }
+    .cs-link-box {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 10px !important;
+      padding: 0.85rem !important;
+    }
+    .cs-link-text {
+      max-width: 100% !important;
+      font-size: 12px !important;
+      text-align: center !important;
+    }
+    .cs-copy-btn {
+      min-height: 38px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    .cs-file-actions {
+      flex-direction: row !important;
+    }
+    .cs-action-btn {
+      min-height: 38px !important;
+    }
+    .cs-pagination-bar {
+      flex-direction: column !important;
+      align-items: center !important;
+      gap: 12px !important;
+      text-align: center !important;
+    }
+    .cs-pagination-btns {
+      width: 100% !important;
+      justify-content: center !important;
+      flex-wrap: wrap !important;
     }
   }
 
@@ -315,11 +456,19 @@
     display: flex;
     align-items: center;
     gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .cs-live-preview .cs-label {
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .cs-live-preview strong {
     color: var(--apple-blue);
     font-weight: 600;
+    word-break: break-all;
+    overflow-wrap: anywhere;
   }
 
   .cs-input,
@@ -653,9 +802,19 @@
     {% endif %}
   </div>
 
+  <!-- Apple Segmented Control for Mobile -->
+  <div class="cs-segmented-control" role="tablist" aria-label="Studio Navigation">
+    <button type="button" class="cs-seg-btn active" id="tab-btn-settings" onclick="switchMobileStudioTab('settings')">
+      <i class="fa-solid fa-sliders"></i> Channel Setup
+    </button>
+    <button type="button" class="cs-seg-btn" id="tab-btn-library" onclick="switchMobileStudioTab('library')">
+      <i class="fa-solid fa-folder-open"></i> Notes &amp; Links <span class="cs-seg-counter">{{ all_notes_count or notes|length }}</span>
+    </button>
+  </div>
+
   <div class="cs-grid">
     <!-- Channel Settings Form: Prioritized Layout -->
-    <div class="cs-card">
+    <div class="cs-card" id="cs-col-settings">
       <div class="cs-card-header">
         <h2 class="cs-card-title">Channel Settings</h2>
         <span class="cs-card-badge">1 Channel / Account</span>
@@ -684,11 +843,11 @@
               <span class="cs-badge-req">Required</span>
             </label>
             <div class="cs-handle-wrap">
-              <span class="cs-handle-prefix">www.abhihub.edu.eu.org/c/</span>
+              <span class="cs-handle-prefix">{{ request.host }}/c/</span>
               <input type="text" id="handle" class="cs-handle-input" placeholder="e.g. physics_topper" value="{{ channel.handle if channel else '' }}" required oninput="handleCustomSlug(this)">
             </div>
             <div class="cs-live-preview">
-              Public link: <strong id="live-slug-preview">www.abhihub.edu.eu.org/c/{{ channel.handle if channel else 'your_handle' }}</strong>
+              <span class="cs-label">Public link:</span> <strong id="live-slug-preview">{{ request.host }}/c/{{ channel.handle if channel else 'your_handle' }}</strong>
             </div>
           </div>
 
@@ -766,7 +925,7 @@
     </div>
 
     <!-- Right Side: Links & Library -->
-    <div>
+    <div id="cs-col-library" class="cs-tab-hidden">
       {% if channel %}
       <div class="cs-card">
         <div class="cs-card-header">
@@ -777,8 +936,8 @@
           Add this link to your YouTube descriptions, Telegram bio, and social posts:
         </p>
         <div class="cs-link-box">
-          <span class="cs-link-text" id="channel-link-text">https://www.abhihub.edu.eu.org/c/{{ channel.handle }}</span>
-          <button type="button" class="cs-copy-btn" onclick="copyToClipboard('https://www.abhihub.edu.eu.org/c/{{ channel.handle }}', this)">Copy</button>
+          <span class="cs-link-text" id="channel-link-text">{{ request.host_url }}c/{{ channel.handle }}</span>
+          <button type="button" class="cs-copy-btn" onclick="copyToClipboard('{{ request.host_url }}c/{{ channel.handle }}', this)">Copy</button>
         </div>
         <div style="display: flex; gap: 8px;">
           <a href="/c/{{ channel.handle }}" target="_blank" class="cs-btn-secondary" style="width: 100%; text-align: center;">
@@ -837,7 +996,7 @@
                 <span class="cs-meta-tag"><i class="fa-regular fa-file"></i> {{ note.file_type or 'PDF' }}</span>
               </div>
               <div class="cs-file-actions">
-                {% set direct_url = 'https://www.abhihub.edu.eu.org/resource/' ~ note.id %}
+                {% set direct_url = request.host_url ~ 'resource/' ~ note.id %}
                 <button type="button" class="cs-action-btn copy" onclick="copyToClipboard('{{ direct_url }}', this)">
                   <i class="fa-regular fa-copy"></i> Copy Link
                 </button>
@@ -878,6 +1037,8 @@
 <script>
   let isHandleManuallyEdited = false;
 
+  const hostDomain = window.location.host;
+
   function handleTitleInput(titleInput) {
     const handleInput = document.getElementById('handle');
     const preview = document.getElementById('live-slug-preview');
@@ -891,7 +1052,7 @@
         .replace(/^_|_$/g, '');
       handleInput.value = slug;
       handleInput.dataset.autoGenerated = 'true';
-      if (preview) preview.textContent = `www.abhihub.edu.eu.org/c/${slug || 'your_handle'}`;
+      if (preview) preview.textContent = `${hostDomain}/c/${slug || 'your_handle'}`;
     }
   }
 
@@ -901,7 +1062,7 @@
     const clean = handleInput.value.toLowerCase().replace(/[^a-z0-9_]/g, '_');
     handleInput.value = clean;
     const preview = document.getElementById('live-slug-preview');
-    if (preview) preview.textContent = `www.abhihub.edu.eu.org/c/${clean || 'your_handle'}`;
+    if (preview) preview.textContent = `${hostDomain}/c/${clean || 'your_handle'}`;
   }
 
   function copyToClipboard(text, btn) {
@@ -1053,5 +1214,31 @@
       autoFetchFromYouTube();
     }
   }
+
+  function switchMobileStudioTab(tab) {
+    const btnSettings = document.getElementById('tab-btn-settings');
+    const btnLibrary = document.getElementById('tab-btn-library');
+    const colSettings = document.getElementById('cs-col-settings');
+    const colLibrary = document.getElementById('cs-col-library');
+    if (!colSettings || !colLibrary) return;
+
+    if (tab === 'settings') {
+      btnSettings?.classList.add('active');
+      btnLibrary?.classList.remove('active');
+      colSettings.classList.remove('cs-tab-hidden');
+      colLibrary.classList.add('cs-tab-hidden');
+    } else {
+      btnLibrary?.classList.add('active');
+      btnSettings?.classList.remove('active');
+      colLibrary.classList.remove('cs-tab-hidden');
+      colSettings.classList.add('cs-tab-hidden');
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.location.search.includes('page=')) {
+      switchMobileStudioTab('library');
+    }
+  });
 </script>
 {% endblock %}

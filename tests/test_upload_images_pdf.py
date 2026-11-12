@@ -678,7 +678,8 @@ class TestPdfTxtRetrieval(unittest.TestCase):
             "id": "doc-txt-test",
             "file_url": "https://res.cloudinary.com/demo/raw/upload/v1234/u1_lecture.txt",
             "file_type": "pdf",
-            "title": "Data Structures Lecture.txt"
+            "title": "Data Structures Lecture.txt",
+            "status": "approved"
         }
         import requests
         fake_upstream = requests.Response()
@@ -687,6 +688,7 @@ class TestPdfTxtRetrieval(unittest.TestCase):
         fake_upstream.headers = {"Content-Type": "text/plain", "Content-Length": str(len(PDF_BYTES))}
 
         with patch("methods.supabase_helper.get_document_by_id_rich", return_value={"success": True, "data": mock_doc}), \
+             patch("methods.supabase_helper.get_student_profile", return_value={"success": False}), \
              patch("routes.api.has_document_access", return_value=True), \
              patch("routes.api.extract_document_pricing", return_value={"is_paid": False}), \
              patch("requests.get", return_value=fake_upstream):

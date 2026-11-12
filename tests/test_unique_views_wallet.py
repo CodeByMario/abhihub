@@ -193,9 +193,12 @@ class TestUniqueViewsAndWallet(unittest.TestCase):
         self.assertEqual(std_breakdown['creator_amount'], 70.0)
         self.assertEqual(std_breakdown['platform_fee'], 30.0)
 
-        # Early creator registered before Nov 8, 2026 within 90 days
+        # Early creator with active promo
+        from datetime import datetime, timezone, timedelta
+        future_exp = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
         mock_supabase.table('profiles').select().eq().limit().execute.return_value.data = [{
-            'created_at': '2026-10-15T10:00:00+00:00'
+            'created_at': '2026-10-15T10:00:00+00:00',
+            'subscription_expires_at': future_exp
         }]
         promo_breakdown = calculate_fee_breakdown(100.0, creator_id='user-early')
         self.assertEqual(promo_breakdown['creator_pct'], 90)

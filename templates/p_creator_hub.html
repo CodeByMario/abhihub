@@ -427,16 +427,466 @@
     z-index: 9999;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   }
+
+  /* ── Apple Mobile Navigation Enhancements ── */
+  .ch-brand-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .ch-mobile-live-pill {
+    display: none;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ch-primary);
+    background: var(--ch-sch-bg);
+    border-radius: 980px;
+    padding: 4px 10px;
+    text-decoration: none;
+    align-items: center;
+    gap: 5px;
+  }
+
+  @media (max-width: 768px) {
+    .ch-wrapper {
+      padding-bottom: calc(110px + env(safe-area-inset-bottom, 24px)) !important;
+    }
+    .ch-subbar-inner {
+      padding: 8px 12px 6px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 8px !important;
+    }
+    .ch-brand-row {
+      width: 100% !important;
+    }
+    .ch-studio-brand {
+      font-size: 16px !important;
+    }
+    .ch-mobile-live-pill {
+      display: inline-flex !important;
+      font-size: 11.5px !important;
+      padding: 3px 9px !important;
+    }
+    .ch-header-actions {
+      display: none !important; /* Handled via Quick Actions pill row */
+    }
+    .ch-nav-tabs {
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      overflow-x: auto !important;
+      scrollbar-width: none !important;
+      -webkit-overflow-scrolling: touch !important;
+      gap: 6px !important;
+      padding: 1px 2px 4px !important;
+      margin: 0 -12px !important;
+      padding-left: 12px !important;
+      padding-right: 12px !important;
+      width: auto !important;
+    }
+    .ch-nav-tabs::-webkit-scrollbar {
+      display: none !important;
+    }
+    .ch-nav-tab {
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
+      padding: 5px 12px !important;
+      font-size: 12px !important;
+      font-weight: 550 !important;
+      border-radius: 980px !important;
+      background: var(--ch-card-bg);
+      border: 1px solid var(--ch-card-border);
+    }
+    .ch-nav-tab.active {
+      background: var(--ch-primary) !important;
+      color: #FFFFFF !important;
+      border-color: var(--ch-primary) !important;
+    }
+    .ch-main {
+      padding: 10px 12px 32px !important;
+      gap: 10px !important;
+    }
+    .ch-header-row {
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 4px !important;
+      margin-bottom: 2px !important;
+    }
+    .ch-greeting {
+      font-size: 17px !important;
+      line-height: 1.25 !important;
+      margin: 0 !important;
+    }
+    .ch-meta-note {
+      font-size: 11px !important;
+      line-height: 1.3 !important;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .ch-quick-actions {
+      padding: 0 0 2px !important;
+      gap: 6px !important;
+    }
+    .ch-action-pill {
+      min-height: 34px !important;
+      padding: 4px 10px !important;
+      font-size: 12px !important;
+      border-radius: 980px !important;
+    }
+    /* Compact 2x2 KPI Grid for Mobile */
+    .ch-grid-4.ch-stats-carousel {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 8px !important;
+      padding: 0 !important;
+      overflow: visible !important;
+    }
+    .ch-grid-4.ch-stats-carousel .ch-card {
+      flex: initial !important;
+      padding: 10px 12px !important;
+      border-radius: 12px !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+    }
+    .ch-grid-4.ch-stats-carousel .lbl {
+      font-size: 11px !important;
+      margin-bottom: 2px !important;
+    }
+    .ch-grid-4.ch-stats-carousel .big {
+      font-size: 17px !important;
+      line-height: 1.2 !important;
+    }
+    .ch-grid-4.ch-stats-carousel .note {
+      font-size: 10.5px !important;
+      margin-top: 2px !important;
+      line-height: 1.2 !important;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .ch-carousel-dots {
+      display: none !important;
+    }
+    /* Filter Pills */
+    .ch-filter-pill-group {
+      display: inline-flex;
+      align-items: center;
+      background: var(--ch-bg, #f5f6f9);
+      border: 1px solid var(--ch-card-border, #e3e6ec);
+      border-radius: 980px;
+      padding: 3px;
+      gap: 3px;
+      margin-top: 4px;
+    }
+    .ch-filter-pill {
+      border: none;
+      background: transparent;
+      color: var(--ch-text-muted, #566070);
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 980px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .ch-filter-pill.active {
+      background: var(--ch-card-bg, #ffffff);
+      color: var(--ch-primary, #2f4bc0);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
+    /* Apple Mobile Cards Redesign for Documents */
+    .ch-desktop-only {
+      display: table-cell;
+    }
+    .ch-mobile-only {
+      display: none !important;
+    }
+
+    @media (max-width: 768px) {
+      .ch-desktop-only {
+        display: none !important;
+      }
+      .ch-mobile-only {
+        display: inline-flex !important;
+      }
+      .table-responsive tbody {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+      }
+      .ch-doc-card-row {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 6px !important;
+        padding: 12px 14px !important;
+        border-radius: 14px !important;
+        background: var(--ch-card-bg) !important;
+        border: 1px solid var(--ch-card-border) !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+      }
+      .ch-doc-title-cell {
+        display: block !important;
+        border-bottom: 1px solid var(--ch-row-border) !important;
+        padding: 0 0 8px 0 !important;
+        margin: 0 !important;
+        text-align: left !important;
+      }
+      .ch-doc-title-cell::before {
+        display: none !important;
+      }
+      .ch-doc-title {
+        font-size: 14px !important;
+        font-weight: 650 !important;
+        color: var(--ch-text-main) !important;
+        line-height: 1.35 !important;
+        display: block !important;
+      }
+      .ch-doc-meta {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        margin-top: 4px !important;
+        font-size: 11.5px !important;
+        color: var(--ch-text-muted) !important;
+        flex-wrap: wrap !important;
+      }
+      .ch-sales-badge {
+        color: var(--ch-primary) !important;
+        font-weight: 600 !important;
+        background: var(--ch-sch-bg) !important;
+        padding: 2px 7px !important;
+        border-radius: 980px !important;
+      }
+      .ch-doc-access-cell {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        padding: 4px 0 0 0 !important;
+        border-bottom: none !important;
+      }
+      .ch-doc-access-cell::before {
+        content: "Access" !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        color: var(--ch-text-muted) !important;
+      }
+      .ch-access-control-wrap {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+      }
+      .ch-status-pill {
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        padding: 3px 9px !important;
+        border-radius: 980px !important;
+      }
+      .ch-status-pill.free {
+        background: var(--ch-ok-bg) !important;
+        color: var(--ch-ok-text) !important;
+      }
+      .ch-status-pill.paid {
+        background: var(--ch-wait-bg) !important;
+        color: var(--ch-wait-text) !important;
+      }
+      .ch-doc-price-cell {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        padding: 6px 0 0 0 !important;
+        border-top: 1px dashed var(--ch-row-border) !important;
+        border-bottom: none !important;
+      }
+      .ch-doc-price-cell::before {
+        content: "Price" !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        color: var(--ch-text-muted) !important;
+      }
+      .ch-price-edit-row {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+      }
+      .ch-inline-save-btn {
+        min-height: 32px !important;
+        padding: 4px 14px !important;
+        font-size: 12px !important;
+        border-radius: 980px !important;
+        background: var(--ch-primary) !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        font-weight: 600 !important;
+      }
+      /* When not paid, hide price cell completely on mobile */
+      tr[data-is-paid="false"] .ch-doc-price-cell {
+        display: none !important;
+      }
+
+      /* Apple Supporter Row Simplification */
+      .ch-supporter-row {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        padding: 9px 12px !important;
+        border-radius: 12px !important;
+        background: var(--ch-card-bg) !important;
+        border: 1px solid var(--ch-card-border) !important;
+        margin-bottom: 6px !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+      }
+      .ch-supporter-main {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+        flex: 1 !important;
+        min-width: 0 !important;
+      }
+      .ch-supporter-avatar {
+        width: 34px !important;
+        height: 34px !important;
+        border-radius: 50% !important;
+        background: var(--ch-sch-bg) !important;
+        color: var(--ch-primary) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-weight: 700 !important;
+        font-size: 13px !important;
+        flex-shrink: 0 !important;
+      }
+      .ch-supporter-info {
+        display: flex !important;
+        flex-direction: column !important;
+        min-width: 0 !important;
+      }
+      .ch-supporter-name-row {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+      }
+      .ch-supporter-name {
+        font-size: 13.5px !important;
+        font-weight: 650 !important;
+        color: var(--ch-text-main) !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+      }
+      .ch-supporter-meta {
+        font-size: 11px !important;
+        color: var(--ch-text-muted) !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+        margin-top: 1px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+      }
+      .ch-supporter-right {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-end !important;
+        flex-shrink: 0 !important;
+        margin-left: 8px !important;
+      }
+      .ch-supporter-amount {
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        color: var(--ch-text-main) !important;
+        letter-spacing: -0.2px !important;
+      }
+      .ch-supporter-rank {
+        font-size: 10px !important;
+        font-weight: 600 !important;
+        color: var(--ch-text-muted) !important;
+      }
+      .ch-supporter-mobile-cell {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        padding: 0 !important;
+        border: none !important;
+      }
+      .ch-supporter-mobile-cell::before {
+        display: none !important;
+      }
+    }
+    /* Apple Info Tooltip */
+    .ch-tooltip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--ch-bg, #f5f6f9);
+      border: 1px solid var(--ch-card-border, #e3e6ec);
+      color: var(--ch-text-muted, #566070);
+      font-size: 10px;
+      font-weight: 700;
+      cursor: help;
+      margin-left: 4px;
+      vertical-align: middle;
+      transition: all 0.15s ease;
+    }
+    .ch-tooltip:hover {
+      background: var(--ch-primary, #2f4bc0);
+      color: #ffffff;
+      border-color: var(--ch-primary, #2f4bc0);
+    }
+    .ch-grid-2 {
+      grid-template-columns: 1fr !important;
+      gap: 10px !important;
+    }
+    .ch-card {
+      padding: 12px 14px !important;
+      border-radius: 14px !important;
+    }
+    .ch-card-title {
+      font-size: 15px !important;
+      margin-bottom: 4px !important;
+    }
+    .big {
+      font-size: 20px !important;
+    }
+    .row {
+      padding: 7px 0 !important;
+      font-size: 12.5px !important;
+    }
+    .btn {
+      min-height: 38px !important;
+      font-size: 13px !important;
+      padding: 6px 14px !important;
+      border-radius: 980px !important;
+    }
+  }
 </style>
 
 <div class="ch-wrapper">
   <!-- Sub Header Nav (Inspired by Reference Design) -->
   <header class="ch-subbar">
     <div class="ch-subbar-inner">
-      <a href="{{ url_for('channels.creator_hub') }}" class="ch-studio-brand">
-        <i class="fa-solid fa-chart-line" style="color: var(--ch-primary);"></i>
-        Creator Studio
-      </a>
+      <div class="ch-brand-row">
+        <a href="{{ url_for('channels.creator_hub') }}" class="ch-studio-brand">
+          <i class="fa-solid fa-chart-line" style="color: var(--ch-primary);"></i>
+          <span>Creator Studio</span>
+        </a>
+        {% if channel and channel.handle %}
+        <a href="{{ url_for('channels.public_channel_view', handle=channel.handle) }}" target="_blank" class="ch-mobile-live-pill">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i> Live Channel
+        </a>
+        {% endif %}
+      </div>
       <nav class="ch-nav-tabs">
         <a href="#overview" class="ch-nav-tab active">Overview</a>
         <a href="#sales" class="ch-nav-tab">Sales &amp; Monetization</a>
@@ -531,90 +981,80 @@
     <section class="ch-grid-2" id="payouts">
       <!-- Your Next Payout Card -->
       <div class="ch-card">
-        <h2 class="ch-card-title">Your next payout</h2>
-        <p class="big" style="margin-top: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <h2 class="ch-card-title" style="margin: 0;">Next Payout</h2>
+          {% if withdrawable > 0 %}
+            <span class="pill ok"><i class="fa-solid fa-circle-check"></i> Ready to Pay</span>
+          {% else %}
+            <span class="pill wait" title="Held in T+9 verification escrow. Auto-transfers on {{ next_payout_date }}"><i class="fa-solid fa-clock"></i> In Escrow</span>
+          {% endif %}
+        </div>
+        <p class="big" style="margin: 6px 0 4px;">
           ₹{{ '%.2f'|format(withdrawable if withdrawable > 0 else pending) }}
         </p>
-        <p class="note" style="font-size: 14px; margin-top: 6px;">
+        <p class="note" style="font-size: 12.5px; margin: 0 0 12px; line-height: 1.4;">
           Arrives <strong>{{ next_payout_date }}</strong> via <strong>{{ destination_display }}</strong>
-        </p>
-
-        <!-- 4-Step Lifecycle Tracker -->
-        <ol style="list-style: none; margin: 20px 0 16px; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px; font-size: 13.5px;">
-          <li>
-            <span class="pill ok"><i class="fa-solid fa-check"></i> Done</span><br>
-            <span style="font-weight: 500; font-size: 13px; display: inline-block; margin-top: 4px;">Sale made</span>
-          </li>
-          <li>
-            {% if withdrawable > 0 %}
-              <span class="pill ok"><i class="fa-solid fa-check"></i> Cleared</span>
-            {% else %}
-              <span class="pill wait"><i class="fa-solid fa-clock"></i> In Escrow</span>
-            {% endif %}<br>
-            <span style="font-weight: 500; font-size: 13px; display: inline-block; margin-top: 4px;">T+9 hold cleared</span>
-          </li>
-          <li>
-            <span class="pill sch"><i class="fa-solid fa-calendar-check"></i> Scheduled</span><br>
-            <span style="font-weight: 500; font-size: 13px; display: inline-block; margin-top: 4px;">Cycle: {{ next_payout_date[:6] }}</span>
-          </li>
-          <li>
-            <span class="pill wait"><i class="fa-solid fa-building-columns"></i> Next</span><br>
-            <span style="font-weight: 500; font-size: 13px; display: inline-block; margin-top: 4px;">In your bank/UPI</span>
-          </li>
-        </ol>
-
-        <p class="note" style="margin-bottom: 14px;">
-          UPI &amp; IMPS transfers settle directly into your account on scheduled payout cycles.
-          <a href="#help" style="color: var(--ch-primary);">Why is my payout pending?</a>
+          <span class="ch-tooltip" title="Direct settlement via UPI/IMPS. Held in T+9 verification escrow to protect creators from fraud.">ⓘ</span>
         </p>
 
         {% if withdrawable >= 5 %}
-        <button class="btn btn-primary btn-sm" onclick="triggerPayoutRequest({{ withdrawable }})">
-          <i class="fa-solid fa-money-bill-transfer"></i> Request Instant Payout (₹{{ '%.2f'|format(withdrawable) }})
+        <button class="btn btn-primary btn-sm" onclick="triggerPayoutRequest({{ withdrawable }})" style="width: 100%; justify-content: center; border-radius: 980px;">
+          <i class="fa-solid fa-bolt"></i> Withdraw Now (₹{{ '%.2f'|format(withdrawable) }})
         </button>
         {% else %}
-        <span style="font-size: 12.5px; color: var(--ch-text-muted);">
-          <i class="fa-solid fa-circle-info"></i> Minimum payout threshold is ₹5.00 for initial withdrawal.
-        </span>
+        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; color: var(--ch-text-muted); background: var(--ch-bg); padding: 7px 12px; border-radius: 10px;">
+          <span><i class="fa-solid fa-circle-info"></i> Auto-settles on {{ next_payout_date[:6] }}</span>
+          <span>Min. ₹5.00</span>
+        </div>
         {% endif %}
       </div>
 
       <!-- How Your Earnings are Calculated Card -->
       <div class="ch-card">
-        <h2 class="ch-card-title">How your earnings are calculated</h2>
-        <p class="ch-card-sub">Every rupee, from student payment to your account</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <h2 class="ch-card-title" style="margin: 0;">Earnings Breakdown</h2>
+          <span class="pill ok">90% Royalties</span>
+        </div>
+        <p class="big" style="color: var(--ch-primary); margin: 6px 0 4px;">
+          ₹{{ '%.2f'|format(net_earnings) }}
+        </p>
+        <p class="ch-card-sub" style="margin-bottom: 8px; font-size: 12px;">Net creator share from student file purchases</p>
 
-        <div class="row">
+        <div class="row" style="padding: 5px 0; font-size: 12.5px;">
           <span>Gross sales</span>
           <strong>₹{{ '%.2f'|format(gross_sales) }}</strong>
         </div>
-        <div class="row">
-          <span>Platform fee (10% Creator Promotion)</span>
-          <strong style="color: #b91c1c;">&minus; ₹{{ '%.2f'|format(platform_fee) }}</strong>
+        <div class="row" style="padding: 5px 0; font-size: 12.5px;">
+          <span>
+            Deductions (10% fee + 1% TDS)
+            <span class="ch-tooltip" title="10% Platform fee: ₹{{ '%.2f'|format(platform_fee) }} | 1% TDS u/s 194-O: ₹{{ '%.2f'|format(tds_tax) }} | Processing &amp; Hosting: ₹0 (Covered by AbhiHub)">ⓘ</span>
+          </span>
+          <strong style="color: #b91c1c;">&minus; ₹{{ '%.2f'|format(platform_fee + tds_tax) }}</strong>
         </div>
-        <div class="row">
-          <span>TDS withheld (1% u/s 194-O)</span>
-          <strong style="color: #b91c1c;">&minus; ₹{{ '%.2f'|format(tds_tax) }}</strong>
-        </div>
-        <div class="row">
-          <span>Payment processing &amp; hosting</span>
-          <strong style="color: #14633D;">₹0.00 (Covered by AbhiHub)</strong>
-        </div>
-        <div class="row" style="border: 0; font-size: 16px; padding-top: 14px;">
-          <strong>Net earnings (90% Royalties)</strong>
-          <strong style="color: var(--ch-primary); font-size: 18px;">₹{{ '%.2f'|format(net_earnings) }}</strong>
+        <div class="row" style="border: 0; padding-top: 8px; font-size: 13px;">
+          <strong>Net earnings to account</strong>
+          <strong style="color: var(--ch-primary);">₹{{ '%.2f'|format(net_earnings) }}</strong>
         </div>
       </div>
     </section>
 
     <!-- Monetize & Group Files (Sales by Product) -->
     <section class="ch-card" id="sales">
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 12px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;">
         <div>
           <h2 class="ch-card-title">Sales by Document &amp; Subject Grouping</h2>
-          <p class="ch-card-sub">
+          <p class="ch-card-sub" style="margin-bottom: 8px;">
             Organize your materials by subject or course, set individual prices (₹), and toggle free vs paid monetization.
           </p>
+          <div class="ch-filter-pill-group" role="group" aria-label="Filter documents">
+            <button type="button" class="ch-filter-pill active" onclick="filterSalesMaterials('all', this)">All</button>
+            <button type="button" class="ch-filter-pill" onclick="filterSalesMaterials('paid', this)">
+              <i class="fa-solid fa-tag"></i> Paid Only
+            </button>
+            <button type="button" class="ch-filter-pill" onclick="filterSalesMaterials('free', this)">
+              <i class="fa-solid fa-gift"></i> Free Only
+            </button>
+          </div>
         </div>
         <a href="{{ url_for('app_pages.upload') }}" class="btn btn-sm btn-primary">
           <i class="fa-solid fa-plus"></i> Upload New Material
@@ -623,6 +1063,7 @@
 
       {% if grouped_products %}
         {% for group_name, group_items in grouped_products.items() %}
+        <div class="group-block">
         <div class="group-header">
           <span><i class="fa-solid fa-folder-open" style="color: var(--ch-primary); margin-right: 6px;"></i> <strong>{{ group_name }}</strong> ({{ group_items|length }} file{{ 's' if group_items|length != 1 else '' }})</span>
           <span style="font-size: 12.5px; color: var(--ch-text-muted);">
@@ -645,37 +1086,52 @@
             </thead>
             <tbody>
               {% for p in group_items %}
-              <tr id="doc-row-{{ p.id }}">
-                <td data-label="Material">
-                  <strong style="color: var(--ch-text-main);">{{ p.group or p.title }}</strong>
-                  <div style="font-size: 11.5px; color: var(--ch-text-muted);">Added {{ p.created_at }} &bull; {{ p.views }} views</div>
+              <tr id="doc-row-{{ p.id }}" class="ch-doc-card-row" data-doc-row="true" data-is-paid="{{ 'true' if p.is_paid else 'false' }}">
+                <td class="ch-doc-title-cell" data-label="Material">
+                  <strong class="ch-doc-title">{{ p.group or p.title }}</strong>
+                  <div class="ch-doc-meta">
+                    <span class="pill sch" style="font-size: 10.5px; padding: 2px 7px;">{{ p.category }}</span>
+                    <span>&bull;</span>
+                    <span>{{ p.views }} views</span>
+                    {% if p.is_paid and p.sales_count > 0 %}
+                    <span>&bull;</span>
+                    <span class="ch-sales-badge">{{ p.sales_count }} sold (₹{{ '%.0f'|format(p.gross_revenue) }})</span>
+                    {% endif %}
+                  </div>
                 </td>
-                <td data-label="Category">
+                <td class="ch-desktop-only" data-label="Category">
                   <span class="pill sch" style="font-size: 11px;">{{ p.category }}</span>
                 </td>
-                <td class="c" data-label="Access">
-                  <label class="switch">
-                    <input type="checkbox" id="toggle-{{ p.id }}" {% if p.is_paid %}checked{% endif %} onchange="handlePaidToggle('{{ p.id }}')">
-                    <span class="slider"></span>
-                  </label>
-                  <div id="status-label-{{ p.id }}" style="font-size: 11px; margin-top: 3px; font-weight: 600; color: {% if p.is_paid %}#7A4B00{% else %}#14633D{% endif %};">
-                    {{ 'Paid' if p.is_paid else 'Free' }}
+                <td class="c ch-doc-access-cell" data-label="Access">
+                  <div class="ch-access-control-wrap">
+                    <label class="switch">
+                      <input type="checkbox" id="toggle-{{ p.id }}" {% if p.is_paid %}checked{% endif %} onchange="handlePaidToggle('{{ p.id }}')">
+                      <span class="slider"></span>
+                    </label>
+                    <span id="status-label-{{ p.id }}" class="ch-status-pill {% if p.is_paid %}paid{% else %}free{% endif %}">
+                      {{ 'Paid' if p.is_paid else 'Free' }}
+                    </span>
                   </div>
                 </td>
-                <td data-label="Price">
-                  <div class="price-input-wrap">
-                    <span style="font-size: 13px; font-weight: 600; color: var(--ch-text-muted); margin-right: 2px;">₹</span>
-                    <input type="number" min="0" max="999" step="1" id="price-{{ p.id }}" class="price-input" value="{{ '%.0f'|format(p.price) if p.price else '19' }}" {% if not p.is_paid %}disabled style="opacity: 0.5;"{% endif %}>
+                <td data-label="Price" class="ch-doc-price-cell doc-paid-info">
+                  <div class="ch-price-edit-row">
+                    <div class="price-input-wrap">
+                      <span style="font-size: 13px; font-weight: 600; color: var(--ch-text-muted); margin-right: 2px;">₹</span>
+                      <input type="number" min="0" max="999" step="1" id="price-{{ p.id }}" class="price-input" value="{{ '%.0f'|format(p.price) if p.price else '19' }}" {% if not p.is_paid %}disabled style="opacity: 0.5;"{% endif %}>
+                    </div>
+                    <button class="btn btn-sm ch-inline-save-btn ch-mobile-only" onclick="saveMonetization('{{ p.id }}')" data-save-id="{{ p.id }}">
+                      Save
+                    </button>
                   </div>
                 </td>
-                <td class="r" data-label="Sales" style="font-weight: 600;">
+                <td class="r doc-paid-info ch-desktop-only" data-label="Sales" style="font-weight: 600;">
                   {{ p.sales_count }}
                 </td>
-                <td class="r" data-label="Gross Revenue" style="font-weight: 700; color: var(--ch-text-main);">
+                <td class="r doc-paid-info ch-desktop-only" data-label="Gross Revenue" style="font-weight: 700; color: var(--ch-text-main);">
                   ₹{{ '%.2f'|format(p.gross_revenue) }}
                 </td>
-                <td class="r" data-label="Action">
-                  <button class="btn btn-sm" onclick="saveMonetization('{{ p.id }}')" id="save-btn-{{ p.id }}" style="padding: 4px 10px; font-size: 12px;">
+                <td class="r ch-desktop-only" data-label="Action">
+                  <button class="btn btn-sm" onclick="saveMonetization('{{ p.id }}')" data-save-id="{{ p.id }}" style="padding: 4px 10px; font-size: 12px;">
                     Save
                   </button>
                 </td>
@@ -683,6 +1139,7 @@
               {% endfor %}
             </tbody>
           </table>
+        </div>
         </div>
         {% endfor %}
 
@@ -744,22 +1201,50 @@
           </thead>
           <tbody>
             {% for c in customers %}
-            <tr>
-              <td class="c" data-label="Rank" style="font-weight: 700; color: var(--ch-text-muted);">
-                {{ loop.index }}
+            <tr class="ch-supporter-row">
+              <!-- Mobile-only single-line Apple List Item -->
+              <td class="ch-supporter-mobile-cell ch-mobile-only">
+                <div class="ch-supporter-main">
+                  <div class="ch-supporter-avatar">
+                    {{ c.name[:1]|upper if c.name else 'S' }}
+                  </div>
+                  <div class="ch-supporter-info">
+                    <div class="ch-supporter-name-row">
+                      <span class="ch-supporter-name">{{ c.name }}</span>
+                      {% if c.vip_tier == 'superfan' %}
+                        <span class="pill" style="background: rgba(147, 51, 234, 0.12); color: #9333ea; font-size: 9.5px; padding: 1px 6px;">Superfan</span>
+                      {% elif c.vip_tier == 'vip' %}
+                        <span class="pill wait" style="font-size: 9.5px; padding: 1px 6px;">VIP</span>
+                      {% endif %}
+                    </div>
+                    <div class="ch-supporter-meta">
+                      <span>{{ c.total_notes }} note{{ 's' if c.total_notes != 1 else '' }}</span>
+                      <span>&bull;</span>
+                      <span>{{ c.last_active or 'Recently' }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="ch-supporter-right">
+                  <span class="ch-supporter-amount">₹{{ '%.2f'|format(c.total_spent) }}</span>
+                  <span class="ch-supporter-rank">#{{ (c_page - 1) * 10 + loop.index }}</span>
+                </div>
               </td>
-              <td data-label="Student">
+
+              <!-- Desktop standard columns -->
+              <td class="c ch-desktop-only" data-label="Rank" style="font-weight: 700; color: var(--ch-text-muted);">
+                {{ (c_page - 1) * 10 + loop.index }}
+              </td>
+              <td class="ch-desktop-only" data-label="Student">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                  <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--ch-sch-bg); color: var(--ch-primary); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px;">
+                  <div class="ch-supporter-avatar" style="width: 32px; height: 32px; font-size: 13px;">
                     {{ c.name[:1]|upper if c.name else 'S' }}
                   </div>
                   <div>
-                    <!-- STRICT PRIVACY: Customer Name ONLY -->
                     <strong style="color: var(--ch-text-main); font-size: 14px;">{{ c.name }}</strong>
                   </div>
                 </div>
               </td>
-              <td data-label="Tier">
+              <td class="ch-desktop-only" data-label="Tier">
                 {% if c.vip_tier == 'superfan' %}
                   <span class="pill" style="background: rgba(147, 51, 234, 0.12); color: #9333ea;">Superfan</span>
                 {% elif c.vip_tier == 'vip' %}
@@ -768,13 +1253,13 @@
                   <span class="pill sch">Supporter</span>
                 {% endif %}
               </td>
-              <td class="c" data-label="Unlocked" style="font-weight: 600;">
+              <td class="c ch-desktop-only" data-label="Unlocked" style="font-weight: 600;">
                 {{ c.total_notes }} note{{ 's' if c.total_notes != 1 else '' }}
               </td>
-              <td class="r" data-label="Contributed" style="font-weight: 700; color: var(--ch-text-main);">
+              <td class="r ch-desktop-only" data-label="Contributed" style="font-weight: 700; color: var(--ch-text-main);">
                 ₹{{ '%.2f'|format(c.total_spent) }}
               </td>
-              <td class="r" data-label="Last Active" style="font-size: 12.5px; color: var(--ch-text-muted);">
+              <td class="r ch-desktop-only" data-label="Last Active" style="font-size: 12.5px; color: var(--ch-text-muted);">
                 {{ c.last_active or 'Recently' }}
               </td>
             </tr>
@@ -935,7 +1420,9 @@
     const chk = document.getElementById(`toggle-${docId}`);
     const priceInput = document.getElementById(`price-${docId}`);
     const lbl = document.getElementById(`status-label-${docId}`);
+    const row = document.getElementById(`doc-row-${docId}`);
     if (chk.checked) {
+      if (row) row.dataset.isPaid = 'true';
       priceInput.disabled = false;
       priceInput.style.opacity = '1';
       if (!priceInput.value || parseFloat(priceInput.value) <= 0) {
@@ -944,6 +1431,7 @@
       lbl.textContent = 'Paid';
       lbl.style.color = '#7A4B00';
     } else {
+      if (row) row.dataset.isPaid = 'false';
       priceInput.disabled = true;
       priceInput.style.opacity = '0.5';
       lbl.textContent = 'Free';
@@ -951,13 +1439,34 @@
     }
   }
 
+  function filterSalesMaterials(mode, btn) {
+    document.querySelectorAll('.ch-filter-pill').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    const rows = document.querySelectorAll('tr[data-doc-row]');
+    rows.forEach(row => {
+      const isPaid = row.dataset.isPaid === 'true';
+      if (mode === 'all') {
+        row.style.display = '';
+      } else if (mode === 'paid') {
+        row.style.display = isPaid ? '' : 'none';
+      } else if (mode === 'free') {
+        row.style.display = !isPaid ? '' : 'none';
+      }
+    });
+
+    document.querySelectorAll('.group-block').forEach(group => {
+      const visibleRows = group.querySelectorAll('tbody tr:not([style*="display: none"])');
+      group.style.display = visibleRows.length > 0 ? '' : 'none';
+    });
+  }
+
   async function saveMonetization(docId) {
     const chk = document.getElementById(`toggle-${docId}`);
     const priceInput = document.getElementById(`price-${docId}`);
-    const btn = document.getElementById(`save-btn-${docId}`);
+    const btns = document.querySelectorAll(`button[data-save-id="${docId}"]`);
 
-    btn.disabled = true;
-    btn.textContent = 'Saving...';
+    btns.forEach(b => { b.disabled = true; b.textContent = 'Saving...'; });
 
     const isPaid = chk.checked;
     const price = isPaid ? parseFloat(priceInput.value || '19') : 0;
@@ -971,17 +1480,17 @@
       const data = await res.json();
       if (data.success) {
         showToast('✓ Monetization settings updated.');
-        btn.textContent = 'Saved!';
-        setTimeout(() => { btn.textContent = 'Save'; }, 1500);
+        btns.forEach(b => { b.textContent = 'Saved!'; });
+        setTimeout(() => { btns.forEach(b => { b.textContent = 'Save'; }); }, 1500);
       } else {
         showToast(data.error || 'Failed to update', true);
-        btn.textContent = 'Save';
+        btns.forEach(b => { b.textContent = 'Save'; });
       }
     } catch (e) {
       showToast('Network error while saving.', true);
-      btn.textContent = 'Save';
+      btns.forEach(b => { b.textContent = 'Save'; });
     } finally {
-      btn.disabled = false;
+      btns.forEach(b => { b.disabled = false; });
     }
   }
 

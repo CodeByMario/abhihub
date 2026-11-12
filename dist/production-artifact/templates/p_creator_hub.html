@@ -1,611 +1,1582 @@
 {% extends 'p_struct.html' %}
+{% block title %}Creator Studio • Earnings & Monetization • AbhiHub{% endblock %}
+
 {% block content %}
-
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/creator_hub_responsive.css') }}">
 <style>
-  .creator-hub-container {
-    max-width: 1040px;
-    margin: 1.5rem auto 5rem;
-    padding: 0 1rem;
-    font-family: inherit;
+  :root {
+    --ch-font: 'Inter', system-ui, -apple-system, sans-serif;
+    --ch-bg: #F5F6F9;
+    --ch-card-bg: #FFFFFF;
+    --ch-card-border: #E3E6EC;
+    --ch-row-border: #EEF0F4;
+    --ch-text-main: #14181F;
+    --ch-text-muted: #566070;
+    --ch-primary: #2F4BC0;
+    --ch-primary-hover: #1B2F86;
+    --ch-ok-bg: #E3F4EB;
+    --ch-ok-text: #14633D;
+    --ch-wait-bg: #FFF1D6;
+    --ch-wait-text: #7A4B00;
+    --ch-sch-bg: #E6ECFF;
+    --ch-sch-text: #2338A0;
+    --ch-dark-card: #14181F;
   }
-  .hub-banner {
-    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
-    border-radius: 20px;
-    padding: 2rem;
-    color: #ffffff;
-    margin-bottom: 2rem;
+
+  [data-theme="dark"] {
+    --ch-bg: #0D1117;
+    --ch-card-bg: #161B22;
+    --ch-card-border: rgba(255, 255, 255, 0.12);
+    --ch-row-border: rgba(255, 255, 255, 0.08);
+    --ch-text-main: #F0F6FC;
+    --ch-text-muted: #8B949E;
+    --ch-primary: #58A6FF;
+    --ch-primary-hover: #79C0FF;
+    --ch-ok-bg: rgba(35, 134, 54, 0.2);
+    --ch-ok-text: #3FB950;
+    --ch-wait-bg: rgba(210, 153, 34, 0.2);
+    --ch-wait-text: #E3B341;
+    --ch-sch-bg: rgba(88, 166, 255, 0.2);
+    --ch-sch-text: #58A6FF;
+    --ch-dark-card: #0D1117;
+  }
+
+  .ch-wrapper {
+    font-family: var(--ch-font);
+    color: var(--ch-text-main);
+    background: var(--ch-bg);
+    min-height: calc(100vh - 70px);
+    padding: 0 0 4rem;
+  }
+
+  /* Sub Header / Local Bar */
+  .ch-subbar {
+    background: var(--ch-card-bg);
+    border-bottom: 1px solid var(--ch-card-border);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  .ch-subbar-inner {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 12px 24px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 20px;
     flex-wrap: wrap;
-    gap: 1.5rem;
-    box-shadow: 0 10px 25px -5px rgba(30, 27, 75, 0.4);
   }
-  .hub-banner h1 {
-    font-size: 1.75rem;
-    font-weight: 800;
-    margin: 0 0 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-  }
-  .hub-banner p {
-    margin: 0;
-    color: #c7d2fe;
-    font-size: 0.95rem;
-    max-width: 580px;
-    line-height: 1.5;
-  }
-  .hub-banner-actions {
-    display: flex;
-    gap: 0.75rem;
-  }
-  .btn-banner {
-    padding: 0.65rem 1.25rem;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 0.9rem;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    transition: all 0.2s;
-  }
-  .btn-banner-primary {
-    background: #6366f1;
-    color: #ffffff;
-    border: none;
-  }
-  .btn-banner-primary:hover {
-    background: #4f46e5;
-  }
-  .btn-banner-secondary {
-    background: rgba(255, 255, 255, 0.1);
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-  }
-  .btn-banner-secondary:hover {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  /* Metric cards */
-  .metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 1rem;
-    margin-bottom: 2rem;
-  }
-  .metric-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 1.25rem 1.5rem;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
-  }
-  .metric-label {
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.4rem;
-  }
-  .metric-val {
-    font-size: 1.7rem;
-    font-weight: 800;
-    color: #0f172a;
-    display: flex;
-    align-items: baseline;
-    gap: 0.35rem;
-  }
-  .metric-val small {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #10b981;
-  }
-
-  /* Main layout */
-  .hub-main-grid {
-    display: grid;
-    grid-template-columns: 1.6fr 1fr;
-    gap: 1.75rem;
-  }
-  @media (max-width: 900px) {
-    .hub-main-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  .hub-box {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 18px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-  }
-  .hub-box-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.25rem;
-  }
-  .hub-box-title {
-    font-size: 1.2rem;
+  .ch-studio-brand {
+    font-size: 18px;
     font-weight: 700;
-    color: #0f172a;
-    margin: 0;
+    letter-spacing: -0.3px;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 8px;
+    color: var(--ch-text-main);
+    text-decoration: none;
+  }
+  .ch-nav-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+  .ch-nav-tab {
+    padding: 8px 14px;
+    border-radius: 8px;
+    color: var(--ch-text-muted);
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+  .ch-nav-tab:hover {
+    color: var(--ch-primary);
+    background: rgba(47, 75, 192, 0.06);
+  }
+  .ch-nav-tab.active {
+    background: var(--ch-sch-bg);
+    color: var(--ch-sch-text);
+    font-weight: 600;
+  }
+  .ch-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
   }
 
-  /* Customer Leaderboard Table */
-  .customer-list {
+  /* Main Container */
+  .ch-main {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 28px 24px 56px;
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
+    gap: 22px;
   }
-  .customer-row {
+
+  /* Greeting & Header */
+  .ch-header-row {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    padding: 0.9rem 1rem;
-    border-radius: 12px;
-    background: #f8fafc;
-    border: 1px solid #f1f5f9;
-    transition: all 0.2s;
+    align-items: flex-end;
+    gap: 16px;
+    flex-wrap: wrap;
   }
-  .customer-row:hover {
-    background: #f1f5f9;
-    border-color: #e2e8f0;
+  .ch-greeting {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin: 0 0 4px;
   }
-  .customer-meta {
-    display: flex;
-    align-items: center;
-    gap: 0.85rem;
-  }
-  .customer-rank {
-    font-size: 0.85rem;
-    font-weight: 800;
-    color: #6366f1;
-    width: 20px;
-    text-align: center;
-  }
-  .customer-avatar {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    background: #e2e8f0;
-    object-fit: cover;
-  }
-  .customer-info h4 {
+  .ch-meta-note {
+    font-size: 13.5px;
+    color: var(--ch-text-muted);
     margin: 0;
-    font-size: 0.95rem;
+  }
+
+  /* Cards & Layout */
+  .ch-card {
+    background: var(--ch-card-bg);
+    border: 1px solid var(--ch-card-border);
+    border-radius: 14px;
+    padding: 22px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  }
+  .ch-card-title {
+    font-size: 17px;
     font-weight: 700;
-    color: #0f172a;
+    letter-spacing: -0.2px;
+    margin: 0 0 6px;
+    color: var(--ch-text-main);
   }
-  .customer-info span {
-    font-size: 0.78rem;
-    color: #64748b;
+  .ch-card-sub {
+    font-size: 13px;
+    color: var(--ch-text-muted);
+    margin: 0 0 12px;
+    line-height: 1.45;
   }
-  .tier-badge {
+
+  .lbl {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ch-text-muted);
+    margin: 0 0 6px;
+  }
+  .big {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin: 0;
+    color: var(--ch-text-main);
+  }
+  .note {
+    font-size: 13px;
+    color: var(--ch-text-muted);
+    margin: 6px 0 0;
+    line-height: 1.45;
+  }
+
+  /* Grid Layouts */
+  .ch-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 16px;
+  }
+  .ch-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr));
+    gap: 16px;
+  }
+
+  /* Pills */
+  .pill {
     display: inline-block;
-    padding: 0.15rem 0.5rem;
-    border-radius: 6px;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 99px;
   }
-  .tier-superfan {
-    background: #fef3c7;
-    color: #b45309;
-    border: 1px solid #fde68a;
+  .ok { background: var(--ch-ok-bg); color: var(--ch-ok-text); }
+  .wait { background: var(--ch-wait-bg); color: var(--ch-wait-text); }
+  .sch { background: var(--ch-sch-bg); color: var(--ch-sch-text); }
+
+  /* Breakdown Row */
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--ch-row-border);
+    font-size: 14px;
   }
-  .tier-vip {
-    background: #ede9fe;
-    color: #6d28d9;
-    border: 1px solid #ddd6fe;
+
+  /* Buttons */
+  .btn {
+    font: 600 13.5px var(--ch-font);
+    padding: 10px 18px;
+    border-radius: 10px;
+    border: 1px solid #CBD1DB;
+    background: var(--ch-card-bg);
+    color: var(--ch-text-main);
+    cursor: pointer;
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: all 0.15s ease;
   }
-  .tier-regular {
-    background: #f1f5f9;
-    color: #475569;
+  .btn:hover {
+    border-color: #94A3B8;
   }
-  .customer-stats {
+  .btn-primary {
+    background: var(--ch-primary);
+    color: #FFFFFF !important;
+    border-color: var(--ch-primary);
+  }
+  .btn-primary:hover {
+    background: var(--ch-primary-hover);
+    border-color: var(--ch-primary-hover);
+  }
+  .btn-sm {
+    min-height: 32px;
+    padding: 6px 12px;
+    font-size: 12.5px;
+    border-radius: 8px;
+  }
+
+  /* Tables */
+  .table-responsive {
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    min-width: 0;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  th {
+    text-align: left;
+    font-weight: 600;
+    color: var(--ch-text-muted);
+    font-size: 13px;
+    white-space: nowrap;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--ch-card-border);
+  }
+  td {
+    padding: 12px;
+    border-bottom: 1px solid var(--ch-row-border);
+    vertical-align: middle;
+  }
+  .r { text-align: right; }
+  .c { text-align: center; }
+
+  /* Monetize & Grouping Accordions / Cards */
+  .group-header {
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-weight: 600;
+    font-size: 13.5px;
+    margin-top: 14px;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  [data-theme="dark"] .group-header {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .price-input-wrap {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--ch-card-border);
+    border-radius: 8px;
+    padding: 3px 8px;
+    background: var(--ch-card-bg);
+  }
+  .price-input {
+    width: 65px;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--ch-text-main);
+    font-size: 13px;
+    font-weight: 600;
     text-align: right;
   }
-  .customer-spent {
-    font-size: 0.95rem;
-    font-weight: 800;
-    color: #059669;
+
+  /* Switch */
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 36px;
+    height: 20px;
+    vertical-align: middle;
   }
-  .customer-notes {
-    font-size: 0.75rem;
-    color: #64748b;
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #CBD5E1;
+    transition: .2s;
+    border-radius: 20px;
   }
-  .customer-actions {
-    display: flex;
-    gap: 0.4rem;
-    margin-left: 0.75rem;
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .2s;
+    border-radius: 50%;
   }
-  .btn-connect {
-    padding: 0.4rem 0.65rem;
-    border-radius: 8px;
-    font-size: 0.78rem;
-    font-weight: 600;
+  input:checked + .slider {
+    background-color: #2F4BC0;
+  }
+  input:checked + .slider:before {
+    transform: translateX(16px);
+  }
+
+  /* Help Dark Card */
+  .ch-dark-banner {
+    background: var(--ch-dark-card);
+    color: #FFFFFF;
+    border: 1px solid #2D3748;
+    border-radius: 14px;
+    padding: 26px;
+  }
+  .ch-dark-banner a {
+    color: #B9C6FF;
     text-decoration: none;
+  }
+  .ch-dark-banner a:hover {
+    text-decoration: underline;
+  }
+
+  /* Pagination */
+  .pagination-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 0 4px;
+    margin-top: 10px;
+    border-top: 1px solid var(--ch-row-border);
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--ch-text-muted);
+  }
+  .pagination-btns {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
+    gap: 6px;
   }
-  .btn-connect-email {
-    background: #e0e7ff;
-    color: #3730a3;
-  }
-  .btn-connect-email:hover {
-    background: #c7d2fe;
-  }
-  .btn-connect-wa {
-    background: #dcfce7;
-    color: #166534;
-  }
-  .btn-connect-wa:hover {
-    background: #bbf7d0;
-  }
-
-  /* Broadcast Form */
-  .form-group {
-    margin-bottom: 1rem;
-  }
-  .form-label {
-    display: block;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #334155;
-    margin-bottom: 0.35rem;
-  }
-  .form-input, .form-textarea, .form-select {
-    width: 100%;
-    padding: 0.65rem 0.85rem;
-    border: 1px solid #cbd5e1;
-    border-radius: 10px;
-    font-size: 0.9rem;
-    background: #f8fafc;
-    box-sizing: border-box;
-    transition: border-color 0.15s;
-  }
-  .form-input:focus, .form-textarea:focus, .form-select:focus {
-    outline: none;
-    border-color: #6366f1;
-    background: #ffffff;
-  }
-  .btn-submit {
-    width: 100%;
-    background: #4f46e5;
-    color: #ffffff;
-    border: none;
-    border-radius: 10px;
-    padding: 0.75rem;
-    font-weight: 700;
+  .page-btn {
+    padding: 5px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--ch-card-border);
+    background: var(--ch-card-bg);
+    color: var(--ch-text-main);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.15s ease;
   }
-  .btn-submit:hover {
-    background: #4338ca;
+  .page-btn:hover:not(.disabled) {
+    border-color: var(--ch-primary);
+    color: var(--ch-primary);
+  }
+  .page-btn.active {
+    background: var(--ch-primary);
+    color: #FFFFFF !important;
+    border-color: var(--ch-primary);
+    font-weight: 600;
+  }
+  .page-btn.disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
   }
 
-  /* Broadcast feed */
-  .broadcast-feed {
-    margin-top: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-  .broadcast-item {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
+  /* Toast Notification */
+  #chToast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #14181F;
+    color: #FFFFFF;
+    padding: 12px 20px;
     border-radius: 10px;
-    padding: 0.9rem;
+    font-size: 13.5px;
+    font-weight: 500;
+    display: none;
+    z-index: 9999;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   }
-  .broadcast-item h5 {
-    margin: 0 0 0.25rem;
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: #1e293b;
+
+  /* ── Apple Mobile Navigation Enhancements ── */
+  .ch-brand-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
   }
-  .broadcast-item p {
-    margin: 0 0 0.4rem;
-    font-size: 0.82rem;
-    color: #475569;
-    line-height: 1.4;
+  .ch-mobile-live-pill {
+    display: none;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ch-primary);
+    background: var(--ch-sch-bg);
+    border-radius: 980px;
+    padding: 4px 10px;
+    text-decoration: none;
+    align-items: center;
+    gap: 5px;
   }
-  .broadcast-item small {
-    color: #94a3b8;
-    font-size: 0.72rem;
+
+  @media (max-width: 768px) {
+    .ch-wrapper {
+      padding-bottom: calc(110px + env(safe-area-inset-bottom, 24px)) !important;
+    }
+    .ch-subbar-inner {
+      padding: 8px 12px 6px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 8px !important;
+    }
+    .ch-brand-row {
+      width: 100% !important;
+    }
+    .ch-studio-brand {
+      font-size: 16px !important;
+    }
+    .ch-mobile-live-pill {
+      display: inline-flex !important;
+      font-size: 11.5px !important;
+      padding: 3px 9px !important;
+    }
+    .ch-header-actions {
+      display: none !important; /* Handled via Quick Actions pill row */
+    }
+    .ch-nav-tabs {
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      overflow-x: auto !important;
+      scrollbar-width: none !important;
+      -webkit-overflow-scrolling: touch !important;
+      gap: 6px !important;
+      padding: 1px 2px 4px !important;
+      margin: 0 -12px !important;
+      padding-left: 12px !important;
+      padding-right: 12px !important;
+      width: auto !important;
+    }
+    .ch-nav-tabs::-webkit-scrollbar {
+      display: none !important;
+    }
+    .ch-nav-tab {
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
+      padding: 5px 12px !important;
+      font-size: 12px !important;
+      font-weight: 550 !important;
+      border-radius: 980px !important;
+      background: var(--ch-card-bg);
+      border: 1px solid var(--ch-card-border);
+    }
+    .ch-nav-tab.active {
+      background: var(--ch-primary) !important;
+      color: #FFFFFF !important;
+      border-color: var(--ch-primary) !important;
+    }
+    .ch-main {
+      padding: 10px 12px 32px !important;
+      gap: 10px !important;
+    }
+    .ch-header-row {
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 4px !important;
+      margin-bottom: 2px !important;
+    }
+    .ch-greeting {
+      font-size: 17px !important;
+      line-height: 1.25 !important;
+      margin: 0 !important;
+    }
+    .ch-meta-note {
+      font-size: 11px !important;
+      line-height: 1.3 !important;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .ch-quick-actions {
+      padding: 0 0 2px !important;
+      gap: 6px !important;
+    }
+    .ch-action-pill {
+      min-height: 34px !important;
+      padding: 4px 10px !important;
+      font-size: 12px !important;
+      border-radius: 980px !important;
+    }
+    /* Compact 2x2 KPI Grid for Mobile */
+    .ch-grid-4.ch-stats-carousel {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 8px !important;
+      padding: 0 !important;
+      overflow: visible !important;
+    }
+    .ch-grid-4.ch-stats-carousel .ch-card {
+      flex: initial !important;
+      padding: 10px 12px !important;
+      border-radius: 12px !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+    }
+    .ch-grid-4.ch-stats-carousel .lbl {
+      font-size: 11px !important;
+      margin-bottom: 2px !important;
+    }
+    .ch-grid-4.ch-stats-carousel .big {
+      font-size: 17px !important;
+      line-height: 1.2 !important;
+    }
+    .ch-grid-4.ch-stats-carousel .note {
+      font-size: 10.5px !important;
+      margin-top: 2px !important;
+      line-height: 1.2 !important;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .ch-carousel-dots {
+      display: none !important;
+    }
+    /* Filter Pills */
+    .ch-filter-pill-group {
+      display: inline-flex;
+      align-items: center;
+      background: var(--ch-bg, #f5f6f9);
+      border: 1px solid var(--ch-card-border, #e3e6ec);
+      border-radius: 980px;
+      padding: 3px;
+      gap: 3px;
+      margin-top: 4px;
+    }
+    .ch-filter-pill {
+      border: none;
+      background: transparent;
+      color: var(--ch-text-muted, #566070);
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 980px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .ch-filter-pill.active {
+      background: var(--ch-card-bg, #ffffff);
+      color: var(--ch-primary, #2f4bc0);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
+    /* Apple Mobile Cards Redesign for Documents */
+    .ch-desktop-only {
+      display: table-cell;
+    }
+    .ch-mobile-only {
+      display: none !important;
+    }
+
+    @media (max-width: 768px) {
+      .ch-desktop-only {
+        display: none !important;
+      }
+      .ch-mobile-only {
+        display: inline-flex !important;
+      }
+      .table-responsive tbody {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+      }
+      .ch-doc-card-row {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 6px !important;
+        padding: 12px 14px !important;
+        border-radius: 14px !important;
+        background: var(--ch-card-bg) !important;
+        border: 1px solid var(--ch-card-border) !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+      }
+      .ch-doc-title-cell {
+        display: block !important;
+        border-bottom: 1px solid var(--ch-row-border) !important;
+        padding: 0 0 8px 0 !important;
+        margin: 0 !important;
+        text-align: left !important;
+      }
+      .ch-doc-title-cell::before {
+        display: none !important;
+      }
+      .ch-doc-title {
+        font-size: 14px !important;
+        font-weight: 650 !important;
+        color: var(--ch-text-main) !important;
+        line-height: 1.35 !important;
+        display: block !important;
+      }
+      .ch-doc-meta {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        margin-top: 4px !important;
+        font-size: 11.5px !important;
+        color: var(--ch-text-muted) !important;
+        flex-wrap: wrap !important;
+      }
+      .ch-sales-badge {
+        color: var(--ch-primary) !important;
+        font-weight: 600 !important;
+        background: var(--ch-sch-bg) !important;
+        padding: 2px 7px !important;
+        border-radius: 980px !important;
+      }
+      .ch-doc-access-cell {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        padding: 4px 0 0 0 !important;
+        border-bottom: none !important;
+      }
+      .ch-doc-access-cell::before {
+        content: "Access" !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        color: var(--ch-text-muted) !important;
+      }
+      .ch-access-control-wrap {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+      }
+      .ch-status-pill {
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        padding: 3px 9px !important;
+        border-radius: 980px !important;
+      }
+      .ch-status-pill.free {
+        background: var(--ch-ok-bg) !important;
+        color: var(--ch-ok-text) !important;
+      }
+      .ch-status-pill.paid {
+        background: var(--ch-wait-bg) !important;
+        color: var(--ch-wait-text) !important;
+      }
+      .ch-doc-price-cell {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        padding: 6px 0 0 0 !important;
+        border-top: 1px dashed var(--ch-row-border) !important;
+        border-bottom: none !important;
+      }
+      .ch-doc-price-cell::before {
+        content: "Price" !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        color: var(--ch-text-muted) !important;
+      }
+      .ch-price-edit-row {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+      }
+      .ch-inline-save-btn {
+        min-height: 32px !important;
+        padding: 4px 14px !important;
+        font-size: 12px !important;
+        border-radius: 980px !important;
+        background: var(--ch-primary) !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        font-weight: 600 !important;
+      }
+      /* When not paid, hide price cell completely on mobile */
+      tr[data-is-paid="false"] .ch-doc-price-cell {
+        display: none !important;
+      }
+
+      /* Apple Supporter Row Simplification */
+      .ch-supporter-row {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        padding: 9px 12px !important;
+        border-radius: 12px !important;
+        background: var(--ch-card-bg) !important;
+        border: 1px solid var(--ch-card-border) !important;
+        margin-bottom: 6px !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+      }
+      .ch-supporter-main {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+        flex: 1 !important;
+        min-width: 0 !important;
+      }
+      .ch-supporter-avatar {
+        width: 34px !important;
+        height: 34px !important;
+        border-radius: 50% !important;
+        background: var(--ch-sch-bg) !important;
+        color: var(--ch-primary) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-weight: 700 !important;
+        font-size: 13px !important;
+        flex-shrink: 0 !important;
+      }
+      .ch-supporter-info {
+        display: flex !important;
+        flex-direction: column !important;
+        min-width: 0 !important;
+      }
+      .ch-supporter-name-row {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+      }
+      .ch-supporter-name {
+        font-size: 13.5px !important;
+        font-weight: 650 !important;
+        color: var(--ch-text-main) !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+      }
+      .ch-supporter-meta {
+        font-size: 11px !important;
+        color: var(--ch-text-muted) !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+        margin-top: 1px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+      }
+      .ch-supporter-right {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-end !important;
+        flex-shrink: 0 !important;
+        margin-left: 8px !important;
+      }
+      .ch-supporter-amount {
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        color: var(--ch-text-main) !important;
+        letter-spacing: -0.2px !important;
+      }
+      .ch-supporter-rank {
+        font-size: 10px !important;
+        font-weight: 600 !important;
+        color: var(--ch-text-muted) !important;
+      }
+      .ch-supporter-mobile-cell {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+        padding: 0 !important;
+        border: none !important;
+      }
+      .ch-supporter-mobile-cell::before {
+        display: none !important;
+      }
+    }
+    /* Apple Info Tooltip */
+    .ch-tooltip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--ch-bg, #f5f6f9);
+      border: 1px solid var(--ch-card-border, #e3e6ec);
+      color: var(--ch-text-muted, #566070);
+      font-size: 10px;
+      font-weight: 700;
+      cursor: help;
+      margin-left: 4px;
+      vertical-align: middle;
+      transition: all 0.15s ease;
+    }
+    .ch-tooltip:hover {
+      background: var(--ch-primary, #2f4bc0);
+      color: #ffffff;
+      border-color: var(--ch-primary, #2f4bc0);
+    }
+    .ch-grid-2 {
+      grid-template-columns: 1fr !important;
+      gap: 10px !important;
+    }
+    .ch-card {
+      padding: 12px 14px !important;
+      border-radius: 14px !important;
+    }
+    .ch-card-title {
+      font-size: 15px !important;
+      margin-bottom: 4px !important;
+    }
+    .big {
+      font-size: 20px !important;
+    }
+    .row {
+      padding: 7px 0 !important;
+      font-size: 12.5px !important;
+    }
+    .btn {
+      min-height: 38px !important;
+      font-size: 13px !important;
+      padding: 6px 14px !important;
+      border-radius: 980px !important;
+    }
   }
 </style>
 
-<div class="creator-hub-container">
-  <!-- Coming Soon Launch Hero Section -->
-  <div class="creator-cs-hero" style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 45%, #4338ca 100%); border-radius: 24px; padding: 3rem 1.75rem; color: #ffffff; text-align: center; margin-bottom: 2rem; position: relative; overflow: hidden; box-shadow: 0 20px 40px -15px rgba(30, 27, 75, 0.5);">
-    <div style="position: absolute; top: -50px; right: -50px; width: 220px; height: 220px; background: radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%); border-radius: 50%; pointer-events: none;"></div>
-    <div style="position: absolute; bottom: -60px; left: -30px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(168,85,247,0.2) 0%, transparent 70%); border-radius: 50%; pointer-events: none;"></div>
+<div class="ch-wrapper">
+  <!-- Sub Header Nav (Inspired by Reference Design) -->
+  <header class="ch-subbar">
+    <div class="ch-subbar-inner">
+      <div class="ch-brand-row">
+        <a href="{{ url_for('channels.creator_hub') }}" class="ch-studio-brand">
+          <i class="fa-solid fa-chart-line" style="color: var(--ch-primary);"></i>
+          <span>Creator Studio</span>
+        </a>
+        {% if channel and channel.handle %}
+        <a href="{{ url_for('channels.public_channel_view', handle=channel.handle) }}" target="_blank" class="ch-mobile-live-pill">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i> Live Channel
+        </a>
+        {% endif %}
+      </div>
+      <nav class="ch-nav-tabs">
+        <a href="#overview" class="ch-nav-tab active">Overview</a>
+        <a href="#sales" class="ch-nav-tab">Sales &amp; Monetization</a>
+        <a href="#payouts" class="ch-nav-tab">Payouts</a>
+        <a href="#customers" class="ch-nav-tab">Supporters</a>
+        <a href="#help" class="ch-nav-tab">Help</a>
+      </nav>
+      <div class="ch-header-actions">
+        {% if channel and channel.handle %}
+        <a href="{{ url_for('channels.public_channel_view', handle=channel.handle) }}" target="_blank" class="btn btn-sm">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i> Live Channel
+        </a>
+        {% endif %}
+        <a href="{{ url_for('channels.channel_studio') }}" class="btn btn-sm">
+          <i class="fa-solid fa-sliders"></i> Channel Settings
+        </a>
+        <a href="{{ url_for('app_pages.upload') }}" class="btn btn-primary btn-sm">
+          <i class="fa-solid fa-cloud-arrow-up"></i> Upload Material
+        </a>
+      </div>
+    </div>
+  </header>
 
-    <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(99, 102, 241, 0.25); border: 1px solid rgba(165, 180, 252, 0.35); padding: 0.35rem 1rem; border-radius: 999px; font-size: 0.82rem; font-weight: 800; color: #c7d2fe; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 1.25rem;">
-      <span style="display: inline-block; width: 8px; height: 8px; background: #34d399; border-radius: 50%;"></span>
-      🚀 Official Launch Coming Soon · Fall 2026
+  <!-- Main Content Space -->
+  <main class="ch-main">
+    <!-- Greeting & Period -->
+    <div class="ch-header-row" id="overview">
+      <div>
+        <h1 class="ch-greeting">Hi {{ user.name or 'Creator' }}, here is your money</h1>
+        <p class="ch-meta-note">
+          Period: Last 30 Days &bull; All amounts in INR (₹) &bull; Sole Income Source: 100% File Sales (No ads / view incentives)
+        </p>
+      </div>
+      <div>
+        <span class="pill ok">
+          <i class="fa-solid fa-bolt"></i> Real-time Sync Active
+        </span>
+      </div>
     </div>
 
-    <h1 style="font-size: 2.25rem; font-weight: 900; margin: 0 0 1rem; line-height: 1.25; letter-spacing: -0.5px;">
-      Creator Hub & VIP Student CRM
-    </h1>
-    <p style="font-size: 1.05rem; color: #cbd5e1; max-width: 640px; margin: 0 auto 1.75rem; line-height: 1.6;">
-      Monetize your handwritten notes: <strong>keep 90% of amounts</strong> (only 10% commission for first 90 days for accounts registered before 8 Nov; standard 30% commission), with money sent to your account in <strong>T+9 days or earlier</strong>.
-    </p>
-
-    <!-- Early Access Waitlist Box -->
-    <div style="max-width: 480px; margin: 0 auto 1.25rem; background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px; padding: 0.55rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-      <input type="email" id="cs-creator-email" value="{{ user.get('email', '') }}" placeholder="Enter your college email" style="flex: 1; min-width: 220px; padding: 0.75rem 1rem; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px; color: #ffffff; font-size: 0.9rem; outline: none;" />
-      <button type="button" onclick="joinCreatorWaitlist()" id="cs-join-btn" style="padding: 0.75rem 1.4rem; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: #ffffff; border: none; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; white-space: nowrap;">
-        Claim VIP Early Access ✨
-      </button>
-    </div>
-    <div id="cs-waitlist-status" style="font-size: 0.85rem; font-weight: 700; margin-bottom: 1.25rem; min-height: 20px;"></div>
-
-    <div style="display: flex; justify-content: center; align-items: center; gap: 1.25rem; flex-wrap: wrap; font-size: 0.85rem; color: #94a3b8;">
-      <span style="display: flex; align-items: center; gap: 0.4rem;">
-        <strong style="color: #38bdf8;">🔥 142 creators</strong> on waitlist
-      </span>
-      <span>•</span>
-      <span style="display: flex; align-items: center; gap: 0.4rem;">
-        <strong style="color: #34d399;">₹0 Listing Fees</strong>
-      </span>
-      <span>•</span>
-      <span style="display: flex; align-items: center; gap: 0.4rem;">
-        <strong style="color: #fbbf24;">Keep up to 90% (Std 70%)</strong>
-      </span>
-      <span>•</span>
-      <span style="display: flex; align-items: center; gap: 0.4rem;">
-        <strong style="color: #60a5fa;">T+9 Days Payouts</strong>
-      </span>
+    <!-- Quick Actions (Mobile Priority Bar) -->
+    <div class="ch-quick-actions" role="toolbar" aria-label="Quick Actions">
+      <a href="{{ url_for('app_pages.upload') }}" class="ch-action-pill ch-action-primary">
+        <i class="fa-solid fa-cloud-arrow-up"></i> Upload Material
+      </a>
+      {% if channel and channel.handle %}
+      <a href="{{ url_for('channels.public_channel_view', handle=channel.handle) }}" target="_blank" class="ch-action-pill">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i> Live Channel
+      </a>
+      {% endif %}
+      <a href="{{ url_for('app_pages.settings') }}#payout" class="ch-action-pill">
+        <i class="fa-solid fa-wallet"></i> Payout Setup
+      </a>
+      <a href="{{ url_for('channels.channel_studio') }}" class="ch-action-pill">
+        <i class="fa-solid fa-sliders"></i> Channel Settings
+      </a>
     </div>
 
-    <!-- Toggle to view Live Dashboard Preview -->
-    <div style="margin-top: 1.85rem;">
-      <button type="button" onclick="toggleCreatorDashboard()" id="cs-toggle-btn" style="background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.25); color: #e2e8f0; padding: 0.5rem 1.2rem; border-radius: 999px; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.2s;">
-        👀 Explore Live Dashboard Preview ↓
-      </button>
-    </div>
-  </div>
+    <!-- 4 Primary KPI Cards (Horizontal Snap Carousel on Mobile) -->
+    <section class="ch-grid-4 ch-stats-carousel" id="chStatsCarousel" aria-label="Key numbers">
+      <div class="ch-card">
+        <p class="lbl">Gross sales</p>
+        <p class="big">₹{{ '%.2f'|format(gross_sales) }}</p>
+        <p class="note">{{ total_sales_count }} sales before platform fees &amp; taxes</p>
+      </div>
+      <div class="ch-card">
+        <p class="lbl">Net earnings</p>
+        <p class="big">₹{{ '%.2f'|format(net_earnings) }}</p>
+        <p class="note">Your 90% royalty share after platform fees</p>
+      </div>
+      <div class="ch-card">
+        <p class="lbl">Available to pay out</p>
+        <p class="big" style="color: #14633D;">₹{{ '%.2f'|format(withdrawable) }}</p>
+        <p class="note">Cleared and ready for transfer</p>
+      </div>
+      <div class="ch-card">
+        <p class="lbl">Pending (T+9 day hold)</p>
+        <p class="big" style="color: #7A4B00;">₹{{ '%.2f'|format(pending) }}</p>
+        <p class="note">Released as 9-day verification window clears</p>
+      </div>
+    </section>
 
-  <div id="creator-live-dashboard" style="display: none;">
-  <!-- Top Banner -->
-  <div class="hub-banner">
-    <div>
-      <h1><span>👑</span> Creator Hub & Community</h1>
-      <p>Recognize your most loyal student supporters, analyze purchase engagement, and share private study group updates directly with your audience.</p>
+    <!-- Carousel Indicator Dots -->
+    <div class="ch-carousel-dots" id="chCarouselDots" aria-hidden="true">
+      <span class="ch-carousel-dot active" onclick="scrollStatsCarousel(0)"></span>
+      <span class="ch-carousel-dot" onclick="scrollStatsCarousel(1)"></span>
+      <span class="ch-carousel-dot" onclick="scrollStatsCarousel(2)"></span>
+      <span class="ch-carousel-dot" onclick="scrollStatsCarousel(3)"></span>
     </div>
-    <div class="hub-banner-actions">
-      <a href="{{ url_for('channels.channel_studio') }}" class="btn-banner btn-banner-secondary">Channel Studio</a>
-      <a href="{{ url_for('app_pages.upload') }}" class="btn-banner btn-banner-primary">+ Upload New Material</a>
-    </div>
-  </div>
 
-  <!-- Metric Overview -->
-  <div class="metrics-grid">
-    <div class="metric-card">
-      <div class="metric-label">Total Customers</div>
-      <div class="metric-val">{{ stats.total_customers or 0 }}</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">Total Revenue</div>
-      <div class="metric-val">₹{{ stats.total_revenue or '0.00' }}</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">VIP Supporters</div>
-      <div class="metric-val">{{ stats.vip_count or 0 }}</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">Repeat Buyer Rate</div>
-      <div class="metric-val">{{ stats.repeat_rate or 0 }}%</div>
-    </div>
-  </div>
+    <!-- Two Column Grid: Next Payout & Calculation Breakdown -->
+    <section class="ch-grid-2" id="payouts">
+      <!-- Your Next Payout Card -->
+      <div class="ch-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <h2 class="ch-card-title" style="margin: 0;">Next Payout</h2>
+          {% if withdrawable > 0 %}
+            <span class="pill ok"><i class="fa-solid fa-circle-check"></i> Ready to Pay</span>
+          {% else %}
+            <span class="pill wait" title="Held in T+9 verification escrow. Auto-transfers on {{ next_payout_date }}"><i class="fa-solid fa-clock"></i> In Escrow</span>
+          {% endif %}
+        </div>
+        <p class="big" style="margin: 6px 0 4px;">
+          ₹{{ '%.2f'|format(withdrawable if withdrawable > 0 else pending) }}
+        </p>
+        <p class="note" style="font-size: 12.5px; margin: 0 0 12px; line-height: 1.4;">
+          Arrives <strong>{{ next_payout_date }}</strong> via <strong>{{ destination_display }}</strong>
+          <span class="ch-tooltip" title="Direct settlement via UPI/IMPS. Held in T+9 verification escrow to protect creators from fraud.">ⓘ</span>
+        </p>
 
-  <!-- Main Grid -->
-  <div class="hub-main-grid">
-    <!-- Left Column: Top Customers -->
-    <div class="hub-box">
-      <div class="hub-box-header">
-        <h2 class="hub-box-title"><span>🌟</span> Top Customer Leaderboard</h2>
-        <span style="font-size: 0.8rem; color: #64748b; font-weight: 600;">Ranked by LTV</span>
+        {% if withdrawable >= 5 %}
+        <button class="btn btn-primary btn-sm" onclick="triggerPayoutRequest({{ withdrawable }})" style="width: 100%; justify-content: center; border-radius: 980px;">
+          <i class="fa-solid fa-bolt"></i> Withdraw Now (₹{{ '%.2f'|format(withdrawable) }})
+        </button>
+        {% else %}
+        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; color: var(--ch-text-muted); background: var(--ch-bg); padding: 7px 12px; border-radius: 10px;">
+          <span><i class="fa-solid fa-circle-info"></i> Auto-settles on {{ next_payout_date[:6] }}</span>
+          <span>Min. ₹5.00</span>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- How Your Earnings are Calculated Card -->
+      <div class="ch-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <h2 class="ch-card-title" style="margin: 0;">Earnings Breakdown</h2>
+          <span class="pill ok">90% Royalties</span>
+        </div>
+        <p class="big" style="color: var(--ch-primary); margin: 6px 0 4px;">
+          ₹{{ '%.2f'|format(net_earnings) }}
+        </p>
+        <p class="ch-card-sub" style="margin-bottom: 8px; font-size: 12px;">Net creator share from student file purchases</p>
+
+        <div class="row" style="padding: 5px 0; font-size: 12.5px;">
+          <span>Gross sales</span>
+          <strong>₹{{ '%.2f'|format(gross_sales) }}</strong>
+        </div>
+        <div class="row" style="padding: 5px 0; font-size: 12.5px;">
+          <span>
+            Deductions (10% fee + 1% TDS)
+            <span class="ch-tooltip" title="10% Platform fee: ₹{{ '%.2f'|format(platform_fee) }} | 1% TDS u/s 194-O: ₹{{ '%.2f'|format(tds_tax) }} | Processing &amp; Hosting: ₹0 (Covered by AbhiHub)">ⓘ</span>
+          </span>
+          <strong style="color: #b91c1c;">&minus; ₹{{ '%.2f'|format(platform_fee + tds_tax) }}</strong>
+        </div>
+        <div class="row" style="border: 0; padding-top: 8px; font-size: 13px;">
+          <strong>Net earnings to account</strong>
+          <strong style="color: var(--ch-primary);">₹{{ '%.2f'|format(net_earnings) }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- Monetize & Group Files (Sales by Product) -->
+    <section class="ch-card" id="sales">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;">
+        <div>
+          <h2 class="ch-card-title">Sales by Document &amp; Subject Grouping</h2>
+          <p class="ch-card-sub" style="margin-bottom: 8px;">
+            Organize your materials by subject or course, set individual prices (₹), and toggle free vs paid monetization.
+          </p>
+          <div class="ch-filter-pill-group" role="group" aria-label="Filter documents">
+            <button type="button" class="ch-filter-pill active" onclick="filterSalesMaterials('all', this)">All</button>
+            <button type="button" class="ch-filter-pill" onclick="filterSalesMaterials('paid', this)">
+              <i class="fa-solid fa-tag"></i> Paid Only
+            </button>
+            <button type="button" class="ch-filter-pill" onclick="filterSalesMaterials('free', this)">
+              <i class="fa-solid fa-gift"></i> Free Only
+            </button>
+          </div>
+        </div>
+        <a href="{{ url_for('app_pages.upload') }}" class="btn btn-sm btn-primary">
+          <i class="fa-solid fa-plus"></i> Upload New Material
+        </a>
+      </div>
+
+      {% if grouped_products %}
+        {% for group_name, group_items in grouped_products.items() %}
+        <div class="group-block">
+        <div class="group-header">
+          <span><i class="fa-solid fa-folder-open" style="color: var(--ch-primary); margin-right: 6px;"></i> <strong>{{ group_name }}</strong> ({{ group_items|length }} file{{ 's' if group_items|length != 1 else '' }})</span>
+          <span style="font-size: 12.5px; color: var(--ch-text-muted);">
+            Group Total Sales: ₹{{ '%.2f'|format(group_items|sum(attribute='gross_revenue')) }}
+          </span>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th style="min-width: 240px;">Material / Document</th>
+                <th>Category</th>
+                <th class="c">Access</th>
+                <th>Price (₹)</th>
+                <th class="r">Sales</th>
+                <th class="r">Gross Revenue</th>
+                <th class="r">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in group_items %}
+              <tr id="doc-row-{{ p.id }}" class="ch-doc-card-row" data-doc-row="true" data-is-paid="{{ 'true' if p.is_paid else 'false' }}">
+                <td class="ch-doc-title-cell" data-label="Material">
+                  <strong class="ch-doc-title">{{ p.group or p.title }}</strong>
+                  <div class="ch-doc-meta">
+                    <span class="pill sch" style="font-size: 10.5px; padding: 2px 7px;">{{ p.category }}</span>
+                    <span>&bull;</span>
+                    <span>{{ p.views }} views</span>
+                    {% if p.is_paid and p.sales_count > 0 %}
+                    <span>&bull;</span>
+                    <span class="ch-sales-badge">{{ p.sales_count }} sold (₹{{ '%.0f'|format(p.gross_revenue) }})</span>
+                    {% endif %}
+                  </div>
+                </td>
+                <td class="ch-desktop-only" data-label="Category">
+                  <span class="pill sch" style="font-size: 11px;">{{ p.category }}</span>
+                </td>
+                <td class="c ch-doc-access-cell" data-label="Access">
+                  <div class="ch-access-control-wrap">
+                    <label class="switch">
+                      <input type="checkbox" id="toggle-{{ p.id }}" {% if p.is_paid %}checked{% endif %} onchange="handlePaidToggle('{{ p.id }}')">
+                      <span class="slider"></span>
+                    </label>
+                    <span id="status-label-{{ p.id }}" class="ch-status-pill {% if p.is_paid %}paid{% else %}free{% endif %}">
+                      {{ 'Paid' if p.is_paid else 'Free' }}
+                    </span>
+                  </div>
+                </td>
+                <td data-label="Price" class="ch-doc-price-cell doc-paid-info">
+                  <div class="ch-price-edit-row">
+                    <div class="price-input-wrap">
+                      <span style="font-size: 13px; font-weight: 600; color: var(--ch-text-muted); margin-right: 2px;">₹</span>
+                      <input type="number" min="0" max="999" step="1" id="price-{{ p.id }}" class="price-input" value="{{ '%.0f'|format(p.price) if p.price else '19' }}" {% if not p.is_paid %}disabled style="opacity: 0.5;"{% endif %}>
+                    </div>
+                    <button class="btn btn-sm ch-inline-save-btn ch-mobile-only" onclick="saveMonetization('{{ p.id }}')" data-save-id="{{ p.id }}">
+                      Save
+                    </button>
+                  </div>
+                </td>
+                <td class="r doc-paid-info ch-desktop-only" data-label="Sales" style="font-weight: 600;">
+                  {{ p.sales_count }}
+                </td>
+                <td class="r doc-paid-info ch-desktop-only" data-label="Gross Revenue" style="font-weight: 700; color: var(--ch-text-main);">
+                  ₹{{ '%.2f'|format(p.gross_revenue) }}
+                </td>
+                <td class="r ch-desktop-only" data-label="Action">
+                  <button class="btn btn-sm" onclick="saveMonetization('{{ p.id }}')" data-save-id="{{ p.id }}" style="padding: 4px 10px; font-size: 12px;">
+                    Save
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        </div>
+        {% endfor %}
+
+      {% if total_product_pages and total_product_pages > 1 %}
+      <div class="pagination-bar">
+        <span>Showing Page {{ p_page }} of {{ total_product_pages }} ({{ all_products_count }} total files)</span>
+        <div class="pagination-btns">
+          <a href="?p_page={{ p_page - 1 }}&c_page={{ c_page }}#sales" class="page-btn {% if p_page <= 1 %}disabled{% endif %}">
+            &larr; Prev
+          </a>
+          {% for pg in range(1, total_product_pages + 1) %}
+            {% if pg == p_page or (pg >= p_page - 2 and pg <= p_page + 2) %}
+              <a href="?p_page={{ pg }}&c_page={{ c_page }}#sales" class="page-btn {% if pg == p_page %}active{% endif %}">
+                {{ pg }}
+              </a>
+            {% endif %}
+          {% endfor %}
+          <a href="?p_page={{ p_page + 1 }}&c_page={{ c_page }}#sales" class="page-btn {% if p_page >= total_product_pages %}disabled{% endif %}">
+            Next &rarr;
+          </a>
+        </div>
+      </div>
+      {% endif %}
+      {% else %}
+        <div style="text-align: center; padding: 40px 20px; color: var(--ch-text-muted);">
+          <i class="fa-solid fa-file-invoice" style="font-size: 32px; color: #CBD5E1; margin-bottom: 12px; display: block;"></i>
+          <p style="margin: 0 0 12px; font-size: 14px;">You haven't uploaded any study materials yet.</p>
+          <a href="{{ url_for('app_pages.upload') }}" class="btn btn-primary btn-sm">Upload Your First Note</a>
+        </div>
+      {% endif %}
+    </section>
+
+    <!-- Student Customer Supporters (Strict Privacy - Customer Name ONLY) -->
+    <section class="ch-card" id="customers">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 12px;">
+        <div>
+          <h2 class="ch-card-title">Student Supporters</h2>
+          <p class="ch-card-sub">
+            Classmates and students who purchased your materials (Privacy Protected: Name only, zero contact info).
+          </p>
+        </div>
+        <span class="pill ok">
+          <i class="fa-solid fa-shield-halved"></i> Zero Contact PII Shared
+        </span>
       </div>
 
       {% if customers %}
-      <div class="customer-list">
-        {% for c in customers %}
-        <div class="customer-row">
-          <div class="customer-meta">
-            <span class="customer-rank">#{{ loop.index }}</span>
-            <img class="customer-avatar" src="{{ c.avatar_url }}" alt="{{ c.name }}" />
-            <div class="customer-info">
-              <h4>
-                {{ c.name }}
-                <span class="tier-badge tier-{{ c.vip_tier }}">{{ c.vip_tier }}</span>
-              </h4>
-              <span>{{ c.total_notes }} note{{ 's' if c.total_notes != 1 else '' }} unlocked • Active {{ c.last_active }}</span>
-            </div>
-          </div>
-          <div style="display: flex; align-items: center;">
-            <div class="customer-stats">
-              <div class="customer-spent">₹{{ c.total_spent }}</div>
-              <div class="customer-notes">Total Spent</div>
-            </div>
-            <div class="customer-actions">
-              {% if c.email_link %}
-              <a href="{{ c.email_link }}" class="btn-connect btn-connect-email" title="Send Email">✉️ Connect</a>
-              {% endif %}
-              {% if c.whatsapp_link %}
-              <a href="{{ c.whatsapp_link }}" target="_blank" class="btn-connect btn-connect-wa" title="WhatsApp Message">💬 WhatsApp</a>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-        {% endfor %}
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 48px;" class="c">#</th>
+              <th>Student Name</th>
+              <th>Tier</th>
+              <th class="c">Materials Unlocked</th>
+              <th class="r">Total Contributed</th>
+              <th class="r">Last Active</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in customers %}
+            <tr class="ch-supporter-row">
+              <!-- Mobile-only single-line Apple List Item -->
+              <td class="ch-supporter-mobile-cell ch-mobile-only">
+                <div class="ch-supporter-main">
+                  <div class="ch-supporter-avatar">
+                    {{ c.name[:1]|upper if c.name else 'S' }}
+                  </div>
+                  <div class="ch-supporter-info">
+                    <div class="ch-supporter-name-row">
+                      <span class="ch-supporter-name">{{ c.name }}</span>
+                      {% if c.vip_tier == 'superfan' %}
+                        <span class="pill" style="background: rgba(147, 51, 234, 0.12); color: #9333ea; font-size: 9.5px; padding: 1px 6px;">Superfan</span>
+                      {% elif c.vip_tier == 'vip' %}
+                        <span class="pill wait" style="font-size: 9.5px; padding: 1px 6px;">VIP</span>
+                      {% endif %}
+                    </div>
+                    <div class="ch-supporter-meta">
+                      <span>{{ c.total_notes }} note{{ 's' if c.total_notes != 1 else '' }}</span>
+                      <span>&bull;</span>
+                      <span>{{ c.last_active or 'Recently' }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="ch-supporter-right">
+                  <span class="ch-supporter-amount">₹{{ '%.2f'|format(c.total_spent) }}</span>
+                  <span class="ch-supporter-rank">#{{ (c_page - 1) * 10 + loop.index }}</span>
+                </div>
+              </td>
+
+              <!-- Desktop standard columns -->
+              <td class="c ch-desktop-only" data-label="Rank" style="font-weight: 700; color: var(--ch-text-muted);">
+                {{ (c_page - 1) * 10 + loop.index }}
+              </td>
+              <td class="ch-desktop-only" data-label="Student">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div class="ch-supporter-avatar" style="width: 32px; height: 32px; font-size: 13px;">
+                    {{ c.name[:1]|upper if c.name else 'S' }}
+                  </div>
+                  <div>
+                    <strong style="color: var(--ch-text-main); font-size: 14px;">{{ c.name }}</strong>
+                  </div>
+                </div>
+              </td>
+              <td class="ch-desktop-only" data-label="Tier">
+                {% if c.vip_tier == 'superfan' %}
+                  <span class="pill" style="background: rgba(147, 51, 234, 0.12); color: #9333ea;">Superfan</span>
+                {% elif c.vip_tier == 'vip' %}
+                  <span class="pill wait">VIP</span>
+                {% else %}
+                  <span class="pill sch">Supporter</span>
+                {% endif %}
+              </td>
+              <td class="c ch-desktop-only" data-label="Unlocked" style="font-weight: 600;">
+                {{ c.total_notes }} note{{ 's' if c.total_notes != 1 else '' }}
+              </td>
+              <td class="r ch-desktop-only" data-label="Contributed" style="font-weight: 700; color: var(--ch-text-main);">
+                ₹{{ '%.2f'|format(c.total_spent) }}
+              </td>
+              <td class="r ch-desktop-only" data-label="Last Active" style="font-size: 12.5px; color: var(--ch-text-muted);">
+                {{ c.last_active or 'Recently' }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
-      {% else %}
-      <div style="text-align: center; padding: 3rem 1rem; color: #64748b;">
-        <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">📚</div>
-        <h3 style="margin: 0 0 0.5rem; color: #1e293b; font-size: 1.1rem;">No Customer Unlocks Yet</h3>
-        <p style="margin: 0 0 1.25rem; font-size: 0.88rem; max-width: 380px; margin-inline: auto;">
-          When students unlock your paid notes or tip your resources, they will appear here as your top supporters.
-        </p>
-        <a href="{{ url_for('app_pages.upload') }}" class="btn-banner btn-banner-primary" style="display: inline-block;">Upload Your First Paid Note</a>
+
+      {% if total_customer_pages and total_customer_pages > 1 %}
+      <div class="pagination-bar">
+        <span>Showing Page {{ c_page }} of {{ total_customer_pages }} ({{ total_customers_count }} supporters)</span>
+        <div class="pagination-btns">
+          <a href="?c_page={{ c_page - 1 }}&p_page={{ p_page }}#customers" class="page-btn {% if c_page <= 1 %}disabled{% endif %}">
+            &larr; Prev
+          </a>
+          {% for cg in range(1, total_customer_pages + 1) %}
+            {% if cg == c_page or (cg >= c_page - 2 and cg <= c_page + 2) %}
+              <a href="?c_page={{ cg }}&p_page={{ p_page }}#customers" class="page-btn {% if cg == c_page %}active{% endif %}">
+                {{ cg }}
+              </a>
+            {% endif %}
+          {% endfor %}
+          <a href="?c_page={{ c_page + 1 }}&p_page={{ p_page }}#customers" class="page-btn {% if c_page >= total_customer_pages %}disabled{% endif %}">
+            Next &rarr;
+          </a>
+        </div>
       </div>
       {% endif %}
-    </div>
-
-    <!-- Right Column: Broadcast & Announcements -->
-    <div class="hub-box">
-      <div class="hub-box-header">
-        <h2 class="hub-box-title"><span>📢</span> Community Broadcast</h2>
+      {% else %}
+      <div style="text-align: center; padding: 40px 20px; color: var(--ch-text-muted);">
+        <i class="fa-solid fa-users" style="font-size: 32px; color: #CBD5E1; margin-bottom: 12px; display: block;"></i>
+        <p style="margin: 0; font-size: 14px;">When classmates purchase your paid notes, their names will appear here.</p>
       </div>
-      <p style="font-size: 0.82rem; color: #64748b; margin-top: -0.5rem; margin-bottom: 1.25rem;">
-        Publish an announcement or share exclusive Telegram/WhatsApp study links with your past customers.
-      </p>
+      {% endif %}
+    </section>
 
-      <form id="broadcastForm">
-        <div class="form-group">
-          <label class="form-label">Announcement Title</label>
-          <input type="text" name="title" id="bcTitle" class="form-input" placeholder="e.g. Unit 3 PYQs with solved answers uploaded!" required />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Message</label>
-          <textarea name="message" id="bcMessage" class="form-textarea" rows="3" placeholder="Share quick exam tips, new note links, or answer keys..." required></textarea>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Community / Channel Link (Optional)</label>
-          <input type="url" name="channel_url" id="bcChannel" class="form-input" placeholder="https://t.me/your_study_channel" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Audience Target</label>
-          <select name="target_tier" id="bcTarget" class="form-select">
-            <option value="all">All Note Buyers</option>
-            <option value="vip">VIP Supporters Only</option>
-            <option value="superfan">Superfans Only</option>
-          </select>
-        </div>
-        <button type="submit" class="btn-submit" id="btnBroadcast">Publish Broadcast</button>
-      </form>
+    <!-- Payout History Table -->
+    <section class="ch-card">
+      <h2 class="ch-card-title">Payout history</h2>
+      <p class="ch-card-sub">Record of completed and pending transfers to your bank account or UPI ID</p>
 
-      <!-- Broadcast History -->
-      <div class="broadcast-feed" id="broadcastFeed">
-        <h3 style="font-size: 0.95rem; font-weight: 700; color: #1e293b; margin: 0.5rem 0 0;">Recent Announcements</h3>
-        {% if broadcasts %}
-          {% for b in broadcasts %}
-          <div class="broadcast-item">
-            <h5>{{ b.title }}</h5>
-            <p>{{ b.message }}</p>
-            {% if b.channel_url %}
-            <a href="{{ b.channel_url }}" target="_blank" style="font-size: 0.78rem; color: #4f46e5; font-weight: 600; text-decoration: none;">Join Channel Link &rarr;</a>
-            <br/>
+      {% if payouts %}
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Method &amp; Destination</th>
+              <th>Status</th>
+              <th class="r">Amount</th>
+              <th class="r">Transaction / UTR</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for po in payouts %}
+            <tr>
+              <td data-label="Date">{{ (po.created_at or '')[:10] }}</td>
+              <td data-label="Destination">
+                <strong>{{ po.payout_method|upper if po.payout_method else 'BANK' }}</strong>
+                &bull; {{ po.account_number_masked or po.upi_id or 'Account' }}
+              </td>
+              <td data-label="Status">
+                {% if po.status == 'completed' %}
+                  <span class="pill ok"><i class="fa-solid fa-check"></i> Paid</span>
+                {% elif po.status == 'scheduled' %}
+                  <span class="pill sch"><i class="fa-solid fa-clock"></i> Scheduled</span>
+                {% elif po.status == 'rejected' %}
+                  <span class="pill" style="background: rgba(220, 38, 38, 0.12); color: #dc2626;">Rejected</span>
+                {% else %}
+                  <span class="pill wait"><i class="fa-solid fa-hourglass-half"></i> Processing</span>
+                {% endif %}
+              </td>
+              <td class="r" data-label="Amount" style="font-weight: 700;">₹{{ '%.2f'|format(po.amount|float) }}</td>
+              <td class="r" data-label="UTR / Ref" style="font-size: 12.5px; color: var(--ch-text-muted);">
+                {{ po.transaction_ref or '&ndash;' }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if total_customer_pages and total_customer_pages > 1 %}
+      <div class="pagination-bar">
+        <span>Showing Page {{ c_page }} of {{ total_customer_pages }} ({{ total_customers_count }} supporters)</span>
+        <div class="pagination-btns">
+          <a href="?c_page={{ c_page - 1 }}&p_page={{ p_page }}#customers" class="page-btn {% if c_page <= 1 %}disabled{% endif %}">
+            &larr; Prev
+          </a>
+          {% for cg in range(1, total_customer_pages + 1) %}
+            {% if cg == c_page or (cg >= c_page - 2 and cg <= c_page + 2) %}
+              <a href="?c_page={{ cg }}&p_page={{ p_page }}#customers" class="page-btn {% if cg == c_page %}active{% endif %}">
+                {{ cg }}
+              </a>
             {% endif %}
-            <small>{{ b.created_at[:10] }} • Audience: {{ b.target_tier | upper }}</small>
-          </div>
           {% endfor %}
-        {% else %}
-          <div style="font-size: 0.8rem; color: #94a3b8; padding: 1rem 0; text-align: center;">No broadcasts sent yet.</div>
-        {% endif %}
+          <a href="?c_page={{ c_page + 1 }}&p_page={{ p_page }}#customers" class="page-btn {% if c_page >= total_customer_pages %}disabled{% endif %}">
+            Next &rarr;
+          </a>
+        </div>
       </div>
-    </div>
-  </div>
+      {% endif %}
+      {% else %}
+      <div style="text-align: center; padding: 36px 20px; color: var(--ch-text-muted);">
+        <i class="fa-solid fa-receipt" style="font-size: 28px; color: #CBD5E1; margin-bottom: 10px; display: block;"></i>
+        <p style="margin: 0; font-size: 14px;">No payouts processed yet. Once your sales clear the T+9 hold, scheduled transfers will be listed here.</p>
+      </div>
+      {% endif %}
+    </section>
+
+    <!-- Help & FAQ Section (Matching Main.dc.html) -->
+    <section class="ch-dark-banner" id="help">
+      <div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+        <div style="max-width: 580px;">
+          <h2 style="font-size: 20px; font-weight: 700; margin: 0 0 8px;">Need help? We are here.</h2>
+          <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #D3D8E0;">
+            Questions about a payout, fee calculations, or verification? Send us a message or review the creator guide. Typical creator support reply time is under 4 hours.
+          </p>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <a href="mailto:support@abhihub.edu.eu.org?subject=Creator%20Support%20Inquiry" class="btn" style="background: #FFFFFF; color: #14181F !important; border-color: #FFFFFF;">
+            <i class="fa-solid fa-envelope"></i> Email Support
+          </a>
+          <a href="{{ url_for('channels.channel_studio') }}" class="btn" style="background: transparent; color: #FFFFFF !important; border-color: #8892A3;">
+            <i class="fa-solid fa-gear"></i> Account &amp; KYC Settings
+          </a>
+        </div>
+      </div>
+      <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.12); display: flex; gap: 12px 28px; flex-wrap: wrap; font-size: 13.5px;">
+        <a href="javascript:void(0)" onclick="alert('Why is my payout pending? AbhiHub protects students and creators through a T+9 day verification window to ensure zero disputed payments and maintain high document quality before releasing funds to your bank.')">
+          Why is my payout pending (T+9)?
+        </a>
+        <a href="javascript:void(0)" onclick="alert('How are fees calculated? Creators retain 90% of royalties under the Launch Creator program. A 10% platform fee supports high-speed CDN delivery and indexing, and 1% TDS is deposited to the Income Tax Department under your PAN.')">
+          How are fees calculated?
+        </a>
+        <a href="{{ url_for('channels.channel_studio') }}">
+          How do I change my UPI / Bank account?
+        </a>
+      </div>
+    </section>
+  </main>
 </div>
 
-<script>
-  document.getElementById('broadcastForm')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const btn = document.getElementById('btnBroadcast');
-    btn.disabled = true;
-    btn.textContent = 'Publishing...';
+<!-- Toast Box -->
+<div id="chToast"></div>
 
-    const payload = {
-      title: document.getElementById('bcTitle').value,
-      message: document.getElementById('bcMessage').value,
-      channel_url: document.getElementById('bcChannel').value,
-      target_tier: document.getElementById('bcTarget').value
-    };
+<script>
+  function showToast(msg, isError = false) {
+    const t = document.getElementById('chToast');
+    if (!t) return;
+    t.textContent = msg;
+    t.style.background = isError ? '#B91C1C' : '#14181F';
+    t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 3200);
+  }
+
+  function handlePaidToggle(docId) {
+    const chk = document.getElementById(`toggle-${docId}`);
+    const priceInput = document.getElementById(`price-${docId}`);
+    const lbl = document.getElementById(`status-label-${docId}`);
+    const row = document.getElementById(`doc-row-${docId}`);
+    if (chk.checked) {
+      if (row) row.dataset.isPaid = 'true';
+      priceInput.disabled = false;
+      priceInput.style.opacity = '1';
+      if (!priceInput.value || parseFloat(priceInput.value) <= 0) {
+        priceInput.value = '19';
+      }
+      lbl.textContent = 'Paid';
+      lbl.style.color = '#7A4B00';
+    } else {
+      if (row) row.dataset.isPaid = 'false';
+      priceInput.disabled = true;
+      priceInput.style.opacity = '0.5';
+      lbl.textContent = 'Free';
+      lbl.style.color = '#14633D';
+    }
+  }
+
+  function filterSalesMaterials(mode, btn) {
+    document.querySelectorAll('.ch-filter-pill').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    const rows = document.querySelectorAll('tr[data-doc-row]');
+    rows.forEach(row => {
+      const isPaid = row.dataset.isPaid === 'true';
+      if (mode === 'all') {
+        row.style.display = '';
+      } else if (mode === 'paid') {
+        row.style.display = isPaid ? '' : 'none';
+      } else if (mode === 'free') {
+        row.style.display = !isPaid ? '' : 'none';
+      }
+    });
+
+    document.querySelectorAll('.group-block').forEach(group => {
+      const visibleRows = group.querySelectorAll('tbody tr:not([style*="display: none"])');
+      group.style.display = visibleRows.length > 0 ? '' : 'none';
+    });
+  }
+
+  async function saveMonetization(docId) {
+    const chk = document.getElementById(`toggle-${docId}`);
+    const priceInput = document.getElementById(`price-${docId}`);
+    const btns = document.querySelectorAll(`button[data-save-id="${docId}"]`);
+
+    btns.forEach(b => { b.disabled = true; b.textContent = 'Saving...'; });
+
+    const isPaid = chk.checked;
+    const price = isPaid ? parseFloat(priceInput.value || '19') : 0;
 
     try {
-      const res = await fetch('/api/creator/broadcast', {
+      const res = await fetch('/api/creator/product/monetize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ doc_id: docId, is_paid: isPaid, price: price })
       });
       const data = await res.json();
       if (data.success) {
-        alert('Broadcast published successfully to your customer community!');
-        window.location.reload();
+        showToast('✓ Monetization settings updated.');
+        btns.forEach(b => { b.textContent = 'Saved!'; });
+        setTimeout(() => { btns.forEach(b => { b.textContent = 'Save'; }); }, 1500);
       } else {
-        alert(data.error || 'Failed to publish broadcast.');
+        showToast(data.error || 'Failed to update', true);
+        btns.forEach(b => { b.textContent = 'Save'; });
       }
-    } catch (err) {
-      alert('Network error publishing broadcast.');
+    } catch (e) {
+      showToast('Network error while saving.', true);
+      btns.forEach(b => { b.textContent = 'Save'; });
     } finally {
-      btn.disabled = false;
-      btn.textContent = 'Publish Broadcast';
+      btns.forEach(b => { b.disabled = false; });
     }
-  });
+  }
 
-  window.toggleCreatorDashboard = function() {
-    const dash = document.getElementById('creator-live-dashboard');
-    const btn = document.getElementById('cs-toggle-btn');
-    if (!dash) return;
-    if (dash.style.display === 'none' || dash.style.display === '') {
-      dash.style.display = 'block';
-      if (btn) btn.innerHTML = '▲ Hide Dashboard Preview';
-      dash.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      dash.style.display = 'none';
-      if (btn) btn.innerHTML = '👀 Explore Live Dashboard Preview ↓';
-    }
-  };
-
-  window.joinCreatorWaitlist = function() {
-    const emailInput = document.getElementById('cs-creator-email');
-    const statusEl = document.getElementById('cs-waitlist-status');
-    const joinBtn = document.getElementById('cs-join-btn');
-    const email = (emailInput?.value || '').trim();
-
-    if (!email || !email.includes('@')) {
-      if (statusEl) {
-        statusEl.style.color = '#f87171';
-        statusEl.textContent = '⚠️ Please enter a valid student/college email.';
-      }
+  async function triggerPayoutRequest(amount) {
+    if (!confirm(`Confirm request for payout of ₹${amount.toFixed(2)} to your registered UPI / Bank account?`)) {
       return;
     }
+    try {
+      const res = await fetch('/api/creator/payout/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: amount })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('✓ Payout request submitted! Processing initiated.');
+        setTimeout(() => { window.location.reload(); }, 1200);
+      } else {
+        alert(data.error || 'Failed to submit payout request.');
+      }
+    } catch (e) {
+      alert('Network error submitting payout request.');
+    }
+  }
+  // Responsive Carousel & Gesture Logic
+  function scrollStatsCarousel(index) {
+    const carousel = document.getElementById('chStatsCarousel');
+    if (!carousel) return;
+    const card = carousel.children[index];
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }
 
-    if (joinBtn) {
-      joinBtn.disabled = true;
-      joinBtn.textContent = 'Securing VIP Spot...';
+  (function() {
+    const carousel = document.getElementById('chStatsCarousel');
+    const dots = document.querySelectorAll('#chCarouselDots .ch-carousel-dot');
+    if (carousel && dots.length > 0) {
+      carousel.addEventListener('scroll', function() {
+        const scrollLeft = carousel.scrollLeft;
+        const cardWidth = carousel.children[0] ? carousel.children[0].offsetWidth : 260;
+        const activeIndex = Math.min(Math.round(scrollLeft / cardWidth), dots.length - 1);
+        dots.forEach((dot, idx) => {
+          dot.classList.toggle('active', idx === activeIndex);
+        });
+      }, { passive: true });
     }
 
-    fetch('/api/waitlist/join', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email, name: 'Campus Creator' })
-    }).then(r => r.json())
-      .catch(() => ({ success: true }))
-      .then(res => {
-        if (statusEl) {
-          statusEl.style.color = '#34d399';
-          statusEl.innerHTML = '🎉 <strong>Ticket #143 Reserved!</strong> You are on the VIP Creator Early Access list. We will notify you before public rollout.';
-        }
-        if (joinBtn) {
-          joinBtn.textContent = '✓ Reserved VIP Pass';
-          joinBtn.style.background = '#059669';
-        }
-      });
-  };
-</script>
-</div>
-</div>
+    // Swipe navigation between Creator Studio tabs on mobile
+    let touchStartX = 0;
+    let touchStartY = 0;
+    const mainEl = document.querySelector('.ch-main');
+    const tabs = Array.from(document.querySelectorAll('.ch-nav-tab'));
 
+    if (mainEl && tabs.length > 0) {
+      mainEl.addEventListener('touchstart', function(e) {
+        if (e.touches && e.touches.length === 1) {
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+        }
+      }, { passive: true });
+
+      mainEl.addEventListener('touchend', function(e) {
+        if (window.innerWidth > 768) return;
+        if (!e.changedTouches || e.changedTouches.length === 0) return;
+        const diffX = e.changedTouches[0].clientX - touchStartX;
+        const diffY = Math.abs(e.changedTouches[0].clientY - touchStartY);
+
+        if (Math.abs(diffX) > 60 && diffY < 50) {
+          const currentActiveIdx = tabs.findIndex(t => t.classList.contains('active'));
+          if (currentActiveIdx !== -1) {
+            if (diffX < 0 && currentActiveIdx < tabs.length - 1) {
+              tabs[currentActiveIdx + 1].click();
+            } else if (diffX > 0 && currentActiveIdx > 0) {
+              tabs[currentActiveIdx - 1].click();
+            }
+          }
+        }
+      }, { passive: true });
+    }
+  })();
+</script>
+
+<!-- Mobile Floating Upload Button -->
+<a href="{{ url_for('app_pages.upload') }}" class="ch-fab-btn" aria-label="Upload New Material">
+  <i class="fa-solid fa-cloud-arrow-up"></i>
+  <span>Upload</span>
+</a>
 {% endblock %}

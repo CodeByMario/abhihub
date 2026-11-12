@@ -115,6 +115,7 @@ def get_upload_signature():
 
 
 @api_bp.route('/api/cache-health', methods=['GET'])
+@admin_required
 def api_cache_health():
     """Cache system health check — returns stats for all cache layers."""
     app_cache = getattr(current_app, 'cache', None)
@@ -327,27 +328,6 @@ def authorize():
                 }
         except Exception as e:
             logging.warning("[AUTH] Supabase token verification failed (error_type=%s)", type(e).__name__)
-
-    # 2. Fallback: Parse claims directly if JWT signature is valid or network was unreachable
-    if not user_data:
-        try:
-            import jwt
-            payload = jwt.decode(token, options={"verify_signature": False})
-            uid = payload.get('sub') or payload.get('user_id')
-            user_meta = payload.get('user_metadata') or {}
-            email = payload.get('email') or user_meta.get('email', '')
-            if uid and email:
-                app_meta = payload.get('app_metadata') or {}
-                user_name = user_meta.get('full_name') or user_meta.get('name') or (email.split('@')[0] if email else 'User')
-                user_data = {
-                    'id': uid,
-                    'email': email,
-                    'name': user_name,
-                    'provider': app_meta.get('provider', 'google'),
-                    'user_metadata': user_meta
-                }
-        except Exception as jwt_err:
-            logging.error("[AUTH] JWT fallback parsing failed (error_type=%s)", type(jwt_err).__name__)
 
     if not user_data or not user_data.get('email'):
         return jsonify({'success': False, 'message': 'Unauthorized: Invalid token or expired session'}), 401
@@ -1268,6 +1248,7 @@ def api_get_subjects():
 
 
 @api_bp.route('/api/subjects', methods=['POST'])
+@auth_required
 def api_add_subject(user_data=None):
     import re
     data = request.get_json() or {}
@@ -1320,6 +1301,7 @@ def api_add_subject(user_data=None):
 
 
 @api_bp.route('/api/colleges', methods=['POST'])
+@auth_required
 def api_add_college(user_data=None):
     data = request.get_json() or {}
     name = (data.get('name') or '').strip()
@@ -1338,6 +1320,7 @@ def api_add_college(user_data=None):
 
 
 @api_bp.route('/api/departments', methods=['POST'])
+@auth_required
 def api_add_department(user_data=None):
     data = request.get_json() or {}
     name = (data.get('name') or '').strip()
@@ -1628,13 +1611,16 @@ def api_extract_upload_metadata():
     file_url = request.form.get('file_url') or (request.get_json(silent=True) or {}).get('file_url')
     if not file and file_url:
         import requests, io
+        from urllib.parse import urlparse
         try:
-            r = requests.get(file_url, timeout=12)
-            if r.status_code == 200:
-                file_name = request.form.get('filename') or (request.get_json(silent=True) or {}).get('filename') or file_url.split('/')[-1].split('?')[0]
-                file = io.BytesIO(r.content)
-                file.filename = file_name
-                file.mimetype = r.headers.get('content-type') or ('application/pdf' if file_name.endswith('.pdf') else 'image/jpeg')
+            parsed_u = urlparse(file_url)
+            if parsed_u.scheme in {'http', 'https'} and (parsed_u.hostname in _ALLOWED_PROXY_HOSTS or (parsed_u.hostname or '').endswith('.supabase.co')):
+                r = requests.get(file_url, timeout=12)
+                if r.status_code == 200:
+                    file_name = request.form.get('filename') or (request.get_json(silent=True) or {}).get('filename') or file_url.split('/')[-1].split('?')[0]
+                    file = io.BytesIO(r.content)
+                    file.filename = file_name
+                    file.mimetype = r.headers.get('content-type') or ('application/pdf' if file_name.endswith('.pdf') else 'image/jpeg')
         except Exception as e:
             logging.warning(
                 "[extract-upload-metadata] Download failed (error_type=%s)",
@@ -2074,7 +2060,7 @@ def api_telemetry_track():
 
 
 @api_bp.route('/api/admin/feature-analytics', methods=['GET'])
-@auth_required
+@admin_required
 def api_admin_feature_analytics():
     """Returns aggregated feature adoption metrics, device distribution, and network breakdown."""
     days = min(request.args.get('days', 30, type=int), 90)
@@ -3147,6 +3133,7 @@ def get_file_url():
 
 
 @api_bp.route('/update-file-metadata', methods=['POST'])
+@auth_required
 @admin_required
 def update_file_metadata_route():
     """Update file metadata in Supabase (Admin Only)."""
@@ -3431,20 +3418,27 @@ def api_respond_material_request():
 @auth_required
 def chat_search_peers():
     """Peer search for chat — available to all authenticated users."""
+    import re
     q = request.args.get('q', '').strip()
     uid = _get_uid()
-    if len(q) < 2:
+    if q == '__suggested__':
+        try:
+            client = init_supabase()
+            return jsonify({'success': True, 'users': [], 'suggested': _getSuggestedPeers(client, uid) if client else []})
+        except Exception:
+            return jsonify({'success': False, 'users': [], 'suggested': []}), 500
+
+    clean_q = re.sub(r'[^a-zA-Z0-9\s@_.-]', '', q).strip()
+    if len(clean_q) < 2:
         return jsonify({'success': True, 'users': [], 'suggested': []})
     try:
         client = init_supabase()
         if not client:
             return jsonify({'success': False, 'users': [], 'suggested': [], 'error': 'DB error'}), 500
-        if q == '__suggested__':
-            return jsonify({'success': True, 'users': [], 'suggested': _getSuggestedPeers(client, uid)})
 
         res = client.table('profiles').select(
             'id, full_name, email, rank_title, reputation_score, is_verified, college_id, colleges(name)'
-        ).or_(f'full_name.ilike.%{q}%,email.ilike.%{q}%').limit(10).execute()
+        ).or_(f'full_name.ilike.%{clean_q}%,email.ilike.%{clean_q}%').limit(10).execute()
         users = []
         for u in (res.data or []):
             col = u.get('colleges') or {}
@@ -3505,6 +3499,10 @@ def api_chat_upload_file():
     import time
     from werkzeug.utils import secure_filename
     orig_name = secure_filename(file.filename) or f"file_{int(time.time())}.bin"
+    ext_check = os.path.splitext(orig_name)[1].lower()
+    allowed_chat_exts = {'.pdf', '.png', '.jpg', '.jpeg', '.webp', '.doc', '.docx', '.ppt', '.pptx', '.txt'}
+    if ext_check not in allowed_chat_exts:
+        return jsonify({'success': False, 'error': 'Invalid file type. Allowed: PDF, Images, Office Docs, TXT'}), 400
 
     file.seek(0, os.SEEK_END)
     size = file.tell()
@@ -3759,6 +3757,7 @@ def api_resolve_chat_doc():
 
 
 @api_bp.route('/static/uploads/chat/<path:filename>')
+@auth_required
 def serve_chat_uploaded_file(filename):
     """Intercepts requests to chat upload PDFs and redirects to /resources/<doc_id> in AbhiHub viewer."""
     try:
@@ -3776,7 +3775,7 @@ def serve_chat_uploaded_file(filename):
     # Fallback to direct static streaming if not found in documents table
     static_folder = current_app.static_folder or 'static'
     chat_dir = os.path.join(static_folder, 'uploads', 'chat')
-    return send_from_directory(chat_dir, filename)
+    return send_from_directory(chat_dir, filename, as_attachment=True)
 
 
 @api_bp.route('/api/chat/online')
@@ -3926,9 +3925,10 @@ def api_get_eligible_guides():
 
 
 @api_bp.route('/api/guides/<guide_id>/progress', methods=['POST'])
+@auth_required
 def api_update_guide_progress(guide_id):
     from methods.guide_service import update_guide_progress
-    user_id = session.get('user', {}).get('uid') or session.get('user_id') or 'guest'
+    user_id = session.get('user', {}).get('uid') or session.get('user_id')
     data = request.get_json(silent=True) or {}
     status = data.get('status', 'in_progress')
     current_step = data.get('current_step', 0)

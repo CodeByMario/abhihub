@@ -94,15 +94,18 @@ def test_paid_document_unlocks_buyer_and_credits_creator():
 def test_replayed_payment_does_not_credit_again():
     from app import app
 
-    with patch("data.transactions.is_order_completed", return_value=True):
-        response = app.test_client().post(
-            "/api/payment/status",
-            json={
-                "order_id": "order-already-paid",
-                "utr": "123456789014",
-                "amount": "50",
-                "purpose": "Credits-25",
-            },
-        )
-    assert response.status_code == 200
-    assert response.json["already_fulfilled"] is True
+    with app.test_client() as client:
+        with client.session_transaction() as sess:
+            sess["user"] = {"uid": "test-user-123", "email": "test@example.com"}
+        with patch("data.transactions.is_order_completed", return_value=True):
+            response = client.post(
+                "/api/payment/status",
+                json={
+                    "order_id": "order-already-paid",
+                    "utr": "123456789014",
+                    "amount": "50",
+                    "purpose": "Credits-25",
+                },
+            )
+        assert response.status_code == 200
+        assert response.json["already_fulfilled"] is True

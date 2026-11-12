@@ -1,12 +1,227 @@
+<style>
+  /* Apple Design Tokens & Tooltips for Payout */
+  .st-tooltip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--st-surface-hover, #f1f5f9);
+    border: 1px solid var(--st-border, #e2e8f0);
+    color: var(--st-text-muted, #64748b);
+    font-size: 10px;
+    font-weight: 700;
+    cursor: help;
+    margin-left: 4px;
+    vertical-align: middle;
+    transition: all 0.15s ease;
+  }
+  .st-tooltip:hover {
+    background: var(--st-navy, #1b3a6b);
+    color: #ffffff;
+    border-color: var(--st-navy, #1b3a6b);
+  }
+
+  .wallet-cat-card {
+    background: var(--st-surface, #ffffff);
+    border: 1px solid var(--st-border, #e2e8f0);
+    border-radius: 14px;
+    padding: 0.85rem 1rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  }
+  .wallet-cat-card:hover {
+    border-color: var(--st-navy, #1b3a6b);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+  .wallet-cat-card.active {
+    border-color: var(--st-navy, #1b3a6b);
+    background: var(--st-sky-tint, rgba(37, 99, 235, 0.05));
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+  }
+  .wallet-cat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.35rem;
+  }
+  .wallet-cat-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 980px;
+  }
+  .wallet-cat-indicator {
+    font-size: 0.72rem;
+    color: var(--st-text-muted, #64748b);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.45rem;
+    font-weight: 600;
+  }
+  .wallet-drawer-panel {
+    display: none;
+    background: var(--st-surface, #ffffff);
+    border: 1px solid var(--st-border, #e2e8f0);
+    border-radius: 14px;
+    padding: 1.15rem;
+    margin-top: 1rem;
+  }
+
+  /* Compact Apple Task Checklist */
+  .st-task-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--st-surface, #ffffff);
+    border: 1px solid var(--st-border, #e2e8f0);
+    border-radius: 12px;
+    padding: 0.65rem 0.85rem;
+    gap: 0.65rem;
+    transition: all 0.15s ease;
+  }
+  .st-task-item:hover {
+    border-color: var(--st-navy, #1b3a6b);
+  }
+  .st-task-title {
+    font-size: 0.85rem;
+    font-weight: 650;
+    color: var(--st-text-main);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .st-task-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--st-navy, #1b3a6b);
+    background: var(--st-sky-tint, rgba(37, 99, 235, 0.1));
+    padding: 2px 7px;
+    border-radius: 980px;
+  }
+
+  @media (max-width: 768px) {
+    .st-task-item {
+      padding: 0.6rem 0.75rem;
+    }
+    .st-task-item .st-btn {
+      padding: 0.35rem 0.75rem !important;
+      font-size: 0.75rem !important;
+      min-height: 32px !important;
+      border-radius: 980px !important;
+    }
+    .wallet-cat-card {
+      padding: 0.75rem 0.85rem !important;
+      border-radius: 12px !important;
+    }
+  }
+
+  /* Apple Card Transactions */
+  .st-tx-card {
+    background: var(--st-surface, #ffffff);
+    border: 1px solid var(--st-border, #e2e8f0);
+    border-radius: 14px;
+    padding: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    transition: all 0.15s ease;
+  }
+  .st-tx-card:hover {
+    border-color: var(--st-navy, #1b3a6b);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  }
+  .st-tx-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .st-tx-item-name {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--st-text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .st-tx-amount {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--st-text-main);
+    white-space: nowrap;
+    letter-spacing: -0.02em;
+  }
+  .st-tx-card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.74rem;
+    color: var(--st-text-muted);
+  }
+  .st-tx-meta-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .st-tx-id {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.72rem;
+    color: var(--st-text-muted);
+  }
+  .st-tx-badge {
+    padding: 2px 8px;
+    border-radius: 980px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .st-tx-badge.success {
+    background: rgba(34, 197, 94, 0.12);
+    color: #15803d;
+  }
+  .st-tx-badge.failed {
+    background: rgba(239, 68, 68, 0.12);
+    color: #b91c1c;
+  }
+  .st-tx-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding-top: 0.45rem;
+    border-top: 1px solid var(--st-border, #f1f5f9);
+    margin-top: 0.2rem;
+  }
+
+  @media (max-width: 768px) {
+    #section-payout {
+      padding-bottom: calc(110px + env(safe-area-inset-bottom, 24px)) !important;
+    }
+  }
+
+</style>
       <!-- Wallet, Royalties & Receipts Section -->
       <div class="st-section" id="section-payout">
         <!-- Apple HIG Segmented Switcher -->
         <div class="st-segmented-bar" style="margin-bottom:1.25rem;">
           <button type="button" id="btnTabCreatorWallet" onclick="switchWalletView('creator')" class="st-segmented-btn active">
-            💰 Creator Royalties &amp; Payouts
+            Creator Royalties
           </button>
           <button type="button" id="btnTabOrderReceipts" onclick="switchWalletView('receipts')" class="st-segmented-btn">
-            🧾 Purchase Receipts &amp; Invoices
+            Receipts &amp; Invoices
           </button>
         </div>
 
@@ -36,116 +251,85 @@
               <div id="stTotalEarningsAmt" style="font-size:1.4rem;font-weight:800;color:var(--st-success);margin-top:0.25rem;">₹0.00</div>
             </div>
           </div>
-          <!-- Eligibility Roadmap: Tasks to Complete -->
-          <div id="stBoostRankBox" style="display:none;margin-top:1.25rem;border-radius:14px;background:var(--st-surface-hover);border:1.5px solid var(--st-border);padding:1.25rem;">
+          <!-- Eligibility Roadmap: Tasks to Complete (Apple Minimalist Checklist) -->
+          <div id="stBoostRankBox" style="display:none;margin-top:1.25rem;border-radius:14px;background:var(--st-surface-hover);border:1px solid var(--st-border);padding:1rem;">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem;">
-              <div style="font-size:0.95rem;font-weight:700;color:var(--st-text-main);">
-                 How to Become Eligible for Notes Selling & Payouts
+              <div style="font-size:0.9rem;font-weight:700;color:var(--st-text-main);">
+                Eligibility Checklist
+                <span class="st-tooltip" title="Selling notes and requesting cash payouts unlocks at Contributor tier. Complete tasks to level up.">ⓘ</span>
               </div>
-              <span id="stRankProgressText" style="font-size:0.78rem;font-weight:700;color:var(--st-navy);background:var(--st-sky-tint);padding:0.2rem 0.65rem;border-radius:999px;">
+              <span id="stRankProgressText" style="font-size:0.75rem;font-weight:700;color:var(--st-navy);background:var(--st-sky-tint);padding:0.2rem 0.65rem;border-radius:980px;">
                 Target: Contributor Rank
               </span>
             </div>
 
-            <p style="margin:0 0 0.85rem;font-size:0.83rem;color:var(--st-text-muted);line-height:1.5;">
-              To maintain academic quality and prevent spam, selling notes and requesting cash payouts unlocks at <strong>Contributor</strong> rank. Complete the tasks below to earn XP and upgrade your tier:
-            </p>
-
             <!-- Score Progress Bar -->
-            <div style="margin-bottom:1.25rem;">
+            <div style="margin-bottom:1rem;">
               <div style="display:flex;justify-content:space-between;font-size:0.75rem;font-weight:600;color:var(--st-text-muted);margin-bottom:0.35rem;">
-                <span>Current Tier: <strong id="stCurrentTierText" style="color:var(--st-text-main);">Explorer</strong></span>
-                <span>Score: <strong id="stCurrentScoreText" style="color:var(--st-navy);">0</strong> / <span id="stTargetScoreText">100</span> XP</span>
+                <span>Tier: <strong id="stCurrentTierText" style="color:var(--st-text-main);">Explorer</strong></span>
+                <span><strong id="stCurrentScoreText" style="color:var(--st-navy);">0</strong> / <span id="stTargetScoreText">100</span> XP</span>
               </div>
-              <div style="height:8px;background:var(--st-border);border-radius:999px;overflow:hidden;">
-                <div id="stRankProgressBar" style="width:0%;height:100%;background:linear-gradient(90deg, #4FA9E0, #1B3A6B);border-radius:999px;transition:width 0.4s ease;"></div>
+              <div style="height:6px;background:var(--st-border);border-radius:980px;overflow:hidden;">
+                <div id="stRankProgressBar" style="width:0%;height:100%;background:linear-gradient(90deg, #4FA9E0, #1B3A6B);border-radius:980px;transition:width 0.4s ease;"></div>
               </div>
             </div>
 
             <!-- Task List -->
-            <div style="display:flex;flex-direction:column;gap:0.75rem;">
-              <!-- Task 1: Upload Notes -->
-              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--st-surface);border:1px solid var(--st-border);border-radius:10px;padding:0.75rem 1rem;flex-wrap:wrap;gap:0.5rem;">
-                <div style="display:flex;align-items:center;gap:0.75rem;min-width:200px;flex:1;">
-                  <span style="font-size:1.3rem;"></span>
-                  <div>
-                    <div style="font-size:0.88rem;font-weight:700;color:var(--st-text-main);">1. Upload Study Notes & PYQs</div>
-                    <div style="font-size:0.77rem;color:var(--st-text-muted);">Share lecture notes, question papers, or practical manuals (+5 to +15 XP each)</div>
-                  </div>
+            <div style="display:flex;flex-direction:column;gap:0.5rem;">
+              <div class="st-task-item">
+                <div class="st-task-title">
+                  <span>1. Upload Notes &amp; PYQs</span>
+                  <span class="st-task-badge">+5 to +15 XP</span>
                 </div>
-                <a href="/upload" class="st-btn st-btn-primary" style="padding:0.4rem 0.9rem;font-size:0.8rem;min-height:36px;">Upload Notes</a>
+                <a href="/upload" class="st-btn st-btn-primary">Upload</a>
               </div>
 
-              <!-- Task 2: Like, Comment & Bookmark -->
-              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--st-surface);border:1px solid var(--st-border);border-radius:10px;padding:0.75rem 1rem;flex-wrap:wrap;gap:0.5rem;">
-                <div style="display:flex;align-items:center;gap:0.75rem;min-width:200px;flex:1;">
-                  <span style="font-size:1.3rem;"></span>
-                  <div>
-                    <div style="font-size:0.88rem;font-weight:700;color:var(--st-text-main);">2. Like, Bookmark & Comment on Resources</div>
-                    <div style="font-size:0.77rem;color:var(--st-text-muted);">Bookmark study notes (+5 XP), leave helpful comments (+1 XP), and like papers (+2 XP)</div>
-                  </div>
+              <div class="st-task-item">
+                <div class="st-task-title">
+                  <span>2. Like, Bookmark &amp; Comment</span>
+                  <span class="st-task-badge">+1 to +5 XP</span>
                 </div>
-                <a href="/" class="st-btn st-btn-outline" style="padding:0.4rem 0.9rem;font-size:0.8rem;min-height:36px;">Explore Notes</a>
+                <a href="/" class="st-btn st-btn-outline">Explore</a>
               </div>
 
-              <!-- Task 3: Reach 50+ Views -->
-              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--st-surface);border:1px solid var(--st-border);border-radius:10px;padding:0.75rem 1rem;flex-wrap:wrap;gap:0.5rem;">
-                <div style="display:flex;align-items:center;gap:0.75rem;min-width:200px;flex:1;">
-                  <span style="font-size:1.3rem;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></span>
-                  <div>
-                    <div style="font-size:0.88rem;font-weight:700;color:var(--st-text-main);">3. Reach 50+ Views on Your Uploads</div>
-                    <div style="font-size:0.77rem;color:var(--st-text-muted);">Share note links with classmates to gain peer views (+0.1 XP per unique view)</div>
-                  </div>
+              <div class="st-task-item">
+                <div class="st-task-title">
+                  <span>3. Reach 50+ Upload Views</span>
+                  <span class="st-task-badge">+0.1 XP/view</span>
                 </div>
-                <a href="/profile" class="st-btn st-btn-outline" style="padding:0.4rem 0.9rem;font-size:0.8rem;min-height:36px;">My Uploads</a>
+                <a href="/profile" class="st-btn st-btn-outline">My Uploads</a>
               </div>
 
-              <!-- Task 4: Refer Classmates -->
-              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--st-surface);border:1px solid var(--st-border);border-radius:10px;padding:0.75rem 1rem;flex-wrap:wrap;gap:0.5rem;">
-                <div style="display:flex;align-items:center;gap:0.75rem;min-width:200px;flex:1;">
-                  <span style="font-size:1.3rem;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line></svg></span>
-                  <div>
-                    <div style="font-size:0.88rem;font-weight:700;color:var(--st-text-main);">4. Invite Friends via Referral Link</div>
-                    <div style="font-size:0.77rem;color:var(--st-text-muted);">Earn +50 bonus credits and instant reputation points for every student signup</div>
-                  </div>
+              <div class="st-task-item">
+                <div class="st-task-title">
+                  <span>4. Invite Friends</span>
+                  <span class="st-task-badge">+50 Credits</span>
                 </div>
-                <button type="button" onclick="copySettingsReferralLink()" id="stCopyRefBtn" class="st-btn st-btn-outline" style="padding:0.4rem 0.9rem;font-size:0.8rem;min-height:36px;">Copy Invite Link</button>
+                <button type="button" onclick="copySettingsReferralLink()" id="stCopyRefBtn" class="st-btn st-btn-outline">Copy Link</button>
               </div>
 
-              <!-- Task 5: Complete Profile -->
-              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--st-surface);border:1px solid var(--st-border);border-radius:10px;padding:0.75rem 1rem;flex-wrap:wrap;gap:0.5rem;">
-                <div style="display:flex;align-items:center;gap:0.75rem;min-width:200px;flex:1;">
-                  <span style="font-size:1.3rem;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg></span>
-                  <div>
-                    <div style="font-size:0.88rem;font-weight:700;color:var(--st-text-main);">5. Complete Student Academic Profile</div>
-                    <div style="font-size:0.77rem;color:var(--st-text-muted);">Fill in your College, Branch, and Pursuing Year to establish verified student status</div>
-                  </div>
+              <div class="st-task-item">
+                <div class="st-task-title">
+                  <span>5. Complete Student Profile</span>
+                  <span class="st-task-badge">Verified</span>
                 </div>
-                <button type="button" onclick="document.querySelector('#settingsNav [data-section=my-account]').click()" class="st-btn st-btn-outline" style="padding:0.4rem 0.9rem;font-size:0.8rem;min-height:36px;">Complete Profile</button>
+                <button type="button" onclick="document.querySelector('#settingsNav [data-section=my-account]').click()" class="st-btn st-btn-outline">Complete</button>
               </div>
 
-              <!-- Task 6: Setup AI Model with API Key -->
-              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--st-surface);border:1px solid var(--st-border);border-radius:10px;padding:0.75rem 1rem;flex-wrap:wrap;gap:0.5rem;">
-                <div style="display:flex;align-items:center;gap:0.75rem;min-width:200px;flex:1;">
-                  <span style="font-size:1.3rem;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg></span>
-                  <div>
-                    <div style="font-size:0.88rem;font-weight:700;color:var(--st-text-main);">6. Setup AI Model with BYOK API Key</div>
-                    <div style="font-size:0.77rem;color:var(--st-text-muted);">Connect your free Google Gemini, Groq, or OpenAI API key for unlimited AI features</div>
-                  </div>
+              <div class="st-task-item">
+                <div class="st-task-title">
+                  <span>6. Setup AI Model Key</span>
+                  <span class="st-task-badge">BYOK</span>
                 </div>
-                <button type="button" onclick="document.querySelector('#settingsNav [data-section=ai-assistant]').click()" class="st-btn st-btn-primary" style="padding:0.4rem 0.9rem;font-size:0.8rem;min-height:36px;">Setup AI Key</button>
+                <button type="button" onclick="document.querySelector('#settingsNav [data-section=ai-assistant]').click()" class="st-btn st-btn-primary">Setup Key</button>
               </div>
 
-              <!-- Task 7: Use All Features of AI Model -->
-              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--st-surface);border:1px solid var(--st-border);border-radius:10px;padding:0.75rem 1rem;flex-wrap:wrap;gap:0.5rem;">
-                <div style="display:flex;align-items:center;gap:0.75rem;min-width:200px;flex:1;">
-                  <span style="font-size:1.3rem;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></span>
-                  <div>
-                    <div style="font-size:0.88rem;font-weight:700;color:var(--st-text-main);">7. Use AI Study Features & PDF Chat</div>
-                    <div style="font-size:0.77rem;color:var(--st-text-muted);">Generate automatic summaries, AI flashcards, practice quizzes, and chat with notes</div>
-                  </div>
+              <div class="st-task-item">
+                <div class="st-task-title">
+                  <span>7. Try AI Study &amp; PDF Chat</span>
+                  <span class="st-task-badge">AI Assistant</span>
                 </div>
-                <button type="button" onclick="document.querySelector('#settingsNav [data-section=ai-assistant]').click()" class="st-btn st-btn-outline" style="padding:0.4rem 0.9rem;font-size:0.8rem;min-height:36px;">Try AI Features</button>
+                <button type="button" onclick="document.querySelector('#settingsNav [data-section=ai-assistant]').click()" class="st-btn st-btn-outline">Try AI</button>
               </div>
             </div>
           </div>
@@ -415,28 +599,28 @@
           </div>
         </div>
 
-        <!-- Card 3: Request Withdrawal -->
+        <!-- Card 3: Request Withdrawal (Apple Minimalist) -->
         <div class="st-card">
-          <h2><span class="st-card-icon"></span> Request Payout</h2>
-          <div id="stWithdrawPolicySublabel" class="st-form-sublabel" style="margin-bottom:1rem;">
-            Minimum withdrawal amount: <strong>₹10.00</strong>. When eligible with verified KYC, payouts are automatically scheduled and credited within <strong>7 business days</strong>.
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+            <h2 style="margin:0;"><span class="st-card-icon"></span> Request Payout</h2>
+            <span class="st-tooltip" title="Minimum withdrawal amount: ₹10.00. Credited to verified Bank/UPI within 7 business days.">ⓘ Policy</span>
           </div>
-          <div id="stWithdrawDisabledNote" style="display:none;padding:0.75rem 1rem;background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:10px;font-size:0.85rem;color:var(--st-text-muted);">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Insufficient withdrawable balance to request a payout.
+          <div id="stWithdrawDisabledNote" style="display:none;padding:0.65rem 0.85rem;background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:10px;font-size:0.82rem;color:var(--st-text-muted);margin-bottom:0.75rem;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Insufficient withdrawable balance to request a payout.
           </div>
           <form id="stWithdrawalForm" style="display:none;" onsubmit="handleWithdrawalSubmit(event)">
-            <div class="st-form-row">
-              <label for="stWithdrawAmt" class="st-form-label">Withdrawal Amount (₹)</label>
+            <div class="st-form-row" style="margin-bottom:0.75rem;">
+              <label for="stWithdrawAmt" class="st-form-label" style="font-size:0.85rem;">Withdrawal Amount (₹)</label>
               <input type="number" id="stWithdrawAmt" name="amount" class="st-form-input" min="5" step="1" required placeholder="Min 5" oninput="verifySettingsAmount()">
               <div id="stAmtStatus" style="font-size:0.8rem;margin-top:4px;display:none;font-weight:600;"></div>
             </div>
-            <div id="stWithdrawKycDestInfo" style="margin-bottom:1rem;padding:0.75rem;background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:10px;font-size:0.83rem;">
-              <span style="color:var(--st-text-muted);">Payout Destination (from KYC):</span>
-              <strong id="stWithdrawKycDestText" style="margin-left:4px;color:var(--st-success);">Loading verified details...</strong>
+            <div id="stWithdrawKycDestInfo" style="margin-bottom:0.85rem;padding:0.65rem 0.85rem;background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:10px;font-size:0.8rem;display:flex;justify-content:space-between;align-items:center;">
+              <span style="color:var(--st-text-muted);">Destination:</span>
+              <strong id="stWithdrawKycDestText" style="color:var(--st-success);">Loading...</strong>
             </div>
 
             <div class="st-btn-row">
-              <button type="submit" id="stWithdrawBtn" class="st-btn st-btn-primary">
+              <button type="submit" id="stWithdrawBtn" class="st-btn st-btn-primary" style="width:100%;justify-content:center;border-radius:980px;min-height:44px;">
                 <span>Submit Payout Request</span>
               </button>
             </div>
@@ -465,53 +649,42 @@
         </div>
         </div>
 
-        <!-- Subview 2: Purchase Receipts & Orders (Consolidated from _transactions.html) -->
+        <!-- Subview 2: Purchase Receipts & Orders (Apple HIG Card Standard) -->
         <div id="viewOrderReceipts" style="display:none;">
 
         <div class="st-card">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem;">
             <h2 style="margin:0;"><span class="st-card-icon"></span> Payment History</h2>
-            <button type="button" onclick="loadTransactionHistory(true)" class="st-btn st-btn-outline" style="padding:0.35rem 0.8rem;font-size:0.78rem;min-height:32px;">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg> Refresh
+            <button type="button" onclick="loadTransactionHistory(true)" class="st-btn st-btn-outline" style="padding:0.3rem 0.75rem;font-size:0.76rem;min-height:30px;border-radius:980px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:2px;"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg> Refresh
             </button>
           </div>
-          <div class="st-form-sublabel" style="margin-bottom:1.25rem;">
-            View all your past purchases, document unlocks, support contributions, and official bank receipts.
+          <div class="st-form-sublabel" style="margin-bottom:1rem;font-size:0.82rem;">
+            Past purchases, document unlocks, and official receipts.
           </div>
 
-          <!-- Transaction Metrics Grid -->
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-bottom:1.25rem;">
-            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
-              <div style="font-size:0.75rem;color:var(--st-text-muted);font-weight:700;text-transform:uppercase;">Total Orders</div>
-              <div id="stTxTotalOrders" style="font-size:1.35rem;font-weight:800;color:var(--st-text-main);margin-top:0.25rem;">0</div>
+          <!-- Transaction Metrics Grid (Single Balanced Row) -->
+          <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:0.5rem;margin-bottom:1.25rem;">
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.75rem 0.5rem;text-align:center;">
+              <div style="font-size:0.68rem;color:var(--st-text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.02em;">Total Orders</div>
+              <div id="stTxTotalOrders" style="font-size:1.3rem;font-weight:800;color:var(--st-text-main);margin-top:0.2rem;">0</div>
             </div>
-            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
-              <div style="font-size:0.75rem;color:var(--st-success);font-weight:700;text-transform:uppercase;">Successful</div>
-              <div id="stTxSuccessOrders" style="font-size:1.35rem;font-weight:800;color:var(--st-success);margin-top:0.25rem;">0</div>
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.75rem 0.5rem;text-align:center;">
+              <div style="font-size:0.68rem;color:var(--st-success);font-weight:700;text-transform:uppercase;letter-spacing:0.02em;">Successful</div>
+              <div id="stTxSuccessOrders" style="font-size:1.3rem;font-weight:800;color:var(--st-success);margin-top:0.2rem;">0</div>
             </div>
-            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
-              <div style="font-size:0.75rem;color:#1d4ed8;font-weight:700;text-transform:uppercase;">Gateway</div>
-              <div style="font-size:1.05rem;font-weight:800;color:#1d4ed8;margin-top:0.35rem;">Razorpay Secure</div>
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.75rem 0.5rem;text-align:center;">
+              <div style="font-size:0.68rem;color:var(--st-navy);font-weight:700;text-transform:uppercase;letter-spacing:0.02em;">Gateway</div>
+              <div style="font-size:0.85rem;font-weight:800;color:var(--st-navy);margin-top:0.35rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Razorpay</div>
             </div>
           </div>
 
-          <!-- Transaction Table Container -->
-          <div style="overflow-x:auto;">
-            <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
-              <thead>
-                <tr style="text-align:left;border-bottom:1.5px solid var(--st-border);color:var(--st-text-muted);">
-                  <th style="padding:0.6rem 0.5rem;">Order Reference</th>
-                  <th style="padding:0.6rem 0.5rem;">Item / Purpose</th>
-                  <th style="padding:0.6rem 0.5rem;">Amount</th>
-                  <th style="padding:0.6rem 0.5rem;">Status</th>
-                  <th style="padding:0.6rem 0.5rem;text-align:right;">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="stTransactionsTbody">
-                <tr><td colspan="5" style="padding:1.5rem;text-align:center;color:var(--st-text-muted);">Loading payment history...</td></tr>
-              </tbody>
-            </table>
+          <!-- Apple Card Transactions Container -->
+          <div id="stTransactionsList" class="st-tx-list" style="display:flex;flex-direction:column;gap:0.65rem;">
+            <div style="padding:1.5rem;text-align:center;color:var(--st-text-muted);font-size:0.85rem;">Loading payment history...</div>
           </div>
+          <!-- Backward Compatibility Stub for stTransactionsTbody -->
+          <table style="display:none;"><tbody id="stTransactionsTbody"></tbody></table>
         </div>
         </div>
 

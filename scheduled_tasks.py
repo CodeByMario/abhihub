@@ -157,8 +157,13 @@ def setup_jobs(scheduler):
         try:
             import asyncio
             from services.catalog_sync import sync_all
-            count = asyncio.run(sync_all())
-            logging.info(f"[CATALOG] Model catalog sync completed: {count} verified models")
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                count = loop.run_until_complete(sync_all())
+                logging.info(f"[CATALOG] Model catalog sync completed: {count} verified models")
+            finally:
+                loop.close()
         except Exception as e:
             logging.error(f"[CATALOG] Model catalog sync error: {e}")
 

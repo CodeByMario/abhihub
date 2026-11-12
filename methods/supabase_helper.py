@@ -102,7 +102,8 @@ def init_supabase():
     if not SUPABASE_URL:
         logging.error("❌ list_supabase: SUPABASE_URL is empty")
         return None
-    if not SUPABASE_KEY:
+    active_key = _resolve_admin_key() or SUPABASE_KEY
+    if not active_key:
         logging.error("❌ list_supabase: SUPABASE_KEY is empty")
         return None
 
@@ -111,7 +112,7 @@ def init_supabase():
         try:
             client = create_client(
                 SUPABASE_URL, 
-                SUPABASE_KEY,
+                active_key,
                 options=ClientOptions(schema="abhihub")
             )
             _local_context.client = client

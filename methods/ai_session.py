@@ -11,8 +11,18 @@ import json
 import logging
 import os
 import time
+import threading
+from collections import defaultdict
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
+
+_turn_locks = defaultdict(threading.Lock)
+_turn_global_lock = threading.Lock()
+
+
+def _get_turn_lock(session_id: str):
+    with _turn_global_lock:
+        return _turn_locks[str(session_id)]
 
 if TYPE_CHECKING:
     from methods.ai_provider import OpenRouterAdapter
@@ -51,23 +61,23 @@ def get_or_create_session(user_id: str, doc_id: str) -> dict:
 
 
 def record_turn(session_id: str) -> None:
-    """Increment turn_count and update last_active_at. Never raises."""
+    """Increment turn_count and update last_active_at safely. Never raises."""
     from methods.supabase_helper import init_supabase
     client = init_supabase()
     if not client:
         return
     try:
-        # Read current count then increment — acceptable at tutor scale
-        res = (client.table("tutor_sessions")
-               .select("turn_count")
-               .eq("id", session_id)
-               .single()
-               .execute())
-        current = (res.data or {}).get("turn_count", 0) or 0
-        client.table("tutor_sessions").update({
-            "turn_count": current + 1,
-            "last_active_at": datetime.now(timezone.utc).isoformat(),
-        }).eq("id", session_id).execute()
+        with _get_turn_lock(session_id):
+            res = (client.table("tutor_sessions")
+                   .select("turn_count")
+                   .eq("id", session_id)
+                   .single()
+                   .execute())
+            current = (res.data or {}).get("turn_count", 0) or 0
+            client.table("tutor_sessions").update({
+                "turn_count": current + 1,
+                "last_active_at": datetime.now(timezone.utc).isoformat(),
+            }).eq("id", session_id).execute()
     except Exception as exc:
         log.warning("[ai_session] record_turn error: %s", exc)
 

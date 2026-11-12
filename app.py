@@ -41,7 +41,7 @@ TURNSTILE_SITEKEY = os.getenv('TURNSTILE_SITEKEY', '')
 # DEFERRED: create_client crashes if SUPABASE_URL/KEY are None (causes H10 on Heroku startup).
 # We use a lazy proxy so the client is only created when first accessed.
 SUPABASE_URL = os.getenv('SUPABASE_URL')
-SUPABASE_KEY = os.getenv('SUPABASE_KEY') or os.getenv('SUPABASE_PUBLIC_API_KEY')
+SUPABASE_KEY = os.getenv('SUPABASE_SECRET_API_KEY') or os.getenv('SUPABASE_KEY') or os.getenv('SUPABASE_PUBLIC_API_KEY')
 
 _supabase_client = None  # Lazily initialized
 
@@ -82,7 +82,7 @@ if firebase_service_account:
         else:
             cred = credentials.Certificate(cred_dict)
             logging.info("Firebase: credentials loaded from FIREBASE_SERVICE_ACCOUNT_JSON env var")
-    except (json.JSONDecodeError, Exception) as e:
+    except Exception as e:
         logging.warning(f"Firebase: Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON: {e}")
 
 if cred is None:
@@ -241,6 +241,8 @@ def _score_item(item: dict, tokens: list[str]) -> float:
 
 # Initialize Flask app
 app = Flask(__name__)
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 install_request_context(app)
 
 from jinja2 import FileSystemLoader, TemplateNotFound
@@ -309,12 +311,6 @@ app.jinja_loader = _AliasedTemplateLoader(app.template_folder)
 app.config['APP_SHELL_ENABLED'] = os.environ.get('APP_SHELL_ENABLED', 'true').lower() in ('true', '1', 'yes')
 app.config['SHELL_IN_MOBILE_BROWSER'] = os.environ.get('SHELL_IN_MOBILE_BROWSER', 'false').lower() in ('true', '1', 'yes')
 
-# Response caching to improve server response time
-from flask import make_response, request
-# Response caching and security headers
-from flask import make_response, request
-import time
-
 # Valid production domains for security checks
 VALID_DOMAINS = {'www.abhihub.edu.eu.org', 'abhihub.edu.eu.org', 'beta.abhihub.edu.eu.org'}
 AI_CRAWLER_USER_AGENTS = (
@@ -362,7 +358,7 @@ def check_resource_page_security():
         # Parse referer domain
         try:
             from urllib.parse import urlparse
-            ref_domain = urlparse(referer).netloc.lower().rstrip(':443')
+            ref_domain = urlparse(referer).netloc.lower().removesuffix(':443')
             if ref_domain not in VALID_DOMAINS and not ref_domain.startswith('localhost'):
                 logging.warning(f"[SECURITY] Invalid referer for resource access: {referer}")
                 # Don't block, but log for monitoring
@@ -403,11 +399,11 @@ def validate_api_domain():
         # Validate origin
         try:
             from urllib.parse import urlparse
-            origin_domain = urlparse(origin).netloc.lower().rstrip(':443')
-            if origin_domain not in VALID_DOMAINS:
+            origin_domain = urlparse(origin).netloc.lower().removesuffix(':443')
+            if origin_domain not in VALID_DOMAINS and not origin_domain.startswith(('localhost', '127.0.0.1')):
                 logging.warning(f"[SECURITY] API request from invalid origin: {origin}")
-                # In production, you might want to block this
-                # For now, just log and allow (CORS will handle it)
+                if request.method in ('POST', 'PUT', 'DELETE', 'PATCH') and not request.path.startswith(('/api/webhooks/', '/api/og/')):
+                    return jsonify({'success': False, 'message': 'Forbidden: Invalid origin'}), 403
         except Exception as e:
             logging.debug(f"[SECURITY] Origin parse error: {e}")
 
@@ -496,8 +492,9 @@ def apply_security_and_cache_headers(response):
     response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
     response.headers.setdefault('Permissions-Policy', 'camera=(self), microphone=(), geolocation=(), display-capture=()')
     
-    # HSTS in production
-    if os.getenv('FLASK_ENV', 'production').lower() != 'development':
+    # HSTS in production (skip local development hosts)
+    host = (request.host or '').lower().split(':')[0]
+    if os.getenv('FLASK_ENV', 'production').lower() != 'development' and host not in ('localhost', '127.0.0.1'):
         response.headers.setdefault('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
 
     # Security & Search Engine directives: noindex on private / app / admin areas
@@ -512,8 +509,8 @@ def apply_security_and_cache_headers(response):
     elif request.path.startswith('/api/'):
         if 'Cache-Control' not in response.headers:
             response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    elif request.path.endswith('.html') and not request.path.startswith('/dashboard'):
-        response.headers.setdefault('Cache-Control', 'public, max-age=60, must-revalidate')
+    elif request.path.endswith('.html'):
+        response.headers['Cache-Control'] = 'private, no-cache, no-store, must-revalidate'
     return response
 
 # Subdomain router & Canonical Host 301 Redirection
@@ -745,9 +742,23 @@ def _load_contact_messages():
 # Security Configuration - Load from environment variables
 _configured_secret = os.getenv('SECRET_KEY')
 if not _configured_secret:
+    _key_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.secret_key')
+    if os.path.exists(_key_file):
+        try:
+            with open(_key_file, 'r', encoding='utf-8') as _kf:
+                app.secret_key = _kf.read().strip()
+        except Exception:
+            app.secret_key = secrets.token_hex(32)
+    else:
+        new_key = secrets.token_hex(32)
+        try:
+            with open(_key_file, 'w', encoding='utf-8') as _kf:
+                _kf.write(new_key)
+        except Exception:
+            pass
+        app.secret_key = new_key
     if os.getenv('FLASK_ENV', 'production').lower() != 'development':
-        logging.critical("[SECURITY WARNING] SECRET_KEY environment variable is not set! Set SECRET_KEY in .env to prevent multi-worker session invalidation.")
-    app.secret_key = secrets.token_hex(32)
+        logging.warning("[SECURITY] SECRET_KEY missing in environment; using persistent fallback file.")
 else:
     app.secret_key = _configured_secret
 
@@ -778,7 +789,7 @@ def check_csrf():
     if not app.config.get('WTF_CSRF_ENABLED', True):
         return
     if request.method not in ['GET', 'HEAD', 'OPTIONS', 'TRACE']:
-        if request.path.startswith('/api/') or request.path.startswith('/admin/api/') or request.path.startswith('/auth') or request.path.startswith('/store-room/api/') or request.path == '/account/update':
+        if request.path.startswith('/api/') or request.path.startswith('/admin/api/') or request.path.startswith('/auth') or request.path.startswith('/store-room/api/'):
             return
         csrf.protect()
 
@@ -1424,16 +1435,14 @@ def load_data(search_query=search_query[-1]):
     """
     global data_cache
 
-    # load once - now using unified file list with L2 cache
-    if not data_cache:
-        data_cache = cache.get_cached(
-            "files:list:unified",
-            level=cache.L2,
-            ttl=cache.MEDIUM,
-            fetcher=lambda: (lambda r: (logging.info(f"Loaded {len(r)} files from unified sources for search cache") or r))(get_all_files_unified())
-        )
-        if data_cache is None:
-            data_cache = []
+    # Fetch from multi-level cache (L1 memory + L2 disk), respecting invalidations
+    files = cache.get_cached(
+        "files:list:unified",
+        level=cache.L2,
+        ttl=cache.MEDIUM,
+        fetcher=lambda: (lambda r: (logging.info(f"Loaded {len(r)} files from unified sources for search cache") or r))(get_all_files_unified())
+    )
+    data_cache = files or []
 
     # no query -> return all (unchanged behavior)
     if not search_query:
@@ -1649,18 +1658,20 @@ def _get_uid():
     user = session.get('user', {})
     return user.get('uid') or user.get('id') or user.get('user_id')
 
-_chat_online = {}        # {user_id: {sid, name}}
-_chat_online_http = {}   # {user_id: {time, name}}
-
-CHAT_SECRET = os.getenv('CHAT_SECRET') or os.getenv('SECRET_KEY') or os.getenv('FLASK_SECRET_KEY')
+_raw_chat_secret = os.getenv('CHAT_SECRET')
+if not _raw_chat_secret:
+    _base_key = (os.getenv('SECRET_KEY') or app.secret_key or 'default-chat-salt').encode('utf-8')
+    CHAT_SECRET = hmac.new(b'abhihub-peer-chat-encryption-v1', _base_key, hashlib.sha256).hexdigest()
+else:
+    CHAT_SECRET = _raw_chat_secret
 
 def _chat_secret():
     if not CHAT_SECRET:
         return None
     try:
         import base64
-        b = base64.urlsafe_b64encode(CHAT_SECRET.encode('utf-8')[:32].ljust(32, b'\0'))
-        return b.decode('utf-8')
+        import hashlib
+        return base64.urlsafe_b64encode(hashlib.sha256(CHAT_SECRET.encode('utf-8')).digest()).decode('utf-8')
     except Exception:
         return None
 
@@ -1969,16 +1980,6 @@ def _relay_chat_message(uid, data):
             'ts': payload.get('ts', ''),
             'error': None
         }, to=sender_sid)
-    else:
-        # Sender not connected via WebSocket - send ACK via HTTP fallback
-        try:
-            import requests as _req
-            headers = {'Content-Type': 'application/json'}
-            _req.post(f'http://127.0.0.1:{os.getenv("PORT", "5000")}/api/chat/messages', json={
-                'to': uid, 'text': 'ACK: message delivered', 'ts': payload.get('ts', '')
-            }, timeout=2, headers=headers)
-        except Exception:
-            pass
     # Notify admin dashboard of chat activity (privacy-safe, no message content)
     _notify_admin_of_chat_activity(uid, peer_id, payload.get('ts', ''))
     _create_chat_notification(uid, peer_id, payload)

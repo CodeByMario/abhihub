@@ -782,12 +782,17 @@ def share_receiver():
     files = request.files.getlist('files')
 
     received_files = []
-    allowed_extensions = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.pdf'}
+    allowed_extensions = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.pdf'}
     max_file_size = 50 * 1024 * 1024
+    from werkzeug.utils import secure_filename
+    base_upload_dir = os.path.abspath('temp_uploads')
 
     for file in files:
         if file and file.filename:
-            ext = os.path.splitext(file.filename)[1].lower()
+            safe_name = secure_filename(file.filename)
+            if not safe_name:
+                continue
+            ext = os.path.splitext(safe_name)[1].lower()
             if ext not in allowed_extensions:
                 continue
             file.seek(0, 2)
@@ -795,11 +800,13 @@ def share_receiver():
             file.seek(0)
             if size > max_file_size:
                 continue
-            temp_path = os.path.join('temp_uploads', file.filename)
+            temp_path = os.path.abspath(os.path.join(base_upload_dir, safe_name))
+            if not temp_path.startswith(base_upload_dir):
+                continue
             os.makedirs(os.path.dirname(temp_path), exist_ok=True)
             file.save(temp_path)
             received_files.append({
-                'name': file.filename,
+                'name': safe_name,
                 'type': file.content_type,
                 'size': size,
                 'path': temp_path
@@ -825,7 +832,11 @@ def delete_account():
     """Account deletion request page and form submission handler."""
     if request.method == 'POST':
         full_name = request.form.get('full_name', '').strip()
+        user_email = session.get('user', {}).get('email', '').strip()
         email = request.form.get('email', '').strip()
+        if user_email and email.lower() != user_email.lower():
+            flash('The confirmation email must match your logged-in account email.', 'error')
+            return render_template('delete_account.html'), 400
         username = request.form.get('username', '').strip()
         reason = request.form.get('reason', '').strip()
         details = request.form.get('details', '').strip()

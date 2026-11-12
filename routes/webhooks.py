@@ -89,8 +89,10 @@ def webhook_cloudinary_upload():
     """Webhook triggered on storage upload completion to run async background compression."""
     webhook_secret = os.getenv('CLOUDINARY_WEBHOOK_SECRET')
     if webhook_secret:
+        import hmac
         auth_hdr = request.headers.get('X-Webhook-Secret') or request.headers.get('Authorization', '')
-        if auth_hdr.replace('Bearer ', '').strip() != webhook_secret.strip():
+        token_sent = auth_hdr.replace('Bearer ', '').strip()
+        if not hmac.compare_digest(token_sent, webhook_secret.strip()):
             return jsonify({'success': False, 'message': 'Unauthorized webhook call'}), 401
 
     data = request.get_json(silent=True) or request.form.to_dict()

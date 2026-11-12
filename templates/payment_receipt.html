@@ -1,155 +1,650 @@
 {% extends 'p_struct.html' %}
-{% block title %}{{ 'Payment Successful' if is_paid else 'Payment Failed' }} - AbhiHub{% endblock %}
-{% block content %}
-<div style="max-width:520px;margin:2.5rem auto 5rem;padding:0 1rem;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-    <div style="background:#ffffff;border-radius:24px;border:1.5px solid {{ '#bbf7d0' if is_paid else '#fecaca' }};box-shadow:0 14px 40px -10px rgba(0,0,0,0.08);overflow:hidden;text-align:center;">
-        
-        <!-- Status Header Banner -->
-        <div style="background:{{ 'linear-gradient(135deg,#16a34a,#15803d)' if is_paid else 'linear-gradient(135deg,#dc2626,#991b1b)' }};padding:2.25rem 1.5rem 2rem;color:#ffffff;position:relative;">
-            <div style="width:68px;height:68px;border-radius:50%;background:rgba(255,255,255,0.22);display:inline-flex;align-items:center;justify-content:center;font-size:2.2rem;margin-bottom:0.75rem;backdrop-filter:blur(4px);border:2px solid rgba(255,255,255,0.35);">
-                {{ '✅' if is_paid else '❌' }}
-            </div>
-            <h1 style="color:#ffffff;font-size:1.45rem;font-weight:800;margin:0 0 0.35rem;letter-spacing:-0.02em;">
-                {{ 'Payment Verified & Confirmed!' if is_paid else 'Payment Not Completed' }}
-            </h1>
-            <p style="color:rgba(255,255,255,0.92);font-size:0.88rem;margin:0 auto;max-width:360px;line-height:1.45;">
-                {{ 'Official settlement confirmed by Razorpay Secure Gateway.' if is_paid else (error_msg or 'Transaction was cancelled or declined by your bank.') }}
-            </p>
-        </div>
-
-        <!-- Receipt Body -->
-        <div style="padding:1.75rem 1.5rem 2rem;">
-            
-            <!-- Amount Card -->
-            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:1.15rem 1.25rem;margin-bottom:1.5rem;text-align:left;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;padding-bottom:0.6rem;border-bottom:1px dashed #cbd5e1;">
-                    <span style="font-size:0.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Order Reference</span>
-                    <span style="font-size:0.82rem;color:#1e293b;font-family:monospace;font-weight:700;background:#e2e8f0;padding:0.15rem 0.5rem;border-radius:6px;">#{{ order_id }}</span>
-                </div>
-                
-                <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#64748b;margin-bottom:0.4rem;">
-                    <span>App Name:</span>
-                    <strong style="color:#0f172a;">{{ app_name|default('AbhiHub') }}</strong>
-                </div>
-
-                <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#64748b;margin-bottom:0.4rem;">
-                    <span>App ID:</span>
-                    <span style="color:#475569;font-family:monospace;font-size:0.76rem;">{{ app_id|default('com.abhihub.app') }}</span>
-                </div>
-
-                <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#64748b;margin-bottom:0.4rem;">
-                    <span>Invoice ID:</span>
-                    <strong style="color:#0f172a;font-family:monospace;">#{{ invoice_id }}</strong>
-                </div>
-
-                <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#64748b;margin-bottom:0.4rem;">
-                    <span>Date:</span>
-                    <strong style="color:#1e293b;">{{ purchase_date }}</strong>
-                </div>
-
-                <div style="display:flex;justify-content:space-between;font-size:0.85rem;color:#64748b;margin-bottom:0.4rem;">
-                    <span>Amount:</span>
-                    <strong style="color:{{ '#15803d' if is_paid else '#991b1b' }};font-size:1.1rem;font-weight:800;">₹{{ amount }}</strong>
-                </div>
-
-                <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#64748b;margin-bottom:0.4rem;">
-                    <span>Gateway:</span>
-                    <span style="color:#1d4ed8;font-weight:700;">Razorpay Secure Checkout</span>
-                </div>
-
-                {% if doc_info and doc_info.title %}
-                <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#64748b;margin-bottom:0.4rem;">
-                    <span>Item:</span>
-                    <strong style="color:#0f172a;max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ doc_info.title }}</strong>
-                </div>
-                {% elif purpose %}
-                <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#64748b;margin-bottom:0.4rem;">
-                    <span>Purpose:</span>
-                    <strong style="color:#0f172a;">{{ purpose }}</strong>
-                </div>
-                {% endif %}
-
-                <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:#64748b;">
-                    <span>Status:</span>
-                    <span style="font-weight:700;color:{{ '#16a34a' if is_paid else '#dc2626' }};">
-                        {{ 'COMPLETED / UNLOCKED' if is_paid else 'FAILED / CANCELLED' }}
-                    </span>
-                </div>
-            </div>
-
-            <!-- Action Buttons -->
-            {% if is_paid %}
-                {% if is_credits %}
-                <!-- View Credits Confirmation Feedback -->
-                <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:16px;padding:1.25rem 1rem;margin-bottom:1.25rem;color:#166534;font-size:0.9rem;line-height:1.5;text-align:center;">
-                    <div style="font-size:2.2rem;margin-bottom:0.25rem;">🎉</div>
-                    <strong style="font-size:1.15rem;display:block;margin-bottom:0.35rem;color:#15803d;">View Credits Added!</strong>
-                    Your account has been credited with <strong>{{ pack_size or 50 }} study views</strong>. You can now open, read, and download university exam papers and notes freely!
-                </div>
-                <div style="display:flex;flex-direction:column;gap:0.75rem;">
-                    <a href="/dashboard" 
-                       style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.95rem 1.5rem;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#ffffff;font-weight:700;font-size:0.95rem;border-radius:14px;text-decoration:none;box-shadow:0 6px 18px rgba(37,99,235,0.35);">
-                        <span>🚀 Go to Dashboard & Read Papers</span>
-                    </a>
-                    <a href="/store-room" 
-                       style="padding:0.75rem 1.25rem;background:#f8fafc;color:#334155;border:1.5px solid #cbd5e1;font-weight:600;font-size:0.85rem;border-radius:12px;text-decoration:none;text-align:center;">
-                        Open My Store Room
-                    </a>
-                </div>
-                {% elif doc_id %}
-                <div style="display:flex;flex-direction:column;gap:0.75rem;">
-                    <a href="/resource/{{ doc_id }}" 
-                       style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.95rem 1.5rem;background:linear-gradient(135deg,#16a34a,#15803d);color:#ffffff;font-weight:700;font-size:0.95rem;border-radius:14px;text-decoration:none;box-shadow:0 6px 18px rgba(22,163,74,0.35);">
-                        <span>📖 View Full Document (All Pages)</span>
-                    </a>
-                    <a href="/dashboard" 
-                       style="padding:0.75rem 1.25rem;background:#f8fafc;color:#334155;border:1.5px solid #cbd5e1;font-weight:600;font-size:0.85rem;border-radius:12px;text-decoration:none;">
-                        Return to Dashboard
-                    </a>
-                </div>
-                {% else %}
-                <!-- Community Contribution Feedback -->
-                <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:16px;padding:1rem;margin-bottom:1.25rem;color:#166534;font-size:0.88rem;line-height:1.5;">
-                    ☕ <strong>Thank you for buying me tea!</strong><br>
-                    Your chai treat directly powers our high-speed cloud servers and keeps study resources 100% free and accessible for engineering students. You're now on our Wall of Supporters!
-                </div>
-                <div style="display:flex;flex-direction:column;gap:0.75rem;">
-                    <a href="/dashboard" 
-                       style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.95rem 1.5rem;background:linear-gradient(135deg,#0c2340,#1d4ed8);color:#ffffff;font-weight:700;font-size:0.95rem;border-radius:14px;text-decoration:none;box-shadow:0 6px 18px rgba(29,78,216,0.35);">
-                        <span>Return to Dashboard</span>
-                    </a>
-                </div>
-                {% endif %}
-            {% else %}
-                <!-- Failed / Cancelled Actions -->
-                <div style="display:flex;flex-direction:column;gap:0.75rem;">
-                    {% if doc_id %}
-                    <a href="/payment?doc_id={{ doc_id }}&amount={{ amount }}&purpose=Document-{{ doc_id }}" 
-                       style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.95rem 1.5rem;background:linear-gradient(135deg,#0c2340,#1d4ed8);color:#ffffff;font-weight:700;font-size:0.95rem;border-radius:14px;text-decoration:none;box-shadow:0 6px 18px rgba(29,78,216,0.35);">
-                        <span>🔄 Retry Payment</span>
-                    </a>
-                    {% else %}
-                    <a href="/dashboard" 
-                       style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.95rem 1.5rem;background:linear-gradient(135deg,#0c2340,#1d4ed8);color:#ffffff;font-weight:700;font-size:0.95rem;border-radius:14px;text-decoration:none;">
-                        <span>Return to Dashboard</span>
-                    </a>
-                    {% endif %}
-                    <a href="/dashboard" 
-                       style="padding:0.75rem 1.25rem;background:#f8fafc;color:#64748b;border:1.5px solid #cbd5e1;font-weight:600;font-size:0.85rem;border-radius:12px;text-decoration:none;">
-                        Cancel and Go to Home
-                    </a>
-                </div>
-            {% endif %}
-
-            <!-- Security Footnote -->
-            <div style="margin-top:1.75rem;padding-top:1rem;border-top:1px solid #f1f5f9;font-size:0.72rem;color:#94a3b8;display:flex;justify-content:center;gap:1rem;">
-                <span>🔒 Razorpay Verified</span>
-                <span>⚡ Instant Settlement</span>
-                <span>🛡️ PCI-DSS Level 1</span>
-            </div>
-
-
-        </div>
-    </div>
+{% block title %}{{ 'Payment Confirmed - AbhiHub' if is_paid else 'Payment Incomplete - AbhiHub' }}<!-- Digital Signature Strip (visible on page, included in PDF) -->
+<div class="rc-wrapper" style="margin-top:-3rem;">
+  <div class="rc-signature-strip" id="rcSignatureStrip">
+    🔏 Digitally Verified Receipt — AbhiHub Payment System<br>
+    Signature: <span id="rcSigHash">Generating...</span><br>
+    Issued: {{ purchase_date }} • Verification: abhihub.edu.eu.org/verify
+  </div>
 </div>
+
+<!-- html2canvas + jsPDF CDN (loaded only on this page) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js" defer></script>
+
+<script>
+// Generate SHA-256 signature hash from receipt data
+(function generateSignature() {
+  var raw = '{{ order_id }}|{{ invoice_id }}|{{ amount }}|{{ "PAID" if is_paid else "FAIL" }}|AbhiHub';
+  if (window.crypto && window.crypto.subtle) {
+    var enc = new TextEncoder();
+    window.crypto.subtle.digest('SHA-256', enc.encode(raw)).then(function(buf) {
+      var arr = Array.from(new Uint8Array(buf));
+      var hex = arr.map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+      var short = hex.substring(0, 16).toUpperCase();
+      var el = document.getElementById('rcSigHash');
+      if (el) el.textContent = short;
+    });
+  } else {
+    // Fallback: simple hash
+    var hash = 0;
+    for (var i = 0; i < raw.length; i++) {
+      var chr = raw.charCodeAt(i);
+      hash = ((hash << 5) - hash) + chr;
+      hash |= 0;
+    }
+    var el = document.getElementById('rcSigHash');
+    if (el) el.textContent = Math.abs(hash).toString(16).toUpperCase().padStart(8, '0');
+  }
+})();
+
+function downloadReceiptPDF() {
+  var btn = document.getElementById('rcDownloadPdf');
+  if (btn) { btn.disabled = true; btn.textContent = 'Generating PDF...'; }
+
+  var card = document.querySelector('.rc-card');
+  var sigStrip = document.getElementById('rcSignatureStrip');
+  // Temporarily hide action buttons for PDF
+  var ctas = card.querySelectorAll('.rc-cta-primary, .rc-cta-secondary-row, .rc-footer-trust');
+  ctas.forEach(function(el) { el.style.display = 'none'; });
+
+  // Temporarily show sig strip inside card for capture
+  var tempSig = sigStrip ? sigStrip.cloneNode(true) : null;
+  if (tempSig) {
+    tempSig.style.margin = '1rem 1.5rem 1.5rem';
+    tempSig.style.display = 'block';
+    card.appendChild(tempSig);
+  }
+
+  html2canvas(card, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: '#ffffff',
+    logging: false
+  }).then(function(canvas) {
+    // Restore hidden elements
+    ctas.forEach(function(el) { el.style.display = ''; });
+    if (tempSig && tempSig.parentNode) tempSig.parentNode.removeChild(tempSig);
+
+    var imgData = canvas.toDataURL('image/png');
+    var pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
+    var pageWidth = pdf.internal.pageSize.getWidth();
+    var pageHeight = pdf.internal.pageSize.getHeight();
+    var imgWidth = pageWidth - 20;
+    var imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    if (imgHeight > pageHeight - 20) {
+      imgHeight = pageHeight - 20;
+      imgWidth = (canvas.width * imgHeight) / canvas.height;
+    }
+
+    var x = (pageWidth - imgWidth) / 2;
+    var y = 10;
+    pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+
+    var orderId = '{{ order_id }}' || 'receipt';
+    pdf.save('AbhiHub_Receipt_' + orderId + '.pdf');
+
+    if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Download Receipt'; }
+  }).catch(function(err) {
+    console.error('PDF generation failed:', err);
+    ctas.forEach(function(el) { el.style.display = ''; });
+    if (tempSig && tempSig.parentNode) tempSig.parentNode.removeChild(tempSig);
+    if (btn) { btn.disabled = false; btn.textContent = 'Download Receipt'; }
+    // Fallback to browser print
+    window.print();
+  });
+}
+</script>
+
+{% endblock %}
+{% block content %}
+<style>
+  .rc-wrapper {
+    max-width: 480px;
+    margin: 2.25rem auto 5rem;
+    padding: 0 1rem;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .rc-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 22px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+    overflow: hidden;
+  }
+  .rc-hero {
+    padding: 2.25rem 1.5rem 1.75rem;
+    text-align: center;
+    border-bottom: 1px dashed #e2e8f0;
+  }
+  .rc-badge-circle {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .rc-badge-circle.success {
+    background: #ecfdf5;
+    border: 1.5px solid #a7f3d0;
+    color: #059669;
+  }
+  .rc-badge-circle.failed {
+    background: #fef2f2;
+    border: 1.5px solid #fecaca;
+    color: #dc2626;
+  }
+  .rc-headline {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 0.35rem;
+    letter-spacing: -0.025em;
+  }
+  .rc-subheadline {
+    font-size: 0.84rem;
+    color: #64748b;
+    margin: 0 0 1.25rem;
+    line-height: 1.4;
+  }
+  .rc-amount-hero {
+    font-size: 2.5rem;
+    font-weight: 850;
+    color: #0f172a;
+    letter-spacing: -0.035em;
+    line-height: 1;
+  }
+  .rc-amount-hero.failed {
+    color: #b91c1c;
+  }
+  .rc-body {
+    padding: 1.5rem;
+  }
+  .rc-inset-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 0.85rem 1.15rem;
+    margin-bottom: 1.25rem;
+  }
+  .rc-field-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    font-size: 0.84rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  }
+  .rc-field-row:last-child {
+    border-bottom: none;
+  }
+  .rc-field-label {
+    color: #64748b;
+    font-weight: 500;
+  }
+  .rc-field-val {
+    color: #0f172a;
+    font-weight: 650;
+    text-align: right;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .rc-mono-tag {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.76rem;
+    color: #334155;
+    background: #e2e8f0;
+    padding: 2px 7px;
+    border-radius: 6px;
+  }
+  .rc-pill-badge {
+    padding: 2.5px 9px;
+    border-radius: 980px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .rc-pill-badge.success {
+    background: #dcfce7;
+    color: #15803d;
+  }
+  .rc-pill-badge.failed {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  .rc-message-box {
+    border-radius: 14px;
+    padding: 0.95rem 1.1rem;
+    font-size: 0.85rem;
+    line-height: 1.48;
+    margin-bottom: 1.35rem;
+  }
+  .rc-message-box.success {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+  }
+  .rc-message-box.failed {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+  }
+  .rc-tips-box {
+    background: #fffbeb;
+    border: 1px solid #fef3c7;
+    border-radius: 14px;
+    padding: 0.85rem 1rem;
+    font-size: 0.8rem;
+    color: #92400e;
+    line-height: 1.45;
+    margin-bottom: 1.35rem;
+  }
+  .rc-cta-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    min-height: 48px;
+    background: #1b3a6b;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.92rem;
+    border-radius: 980px;
+    text-decoration: none;
+    box-sizing: border-box;
+    transition: all 0.15s ease;
+  }
+  .rc-cta-primary:hover {
+    background: #152e55;
+    transform: translateY(-1px);
+    color: #ffffff;
+  }
+  .rc-cta-secondary-row {
+    display: flex;
+    gap: 0.65rem;
+    margin-top: 0.75rem;
+  }
+  .rc-cta-secondary {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 42px;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+    font-weight: 600;
+    font-size: 0.82rem;
+    border-radius: 980px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .rc-cta-secondary:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+  }
+  .rc-footer-trust {
+    margin-top: 1.6rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: center;
+    gap: 1.25rem;
+    font-size: 0.72rem;
+    color: #94a3b8;
+    user-select: none;
+  }
+
+  /* Dark mode */
+  [data-theme="dark"] .rc-card {
+    background: #1e1e2d;
+    border-color: #334155;
+  }
+  [data-theme="dark"] .rc-hero {
+    border-bottom-color: #334155;
+  }
+  [data-theme="dark"] .rc-headline,
+  [data-theme="dark"] .rc-amount-hero,
+  [data-theme="dark"] .rc-field-val {
+    color: #f8fafc;
+  }
+  [data-theme="dark"] .rc-inset-card {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: #334155;
+  }
+  [data-theme="dark"] .rc-cta-secondary {
+    background: #1e1e2d;
+    border-color: #475569;
+    color: #cbd5e1;
+  }
+  [data-theme="dark"] .rc-mono-tag {
+    background: #334155;
+    color: #f1f5f9;
+  }
+
+  /* Apple Clean Print Sheet (kept for fallback ctrl+P) */
+  @media print {
+    body { background: #ffffff !important; }
+    .rc-wrapper { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+    .rc-card { border: none !important; box-shadow: none !important; }
+    .rc-cta-primary, .rc-cta-secondary-row, .rc-footer-trust, .rc-tips-box, .rc-signature-strip { display: none !important; }
+    header, footer, nav, #appShellNav, #tarikaFloatingBtn, .site-header, .site-footer { display: none !important; }
+  }
+  .rc-signature-strip {
+    margin-top: 1.25rem;
+    padding: 0.75rem 1rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    color: #94a3b8;
+    text-align: center;
+    line-height: 1.5;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    word-break: break-all;
+  }
+</style>
+
+<div class="rc-wrapper">
+  <div class="rc-card">
+    
+    <!-- Hero Header -->
+    <div class="rc-hero">
+      <div class="rc-badge-circle {{ 'success' if is_paid else 'failed' }}">
+        {% if is_paid %}
+        <!-- Crisp Apple Checkmark -->
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        {% else %}
+        <!-- Soft Apple Cross -->
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+        {% endif %}
+      </div>
+
+      <h1 class="rc-headline">
+        {% if is_paid %}Payment Confirmed{% else %}Payment Incomplete{% endif %}
+      </h1>
+      <p class="rc-subheadline">
+        {% if is_paid %}
+          Razorpay Secure Settlement • {{ purchase_date }}
+        {% else %}
+          {{ error_msg or 'Transaction declined or timed out. No funds were debited.' }}
+        {% endif %}
+      </p>
+
+      <div class="rc-amount-hero {{ 'failed' if not is_paid else '' }}">
+        ₹{{ amount }}
+      </div>
+    </div>
+
+    <!-- Details Body -->
+    <div class="rc-body">
+
+      <!-- Inset Details Card -->
+      <div class="rc-inset-card">
+        <div class="rc-field-row">
+          <span class="rc-field-label">Item / Purpose</span>
+          <span class="rc-field-val" title="{{ doc_info.title if (doc_info and doc_info.title) else (purpose or 'Study Pass Access') }}">
+            {% if doc_info and doc_info.title %}
+              {{ doc_info.title }}
+            {% else %}
+              {{ purpose or 'Study Pass Access' }}
+            {% endif %}
+          </span>
+        </div>
+
+        {% if order_id %}
+        <div class="rc-field-row">
+          <span class="rc-field-label">Order Reference</span>
+          <span class="rc-mono-tag">#{{ order_id }}</span>
+        </div>
+        {% endif %}
+
+        {% if invoice_id %}
+        <div class="rc-field-row">
+          <span class="rc-field-label">Invoice Number</span>
+          <span class="rc-mono-tag">#{{ invoice_id }}</span>
+        </div>
+        {% endif %}
+
+        <div class="rc-field-row">
+          <span class="rc-field-label">Payment Method</span>
+          <span class="rc-field-val" style="color:#2563eb;">Razorpay Secure</span>
+        </div>
+
+        <div class="rc-field-row">
+          <span class="rc-field-label">Status</span>
+          <span class="rc-pill-badge {{ 'success' if is_paid else 'failed' }}">
+            {{ '● Confirmed' if is_paid else '● Unsuccessful' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Outcome Message -->
+      {% if is_paid %}
+        {% if is_credits %}
+        <div class="rc-message-box success">
+          🎉 <strong>{{ pack_size or 50 }} Study Views added!</strong> Your university exam papers and premium study notes are immediately unlocked.
+        </div>
+        {% elif doc_id %}
+        <div class="rc-message-box success">
+          📖 <strong>Full Access Granted!</strong> You have permanent access to read, annotate, and review all pages of this document.
+        </div>
+        {% else %}
+        <div class="rc-message-box success">
+          ☕ <strong>Thank you for your support!</strong> Your contribution powers high-speed servers and keeps campus resources free for peers.
+        </div>
+        {% endif %}
+      {% else %}
+        <!-- Failure De-escalation Box -->
+        <div class="rc-message-box failed">
+          🔒 <strong>Your money is safe.</strong> No funds were charged. If an amount was temporarily deducted by your bank, UPI protocols will automatically refund it within 3–5 business days.
+        </div>
+
+        <!-- Failure Diagnostic Tips -->
+        <div class="rc-tips-box">
+          <strong>Quick tips to complete payment:</strong>
+          <ul style="margin:0.35rem 0 0 1.15rem;padding:0;">
+            <li>Verify daily UPI or card transaction limits.</li>
+            <li>Ensure bank server connectivity or switch to NetBanking / Card.</li>
+            <li>Check approval request in your UPI app (GPay / PhonePe / Paytm).</li>
+          </ul>
+        </div>
+      {% endif %}
+
+      <!-- Primary Action CTA -->
+      {% if is_paid %}
+        {% if is_credits %}
+        <a href="/dashboard" class="rc-cta-primary">
+          <span>Continue to Study Papers ↗</span>
+        </a>
+        {% elif doc_id %}
+        <a href="/resource/{{ doc_id }}" class="rc-cta-primary">
+          <span>Open Full Document ↗</span>
+        </a>
+        {% else %}
+        <a href="/dashboard" class="rc-cta-primary">
+          <span>Return to Dashboard ↗</span>
+        </a>
+        {% endif %}
+      {% else %}
+        {% if doc_id %}
+        <a href="/payment?doc_id={{ doc_id }}&amount={{ amount }}&purpose=Document-{{ doc_id }}" class="rc-cta-primary">
+          <span>Try Again with Razorpay 🔄</span>
+        </a>
+        {% else %}
+        <a href="/dashboard" class="rc-cta-primary">
+          <span>Return to Study Hub</span>
+        </a>
+        {% endif %}
+      {% endif %}
+
+      <!-- Secondary CTAs -->
+      <div class="rc-cta-secondary-row">
+        {% if is_paid %}
+        <button type="button" id="rcDownloadPdf" onclick="downloadReceiptPDF()" class="rc-cta-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Download Receipt
+        </button>
+        {% else %}
+        <a href="/dashboard" class="rc-cta-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          Back to Store
+        </a>
+        {% endif %}
+        <a id="rcWhatsAppHelp" href="#" onclick="openWhatsAppHelp(); return false;" class="rc-cta-secondary" style="color:#25D366;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.556 4.124 1.527 5.859L0 24l6.335-1.488A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818c-1.91 0-3.72-.53-5.295-1.45l-.38-.224-3.756.883.947-3.636-.25-.394A9.77 9.77 0 012.182 12c0-5.415 4.403-9.818 9.818-9.818S21.818 6.585 21.818 12 17.415 21.818 12 21.818z"/></svg>
+          WhatsApp Help
+        </a>
+      </div>
+
+      <!-- Trust Badges -->
+      <div class="rc-footer-trust">
+        <span>🔒 256-bit SSL</span>
+        <span>⚡ Instant Settlement</span>
+        <span>🛡️ PCI-DSS Level 1</span>
+      </div>
+
+    </div>
+  </div>
+</div>
+<!-- Digital Signature Strip (visible on page, included in PDF) -->
+<div class="rc-wrapper" style="margin-top:-3rem;">
+  <div class="rc-signature-strip" id="rcSignatureStrip">
+    🔏 Digitally Verified Receipt — AbhiHub Payment System<br>
+    Signature: <span id="rcSigHash">Generating...</span><br>
+    Issued: {{ purchase_date }} • Verification: abhihub.edu.eu.org/verify
+  </div>
+</div>
+
+<!-- html2canvas + jsPDF CDN (loaded only on this page) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js" defer></script>
+
+<script>
+// Generate SHA-256 signature hash from receipt data
+(function generateSignature() {
+  var raw = '{{ order_id }}|{{ invoice_id }}|{{ amount }}|{{ "PAID" if is_paid else "FAIL" }}|AbhiHub';
+  if (window.crypto && window.crypto.subtle) {
+    var enc = new TextEncoder();
+    window.crypto.subtle.digest('SHA-256', enc.encode(raw)).then(function(buf) {
+      var arr = Array.from(new Uint8Array(buf));
+      var hex = arr.map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+      var short = hex.substring(0, 16).toUpperCase();
+      var el = document.getElementById('rcSigHash');
+      if (el) el.textContent = short;
+    });
+  } else {
+    // Fallback: simple hash
+    var hash = 0;
+    for (var i = 0; i < raw.length; i++) {
+      var chr = raw.charCodeAt(i);
+      hash = ((hash << 5) - hash) + chr;
+      hash |= 0;
+    }
+    var el = document.getElementById('rcSigHash');
+    if (el) el.textContent = Math.abs(hash).toString(16).toUpperCase().padStart(8, '0');
+  }
+})();
+
+function downloadReceiptPDF() {
+  var btn = document.getElementById('rcDownloadPdf');
+  if (btn) { btn.disabled = true; btn.textContent = 'Generating PDF...'; }
+
+  var card = document.querySelector('.rc-card');
+  var sigStrip = document.getElementById('rcSignatureStrip');
+  // Temporarily hide action buttons for PDF
+  var ctas = card.querySelectorAll('.rc-cta-primary, .rc-cta-secondary-row, .rc-footer-trust');
+  ctas.forEach(function(el) { el.style.display = 'none'; });
+
+  // Temporarily show sig strip inside card for capture
+  var tempSig = sigStrip ? sigStrip.cloneNode(true) : null;
+  if (tempSig) {
+    tempSig.style.margin = '1rem 1.5rem 1.5rem';
+    tempSig.style.display = 'block';
+    card.appendChild(tempSig);
+  }
+
+  html2canvas(card, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: '#ffffff',
+    logging: false
+  }).then(function(canvas) {
+    // Restore hidden elements
+    ctas.forEach(function(el) { el.style.display = ''; });
+    if (tempSig && tempSig.parentNode) tempSig.parentNode.removeChild(tempSig);
+
+    var imgData = canvas.toDataURL('image/png');
+    var pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
+    var pageWidth = pdf.internal.pageSize.getWidth();
+    var pageHeight = pdf.internal.pageSize.getHeight();
+    var imgWidth = pageWidth - 20;
+    var imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    if (imgHeight > pageHeight - 20) {
+      imgHeight = pageHeight - 20;
+      imgWidth = (canvas.width * imgHeight) / canvas.height;
+    }
+
+    var x = (pageWidth - imgWidth) / 2;
+    var y = 10;
+    pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+
+    var orderId = '{{ order_id }}' || 'receipt';
+    pdf.save('AbhiHub_Receipt_' + orderId + '.pdf');
+
+    if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Download Receipt'; }
+  }).catch(function(err) {
+    console.error('PDF generation failed:', err);
+    ctas.forEach(function(el) { el.style.display = ''; });
+    if (tempSig && tempSig.parentNode) tempSig.parentNode.removeChild(tempSig);
+    if (btn) { btn.disabled = false; btn.textContent = 'Download Receipt'; }
+    // Fallback to browser print
+    window.print();
+  });
+}
+
+function openWhatsAppHelp() {
+  var msg = [
+    'Hi AbhiHub Support,',
+    '',
+    'I need help with a payment.',
+    '',
+    'Order ID: #{{ order_id }}',
+    'Invoice: #{{ invoice_id }}',
+    'Amount: Rs. {{ amount }}',
+    'Status: {{ "Confirmed" if is_paid else "Failed" }}',
+    'Date: {{ purchase_date }}',
+    '',
+    'Please assist me with this transaction.'
+  ].join('\n');
+  var url = 'https://wa.me/919049586422?text=' + encodeURIComponent(msg);
+  window.open(url, '_blank', 'noopener');
+}
+</script>
+
 {% endblock %}

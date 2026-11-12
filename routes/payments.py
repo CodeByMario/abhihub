@@ -19,6 +19,7 @@ payments_bp = Blueprint('payments', __name__)
 
 
 @payments_bp.route('/api/payment/status', methods=['POST'])
+@auth_required
 def payment_status_api():
     from data.transactions import is_order_completed, save_transaction_record
 
@@ -80,8 +81,9 @@ def payment_status_api():
             elif 'pack=' in part:
                 try: pack_size = int(part.replace('pack=', '').strip())
                 except: pass
-        if pack_size <= 0 and float(amount) > 0:
-            pack_size = int(float(amount) / 2)
+        # Only credit if a valid pack size was resolved from configured package metadata
+        if pack_size <= 0:
+            logging.warning("[PAYMENT_STATUS] Unresolved pack size for purpose=%s", purpose)
         if pack_size > 0:
             try:
                 from methods.payment_engine import engine
@@ -145,6 +147,7 @@ def payment_status_api():
 
 
 @payments_bp.route('/api/payment/phonepe/initiate', methods=['POST'])
+@auth_required
 def phonepe_initiate_api():
     """Deprecated PhonePe endpoint — forwarded to Razorpay order creation."""
     return initiate_payment()
@@ -303,6 +306,7 @@ def initiate_payment():
 @payments_bp.route('/api/verify-payment', methods=['POST'])
 @payments_bp.route('/api/payment/verify', methods=['POST'])
 @payments_bp.route('/api/payment/razorpay/verify', methods=['POST'])
+@auth_required
 def verify_payment():
     """Verifies HMAC-SHA256 signature of Razorpay payment and fulfills order."""
     from methods.razorpay_service import verify_payment_signature, hash_signature
@@ -627,6 +631,7 @@ def get_document_pricing(doc_id):
 
 
 @payments_bp.route('/api/document/<doc_id>/coupon', methods=['POST'])
+@auth_required
 def apply_document_coupon(doc_id):
     """Validate coupon, handle edge cases, and return payment link."""
     data = request.get_json(silent=True) or {}

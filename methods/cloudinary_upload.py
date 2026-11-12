@@ -147,7 +147,14 @@ def compress_image(file_data: bytes, format: str = 'JPEG', quality: int = 75) ->
         return compressed
     except Exception as e:
         logging.error("Image compression failed (error_type=%s)", type(e).__name__)
-        return file_data
+        # Strip EXIF metadata to protect user location/device privacy on fallback
+        try:
+            with Image.open(io.BytesIO(file_data)) as fallback_img:
+                clean_buf = io.BytesIO()
+                fallback_img.save(clean_buf, format=fallback_img.format or 'JPEG')
+                return clean_buf.getvalue()
+        except Exception:
+            return file_data
 
 def sanitize_filename(filename: str) -> str:
     """

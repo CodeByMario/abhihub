@@ -271,16 +271,17 @@ class PaymentEngine:
             log.error(f"[ENGINE] credit_views error: {e}")
             return False
 
-    def deduct_view(self, user_id: str, doc_name: str = '', amount: int = 1) -> bool:
+    def deduct_view(self, user_id: str, doc_name: str = '', amount: int = 1) -> tuple:
         """
         Deduct metered view credits (based on infra storage, egress bandwidth, and 35% safety buffer).
+        Returns: (success: bool, new_balance: int)
         """
         if not user_id:
-            return False
+            return False, 0
         try:
             db = _db()
             if not db:
-                return False
+                return False, 0
             amount = max(1, int(amount or 1))
 
             # Attempt atomic RPC first if present

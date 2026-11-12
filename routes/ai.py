@@ -447,17 +447,7 @@ def api_ai_daily_quota():
 @ai_bp.route('/api/ai/assistant', methods=['POST'])
 @auth_required
 def api_ai_assistant(user_data=None):
-    """Tarika assistant endpoint.
-
-    RELEVANT EXTERNAL REFERENCE IMAGES & VISUAL DATA:
-    Use authentic external reference images with Markdown syntax
-    ![Figure: Description](<image_url>) when useful, and use Mermaid for
-    diagrams.
-
-    Practice tests must contain MINIMUM 3 TO 5 QUESTIONS and use the table
-    format | Q# | Topic | Question Type | Marks | with an exam_stimulus.
-    """
-    """Unified AbhiHub AI Assistant."""
+    """Unified AbhiHub AI Assistant endpoint."""
     if not is_tarika_enabled_for_user():
         return jsonify({
             'success': False,
@@ -1068,6 +1058,7 @@ def get_ai_tools_schema():
 
 
 @ai_bp.route('/api/ai/conversations', methods=['GET', 'POST'])
+@auth_required
 def handle_ai_conversations():
     """List or create AI conversations for the authenticated user."""
     user_sess = session.get('user') or {}
@@ -1099,6 +1090,7 @@ def handle_ai_conversations():
 
 
 @ai_bp.route('/api/ai/conversations/<convo_id>', methods=['GET', 'PATCH', 'DELETE'])
+@auth_required
 def handle_ai_single_conversation(convo_id):
     """Retrieve messages, rename, or delete a specific conversation."""
     user_sess = session.get('user') or {}
