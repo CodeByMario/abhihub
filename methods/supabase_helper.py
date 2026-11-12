@@ -550,7 +550,7 @@ def get_recent_subject_files(subject_ids: list, limit: int = 10) -> Dict:
     if not client: return {"success": False}
     try:
         response = client.table('documents')\
-            .select('*, college:colleges(name, abbreviation), uploader:profiles!documents_uploader_id_fkey(full_name)')\
+            .select('*, college:colleges(name, abbreviation), subject:subjects(name, subject_code, semester), uploader:profiles!documents_uploader_id_fkey(full_name)')\
             .in_('subject_id', subject_ids)\
             .order('created_at', desc=True)\
             .limit(limit)\

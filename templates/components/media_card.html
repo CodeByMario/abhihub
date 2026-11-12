@@ -2,7 +2,7 @@
   Reusable Apple Media Card Macro
   Conforms to Apple Product Showcase Design System
 #}
-{% macro render_apple_card(file, college_abbr='GHRCE') %}
+{% macro render_apple_card(file, college_abbr='GHRCE', subject_detail=false) %}
   {% set file_title = file.get('title') or file.get('file_name') or file.get('file-name') or 'Document' %}
   {% set raw_cat = (file.get('document_category') or file.get('type') or file.get('category') or '')|lower %}
   {% set combined_text = (raw_cat ~ ' ' ~ file_title)|lower %}
@@ -28,6 +28,12 @@
   {% set raw_subj = subj_name or (file.get('subject') if file.get('subject') is string else None) or file.get('subject_name') %}
   {% set file_title = file.get('title') or file.get('file_name') or file.get('file-name') or 'Document' %}
   {% set display_subject = raw_subj if (raw_subj and raw_subj not in ('General Engineering', 'General', 'Other', 'Uncategorized')) else file_title %}
+  {% set college_val = file.get('college') or file.get('colleges') or {} %}
+  {% set college_dict = college_val if college_val is mapping else (college_val[0] if (college_val is iterable and college_val is not string and college_val|length > 0) else {}) %}
+  {% set college_label = (college_dict.get('abbreviation') or college_dict.get('name')) if college_dict is mapping else college_abbr %}
+  {% set card_heading = file_title if subject_detail else display_subject %}
+  {% set resource_year = file.get('exam_year') or file.get('academic_year') or file.get('year') %}
+  {% set upload_date = file.get('created_at') or file.get('uploaded_at') %}
   
   {# Author / Uploader extraction #}
   {% set prof_val = file.get('uploader') or file.get('profiles') %}
@@ -36,7 +42,7 @@
   {% set uploader_name = raw_author if (raw_author and raw_author|lower not in ('unknown', 'none', 'null', '')) else 'Student Contributor' %}
   {% set initial = (uploader_name[:1] or 'S')|upper %}
 
-  <a href="{{ furl }}" class="arch-apple-card note-card {% if is_pyq %}type-pyq{% elif is_practical %}type-practical{% elif is_syllabus %}type-syllabus{% else %}type-notes{% endif %}"
+  <a href="{{ furl }}" class="arch-apple-card note-card {% if subject_detail %}subject-detail-card {% endif %}{% if is_pyq %}type-pyq{% elif is_practical %}type-practical{% elif is_syllabus %}type-syllabus{% else %}type-notes{% endif %}"
      data-title="{{ file_title|lower }}"
      data-subject="{{ display_subject }}"
      data-category="{{ cat }}">
@@ -73,13 +79,13 @@
       <div class="arch-plate-bottom">
         <span class="arch-code-capsule">{{ subj_code }}</span>
         <span>•</span>
-        <span>{{ college_abbr or 'Verified' }} Curriculum</span>
+        <span>{{ (college_label or college_abbr or 'Verified') if subject_detail else ((college_abbr or 'Verified') ~ ' Curriculum') }}</span>
       </div>
     </div>
 
     <!-- Card Body Content -->
     <div class="arch-card-body">
-      <h3 class="arch-card-title">{{ display_subject }}</h3>
+      <h3 class="arch-card-title">{{ card_heading }}</h3>
 
       <div class="arch-card-desc">
         {% if is_pyq %}
@@ -99,6 +105,13 @@
           <span>Verified Semester Notes</span>
         {% endif %}
       </div>
+
+      {% if subject_detail %}
+      <div class="subject-card-details" aria-label="Resource details">
+        {% if resource_year %}<span class="subject-card-detail">Year {{ resource_year }}</span>{% endif %}
+        {% if upload_date %}<time class="subject-card-detail" datetime="{{ upload_date }}">Uploaded {{ upload_date[:10] if upload_date is string else upload_date.strftime('%Y-%m-%d') }}</time>{% endif %}
+      </div>
+      {% endif %}
 
       <!-- Card Footer -->
       <div class="arch-card-footer">

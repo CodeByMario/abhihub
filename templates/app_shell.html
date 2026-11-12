@@ -200,6 +200,119 @@
 
     </div>
 
+    <!-- First-visit feature tour -->
+    <section id="welcomeUpdate" class="welcome-update" role="dialog" aria-modal="true" aria-labelledby="welcomeUpdateTitle" aria-describedby="welcomeUpdateDescription" hidden>
+        <button type="button" class="welcome-update__scrim" tabindex="-1" data-welcome-close aria-label="Close welcome tour"></button>
+        <div class="welcome-update__panel" role="document" tabindex="-1">
+            <button type="button" class="welcome-update__close" data-welcome-close aria-label="Close tour">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+            </button>
+            <div class="welcome-update__eyebrow"><span class="welcome-update__eyebrow-dot" aria-hidden="true"></span> A fresh AbhiHub</div>
+            <h1 id="welcomeUpdateTitle">A faster, smoother AbhiHub.</h1>
+            <p id="welcomeUpdateDescription" class="welcome-update__intro">Four things to make your next study session easier.</p>
+
+            <div class="welcome-update__stage" id="welcomeUpdateStage" aria-live="polite" aria-atomic="true">
+                <article class="welcome-update__slide welcome-update__slide--search" data-slide="0" role="group" aria-roledescription="slide" aria-label="1 of 4">
+                    <div class="welcome-update__art welcome-update__art--search" aria-hidden="true">
+                        <div class="tour-searchbar"><svg viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg><span>Search notes, papers...</span><kbd>Ctrl K</kbd></div>
+                        <div class="tour-search-result"><span class="tour-result-icon">N</span><span class="tour-result-lines"><i></i><i></i></span><span class="tour-result-arrow">&#8599;</span></div>
+                    </div>
+                    <div class="welcome-update__copy"><span class="welcome-update__number">01 / SEARCH</span><h2>Find it faster.</h2><p>Search notes and papers from anywhere.</p></div>
+                </article>
+                <article class="welcome-update__slide welcome-update__slide--account" data-slide="1" role="group" aria-roledescription="slide" aria-label="2 of 4" hidden>
+                    <div class="welcome-update__art welcome-update__art--account" aria-hidden="true">
+                        <div class="tour-profile"><span class="tour-avatar">A</span><span class="tour-profile-lines"><i></i><i></i></span><span class="tour-bell"><svg viewBox="0 0 24 24"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><b></b></span></div>
+                        <div class="tour-notice"><span class="tour-notice-dot"></span> You&rsquo;re all caught up</div>
+                    </div>
+                    <div class="welcome-update__copy"><span class="welcome-update__number">02 / ACCOUNT</span><h2>Stay in the loop.</h2><p>Your profile and notifications, together.</p></div>
+                </article>
+                <article class="welcome-update__slide welcome-update__slide--dashboard" data-slide="2" role="group" aria-roledescription="slide" aria-label="3 of 4" hidden>
+                    <div class="welcome-update__art welcome-update__art--dashboard" aria-hidden="true">
+                        <div class="tour-dash"><div class="tour-dash-top"><i></i><i></i><i></i></div><div class="tour-dash-grid"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="tour-dash-line"><i></i><i></i><i></i></div></div>
+                    </div>
+                    <div class="welcome-update__copy"><span class="welcome-update__number">03 / DASHBOARD</span><h2>Pick up where you left off.</h2><p>Your learning activity, at a glance.</p></div>
+                </article>
+                <article class="welcome-update__slide welcome-update__slide--discover" data-slide="3" role="group" aria-roledescription="slide" aria-label="4 of 4" hidden>
+                    <div class="welcome-update__art welcome-update__art--discover" aria-hidden="true">
+                        <div class="tour-discover-orbit"><span class="tour-orbit-center">A</span><span class="tour-orbit-chip tour-orbit-chip--one">Notes</span><span class="tour-orbit-chip tour-orbit-chip--two">PYQs</span><span class="tour-orbit-chip tour-orbit-chip--three">Study</span><span class="tour-orbit-spark">&#10022;</span></div>
+                    </div>
+                    <div class="welcome-update__copy"><span class="welcome-update__number">04 / DISCOVER</span><h2>There&rsquo;s more to explore.</h2><p>Find your next useful study tool.</p></div>
+                </article>
+            </div>
+
+            <div class="welcome-update__controls">
+                <div class="welcome-update__progress" aria-label="Tour progress">
+                    <div class="welcome-update__dots" role="group" aria-label="Choose a tour step">
+                        <button type="button" class="welcome-update__dot is-active" data-go-step="0" aria-label="Go to step 1" aria-current="step"></button>
+                        <button type="button" class="welcome-update__dot" data-go-step="1" aria-label="Go to step 2"></button>
+                        <button type="button" class="welcome-update__dot" data-go-step="2" aria-label="Go to step 3"></button>
+                        <button type="button" class="welcome-update__dot" data-go-step="3" aria-label="Go to step 4"></button>
+                    </div>
+                    <span class="welcome-update__step-label" id="welcomeUpdateStepLabel">1 of 4</span>
+                </div>
+                <div class="welcome-update__actions">
+                    <button type="button" class="welcome-update__back" id="welcomeUpdateBack" disabled>Back</button>
+                    <button type="button" class="welcome-update__next" id="welcomeUpdateNext">Next <span aria-hidden="true">&rarr;</span></button>
+                </div>
+            </div>
+        </div>
+    </section>
+    <style>
+        .welcome-update[hidden]{display:none}.welcome-update{position:fixed;inset:0;z-index:20000;display:grid;place-items:center;padding:20px;font-family:inherit;color:#1d1d1f}.welcome-update__scrim{position:absolute;inset:0;border:0;background:rgba(17,24,39,.68);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);animation:welcomeFade .22s ease both;cursor:default}.welcome-update__panel{position:relative;width:min(620px,100%);max-height:min(90vh,720px);overflow:auto;padding:28px;border:1px solid rgba(255,255,255,.85);border-radius:28px;background:linear-gradient(150deg,#fff 0%,#f7f9fd 100%);box-shadow:0 30px 90px rgba(3,12,32,.32);animation:welcomeRise .3s cubic-bezier(.2,.75,.25,1) both}.welcome-update__close{position:absolute;top:19px;right:19px;display:grid;width:36px;height:36px;place-items:center;border:0;border-radius:50%;background:#eef1f6;color:#64718a;cursor:pointer;transition:background .18s,color .18s,transform .18s}.welcome-update__close:hover{background:#e1e8f3;color:#1d1d1f;transform:rotate(90deg)}.welcome-update__close svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}.welcome-update__eyebrow{display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border-radius:999px;background:#eaf1ff;color:#2859be;font-size:11px;font-weight:750;letter-spacing:.08em;text-transform:uppercase}.welcome-update__eyebrow-dot{width:7px;height:7px;border-radius:50%;background:#3478f6;box-shadow:0 0 0 3px rgba(52,120,246,.13)}.welcome-update h1{margin:17px 46px 5px 0;font-size:clamp(28px,5vw,39px);line-height:1.08;letter-spacing:-.045em}.welcome-update__intro{margin:0;color:#69758b;font-size:14px;line-height:1.5}.welcome-update__stage{margin-top:22px}.welcome-update__slide[hidden]{display:none}.welcome-update__slide{--tour-accent:#2875e8;--tour-soft:#e9f1ff;overflow:hidden;border:1px solid #e4eaf3;border-radius:21px;background:#fff;animation:tourIn .26s cubic-bezier(.2,.75,.25,1) both}.welcome-update__slide--account{--tour-accent:#7954cc;--tour-soft:#f1eaff}.welcome-update__slide--dashboard{--tour-accent:#148c75;--tour-soft:#e5f7f1}.welcome-update__slide--discover{--tour-accent:#d57b1f;--tour-soft:#fff2e2}.welcome-update__art{position:relative;display:grid;height:148px;place-items:center;overflow:hidden;background:var(--tour-soft)}.welcome-update__art:before,.welcome-update__art:after{position:absolute;content:"";border-radius:50%;background:rgba(255,255,255,.55)}.welcome-update__art:before{width:200px;height:200px;left:-92px;top:-128px}.welcome-update__art:after{width:140px;height:140px;right:-56px;bottom:-100px}.tour-searchbar{position:relative;z-index:1;display:flex;align-items:center;gap:10px;width:min(370px,82%);height:48px;padding:0 13px;border:1px solid rgba(43,91,170,.12);border-radius:14px;background:rgba(255,255,255,.94);box-shadow:0 8px 24px rgba(38,83,150,.1);color:#8390a5;font-size:12px}.tour-searchbar svg{width:18px;height:18px;fill:none;stroke:var(--tour-accent);stroke-width:2;stroke-linecap:round}.tour-searchbar kbd{margin-left:auto;padding:3px 5px;border:1px solid #e7ebf2;border-radius:5px;background:#f8f9fc;color:#77849a;font:inherit;font-size:10px}.tour-search-result{position:absolute;z-index:1;top:91px;display:flex;align-items:center;gap:10px;width:min(325px,72%);padding:9px 12px;border:1px solid rgba(43,91,170,.09);border-radius:12px;background:rgba(255,255,255,.88);box-shadow:0 5px 16px rgba(38,83,150,.07)}.tour-result-icon{display:grid;width:25px;height:25px;place-items:center;border-radius:7px;background:#fff3dc;color:#d57b1f;font-size:11px;font-weight:750}.tour-result-lines{display:grid;gap:5px;flex:1}.tour-result-lines i,.tour-profile-lines i{height:5px;border-radius:5px;background:#dfe5ed}.tour-result-lines i:first-child{width:72%}.tour-result-lines i:last-child{width:44%}.tour-result-arrow{color:var(--tour-accent);font-size:17px}.welcome-update__copy{padding:18px 20px 20px}.welcome-update__number{color:var(--tour-accent);font-size:10px;font-weight:750;letter-spacing:.1em}.welcome-update__copy h2{margin:6px 0 4px;font-size:20px;line-height:1.2;letter-spacing:-.025em}.welcome-update__copy p{margin:0;color:#69758b;font-size:13px;line-height:1.5}.tour-profile{position:relative;z-index:1;display:flex;align-items:center;gap:12px;width:min(330px,78%);padding:16px;border:1px solid rgba(93,69,157,.1);border-radius:18px;background:rgba(255,255,255,.94);box-shadow:0 9px 24px rgba(91,67,145,.1)}.tour-avatar{display:grid;width:42px;height:42px;place-items:center;border-radius:50%;background:linear-gradient(145deg,#dcd0ff,#f1eaff);color:#7452c7;font-size:15px;font-weight:750}.tour-profile-lines{display:grid;gap:7px;flex:1}.tour-profile-lines i:first-child{width:92px;height:7px;background:#cdd3df}.tour-profile-lines i:last-child{width:60px}.tour-bell{position:relative;display:grid;width:34px;height:34px;place-items:center;border-radius:11px;background:#f4efff;color:#7954cc}.tour-bell svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.tour-bell b{position:absolute;top:5px;right:5px;width:7px;height:7px;border:1px solid white;border-radius:50%;background:#f06a78}.tour-notice{position:absolute;z-index:1;bottom:12px;display:flex;align-items:center;gap:7px;padding:6px 10px;border:1px solid rgba(93,69,157,.08);border-radius:999px;background:rgba(255,255,255,.82);color:#77718b;font-size:10px}.tour-notice-dot{width:6px;height:6px;border-radius:50%;background:#46b890}.welcome-update__art--dashboard{background:#e7f6f1}.tour-dash{position:relative;z-index:1;width:min(275px,74%);padding:11px;border:1px solid rgba(27,126,105,.12);border-radius:14px;background:rgba(255,255,255,.93);box-shadow:0 9px 24px rgba(26,120,100,.09);transform:rotate(-2deg)}.tour-dash-top{display:flex;gap:4px;margin-bottom:9px}.tour-dash-top i{width:5px;height:5px;border-radius:50%;background:#b6dace}.tour-dash-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.tour-dash-grid i{height:25px;border-radius:6px;background:#e5f5ef}.tour-dash-grid i:nth-child(2),.tour-dash-grid i:nth-child(5){background:#d8eee7}.tour-dash-line{display:flex;align-items:end;gap:5px;height:24px;margin-top:8px}.tour-dash-line i{width:22%;height:45%;border-radius:4px 4px 2px 2px;background:#8dcdb8}.tour-dash-line i:nth-child(2){height:80%;background:#54b596}.tour-dash-line i:nth-child(3){height:60%;background:#abdccc}.welcome-update__art--discover{background:#fff2e3}.tour-discover-orbit{position:relative;z-index:1;width:180px;height:112px}.tour-orbit-center{position:absolute;left:70px;top:34px;display:grid;width:42px;height:42px;place-items:center;border:1px solid rgba(213,123,31,.15);border-radius:14px;background:#fff;color:#d57b1f;font-weight:800;box-shadow:0 6px 16px rgba(160,104,34,.12)}.tour-orbit-chip{position:absolute;padding:6px 10px;border:1px solid rgba(213,123,31,.14);border-radius:999px;background:rgba(255,255,255,.9);color:#8a6b4d;font-size:10px;font-weight:650;box-shadow:0 4px 12px rgba(160,104,34,.07)}.tour-orbit-chip--one{left:0;top:12px}.tour-orbit-chip--two{right:0;top:21px}.tour-orbit-chip--three{left:57px;bottom:0}.tour-orbit-spark{position:absolute;right:31px;bottom:0;color:#e89a42;font-size:15px}.welcome-update__controls{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:17px}.welcome-update__progress{display:flex;align-items:center;gap:10px}.welcome-update__dots{display:flex;align-items:center;gap:6px}.welcome-update__dot{width:8px;height:8px;padding:0;border:0;border-radius:999px;background:#d5dce7;cursor:pointer;transition:width .2s,background .2s}.welcome-update__dot:hover{background:#9aa9c0}.welcome-update__dot.is-active{width:22px;background:#2875e8}.welcome-update__step-label{color:#8792a5;font-size:11px;font-variant-numeric:tabular-nums}.welcome-update__actions{display:flex;align-items:center;gap:8px}.welcome-update__back,.welcome-update__next{min-height:42px;padding:0 16px;border-radius:12px;font:inherit;font-size:13px;font-weight:650;cursor:pointer;transition:background .18s,color .18s,transform .18s,box-shadow .18s}.welcome-update__back{border:1px solid #e1e6ef;background:#fff;color:#58667d}.welcome-update__back:hover:not(:disabled){background:#f2f5fa}.welcome-update__back:disabled{opacity:.45;cursor:default}.welcome-update__next{display:inline-flex;align-items:center;gap:9px;border:0;background:#2563eb;color:#fff;box-shadow:0 5px 14px rgba(37,99,235,.2)}.welcome-update__next:hover{background:#1858dd;box-shadow:0 8px 18px rgba(37,99,235,.25);transform:translateY(-1px)}.welcome-update__next span{font-size:17px;line-height:1}.welcome-update__close:focus-visible,.welcome-update__dot:focus-visible,.welcome-update__back:focus-visible,.welcome-update__next:focus-visible{outline:3px solid #86adff;outline-offset:3px}@keyframes welcomeFade{from{opacity:0}to{opacity:1}}@keyframes welcomeRise{from{opacity:0;transform:translateY(12px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}@keyframes tourIn{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:translateX(0)}}@media(max-width:600px){.welcome-update{padding:10px;align-items:end}.welcome-update__panel{max-height:92vh;padding:22px 18px 17px;border-radius:24px 24px 18px 18px}.welcome-update__close{top:15px;right:15px}.welcome-update h1{font-size:28px;margin-top:15px}.welcome-update__stage{margin-top:18px}.welcome-update__art{height:132px}.welcome-update__copy{padding:16px}.welcome-update__copy h2{font-size:18px}.welcome-update__controls{margin-top:14px}.welcome-update__back,.welcome-update__next{min-height:44px;padding-inline:13px}}@media(prefers-reduced-motion:reduce){.welcome-update__scrim,.welcome-update__panel,.welcome-update__slide{animation:none}.welcome-update__close,.welcome-update__dot,.welcome-update__back,.welcome-update__next{transition:none}}
+    </style>
+    <script>
+        (function(){
+            var modal=document.getElementById('welcomeUpdate');
+            if(!modal)return;
+            var storageKey='abhihub_welcome_refresh_v1';
+            try{if(localStorage.getItem(storageKey)==='seen')return;}catch(e){}
+            var panel=modal.querySelector('.welcome-update__panel');
+            var slides=Array.prototype.slice.call(modal.querySelectorAll('.welcome-update__slide'));
+            var dots=Array.prototype.slice.call(modal.querySelectorAll('[data-go-step]'));
+            var back=modal.querySelector('#welcomeUpdateBack');
+            var next=modal.querySelector('#welcomeUpdateNext');
+            var stepLabel=modal.querySelector('#welcomeUpdateStepLabel');
+            var activeStep=0;
+            var touchStartX=null;
+            var previouslyFocused=document.activeElement;
+            modal.hidden=false;
+            document.body.style.overflow='hidden';
+            function showStep(index){
+                activeStep=Math.max(0,Math.min(slides.length-1,index));
+                slides.forEach(function(slide,i){slide.hidden=i!==activeStep;slide.setAttribute('aria-label',(i+1)+' of '+slides.length);});
+                dots.forEach(function(dot,i){if(i===activeStep){dot.classList.add('is-active');dot.setAttribute('aria-current','step');}else{dot.classList.remove('is-active');dot.removeAttribute('aria-current');}});
+                stepLabel.textContent=(activeStep+1)+' of '+slides.length;
+                back.disabled=activeStep===0;
+                next.innerHTML=activeStep===slides.length-1?'Explore AbhiHub <span aria-hidden="true">&#10003;</span>':'Next <span aria-hidden="true">&rarr;</span>';
+            }
+            function close(){modal.hidden=true;document.body.style.overflow='';try{localStorage.setItem(storageKey,'seen');}catch(e){}if(previouslyFocused&&previouslyFocused.focus)previouslyFocused.focus();}
+            function advance(){if(activeStep===slides.length-1){close();}else{showStep(activeStep+1);}}
+            modal.querySelectorAll('[data-welcome-close]').forEach(function(button){button.addEventListener('click',close);});
+            back.addEventListener('click',function(){showStep(activeStep-1);});
+            next.addEventListener('click',advance);
+            dots.forEach(function(dot){dot.addEventListener('click',function(){showStep(Number(dot.getAttribute('data-go-step')));});});
+            var stage=modal.querySelector('#welcomeUpdateStage');
+            stage.addEventListener('pointerdown',function(event){if(event.target.closest('button,a'))return;touchStartX=event.clientX;});
+            stage.addEventListener('pointerup',function(event){if(touchStartX===null)return;var delta=event.clientX-touchStartX;touchStartX=null;if(Math.abs(delta)<48)return;if(delta<0)advance();else showStep(activeStep-1);});
+            stage.addEventListener('pointercancel',function(){touchStartX=null;});
+            document.addEventListener('keydown',function(event){
+                if(modal.hidden)return;
+                if(event.key==='Escape'){close();return;}
+                if(event.key==='ArrowRight'){event.preventDefault();advance();return;}
+                if(event.key==='ArrowLeft'){event.preventDefault();showStep(activeStep-1);return;}
+                if(event.key==='Tab'){
+                    var focusable=Array.prototype.slice.call(modal.querySelectorAll('button:not([disabled]):not([tabindex="-1"])')).filter(function(el){return el.offsetParent!==null;});
+                    if(!focusable.length)return;
+                    var first=focusable[0],last=focusable[focusable.length-1];
+                    if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+                    else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+                }
+            });
+            showStep(0);
+            (modal.querySelector('.welcome-update__close')||panel).focus();
+        })();
+    </script>
+
     <!-- SVG Icon Definitions (reused from p_nav.html) -->
     <svg style="display:none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
         <defs>

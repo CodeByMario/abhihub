@@ -1,4 +1,4 @@
-{% set seo_description = "Join AbhiHub's mission to make engineering study resources, notes, and PYQs accessible to all students across India. Explore open positions, student internships, and legal hiring framework." %}
+{% set seo_description = "Explore 10 remote, unpaid internships at AbhiHub, an early-stage student learning startup. Choose a two- or six-month term and learn by building together." %}
 {% set seo_title = "Careers & Open Positions | AbhiHub" %}
 {% extends 'p_struct.html' %}
 
@@ -370,18 +370,56 @@
     background: var(--cr-surface-card);
     border: 1px solid var(--cr-border);
     border-radius: var(--cr-radius-card);
-    padding: 1.8rem 1.6rem;
+    padding: 1.55rem;
+    min-height: 265px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     box-shadow: var(--cr-shadow);
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    cursor: pointer;
+  }
+
+  .cr-card-details-trigger {
+    margin-left: auto;
+    padding: 0.3rem 0.15rem;
+    border: 0;
+    color: var(--cr-blue);
+    background: transparent;
+    font: inherit;
+    font-size: 0.76rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .cr-card-details-trigger:hover { color: var(--cr-blue-hover); }
+
+  /* Keep the listing at-a-glance; the dialog contains the full role description. */
+  .cr-card .cr-role-details,
+  .cr-card .cr-points,
+  .cr-card .cr-footer > a,
+  .cr-card-meta .cr-badge:nth-child(3) { display: none; }
+
+  .cr-card .cr-title { font-size: 1.22rem; font-weight: 700; }
+  .cr-card .cr-desc { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; margin-bottom: 1.4rem; }
+
+  .cr-card:focus-visible {
+    outline: 3px solid var(--cr-blue);
+    outline-offset: 3px;
+  }
+
+  .cr-card-open-hint {
+    color: var(--cr-blue);
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin-left: auto;
   }
 
   .cr-card:hover {
-    transform: translateY(-4px);
+    transform: translateY(-2px);
     box-shadow: var(--cr-shadow-hover);
-    border-color: var(--cr-blue);
+    border-color: rgba(0, 113, 227, 0.28);
   }
 
   .cr-card--filled {
@@ -393,6 +431,69 @@
     transform: none;
     border-color: var(--cr-border);
     box-shadow: var(--cr-shadow);
+  }
+
+  .cr-role-details {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+    margin: 1rem 0;
+  }
+
+  .cr-role-details span {
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--cr-border-subtle);
+    border-radius: 12px;
+    background: var(--cr-surface);
+    color: var(--cr-gray);
+    font-size: 0.78rem;
+    line-height: 1.4;
+  }
+
+  .cr-role-details strong { display: block; color: var(--cr-dark); margin-bottom: 0.15rem; }
+
+  .cr-job-dialog {
+    position: fixed !important;
+    inset: 50% auto auto 50% !important;
+    transform: translate(-50%, -50%) !important;
+    margin: 0 !important;
+    width: min(760px, calc(100vw - 32px)) !important;
+    max-width: calc(100vw - 32px) !important;
+    max-height: calc(100dvh - 32px) !important;
+    padding: 0;
+    color: var(--cr-dark);
+    background: var(--cr-surface-card);
+    border: 1px solid var(--cr-border);
+    border-radius: 24px;
+    box-shadow: 0 28px 90px rgba(0, 0, 0, 0.28);
+    overflow: hidden;
+  }
+
+  .cr-job-dialog[open] { display: block; }
+  .cr-job-dialog::backdrop { background: rgba(10, 12, 18, 0.58); backdrop-filter: blur(7px); }
+  .cr-dialog-scroll { display: flex; flex-direction: column; max-height: calc(100dvh - 32px); overflow: hidden; }
+  .cr-dialog-head { padding: 1.8rem 2rem 1.25rem; border-bottom: 1px solid var(--cr-border); }
+  .cr-dialog-head-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+  .cr-dialog-title { margin: 0.8rem 0 0.55rem; font-size: clamp(1.5rem, 4vw, 2rem); line-height: 1.15; letter-spacing: -0.03em; }
+  .cr-dialog-summary { margin: 0; color: var(--cr-gray); line-height: 1.65; }
+  .cr-dialog-close { flex: 0 0 auto; width: 40px; height: 40px; border: 0; border-radius: 50%; color: var(--cr-gray); background: var(--cr-surface); font-size: 1.5rem; cursor: pointer; }
+  .cr-dialog-body { min-height: 0; overflow-y: auto; padding: 1.5rem 2rem 1rem; }
+  .cr-dialog-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.65rem; margin-bottom: 1.6rem; }
+  .cr-dialog-fact { padding: 0.85rem; border-radius: 14px; background: var(--cr-surface); font-size: 0.84rem; line-height: 1.4; }
+  .cr-dialog-fact strong { display: block; margin-bottom: 0.25rem; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--cr-gray); }
+  .cr-dialog-section { margin-top: 1.4rem; }
+  .cr-dialog-section h4 { margin: 0 0 0.55rem; font-size: 1rem; }
+  .cr-dialog-section p, .cr-dialog-section li { color: var(--cr-gray); font-size: 0.9rem; line-height: 1.65; }
+  .cr-dialog-section ul { padding-left: 1.2rem; margin: 0; }
+  .cr-dialog-startup-note { padding: 1rem 1.1rem; border: 1px solid var(--cr-border); border-radius: 15px; background: var(--cr-blue-subtle); }
+  .cr-dialog-actions { position: sticky; bottom: 0; display: flex; justify-content: flex-end; gap: 0.65rem; margin: 1.6rem -0.1rem 0; padding: 1rem 0 0.25rem; background: linear-gradient(180deg, transparent 0%, var(--cr-surface-card) 24%); }
+
+  @media (max-width: 560px) {
+    .cr-job-dialog { width: calc(100vw - 20px) !important; max-width: calc(100vw - 20px) !important; max-height: calc(100dvh - 20px) !important; border-radius: 20px; }
+    .cr-dialog-scroll { max-height: calc(100dvh - 20px); }
+    .cr-role-details, .cr-dialog-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .cr-dialog-head { padding: 1.25rem 1.2rem 1rem; }
+    .cr-dialog-body { padding: 1.2rem; }
   }
 
   .cr-card-meta {
@@ -416,9 +517,9 @@
   }
 
   .cr-badge-live {
-    background: var(--cr-green-subtle);
-    color: var(--cr-green);
-    border: 1px solid rgba(16, 185, 129, 0.25);
+    background: var(--cr-blue-subtle);
+    color: var(--cr-blue);
+    border: 1px solid rgba(0, 113, 227, 0.16);
   }
 
   .cr-badge-soon {
@@ -485,8 +586,8 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
-    padding-top: 1.25rem;
-    border-top: 1px solid var(--cr-border);
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--cr-border-subtle);
     margin-top: auto;
   }
 
@@ -638,7 +739,7 @@
     <div class="cr-container">
       <div class="cr-hero-badge">
         <span class="cr-pulse-dot"></span>
-        <span>Open Applications &bull; Academic Cohort 2026</span>
+        <span>Early-stage startup · First internship cohort</span>
       </div>
 
       <h1 class="cr-headline">
@@ -646,13 +747,13 @@
       </h1>
 
       <p class="cr-subhead">
-        Empowering millions of engineering students across India with verified question papers, peer handwritten notes, and campus academic tools.
+        We are an early-stage startup building better academic tools for students. Join our first internship cohort and help shape the product while learning through real work together.
       </p>
 
       <div class="cr-hero-stats">
         <div class="cr-stat-pill">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-          <span>5–8 hrs/wk Flexible</span>
+          <span>Choose a 2 or 6 month term</span>
         </div>
         <div class="cr-stat-pill">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
@@ -660,11 +761,7 @@
         </div>
         <div class="cr-stat-pill">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
-          <span>Verified Certificates &amp; LORs</span>
-        </div>
-        <div class="cr-stat-pill">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-          <span>Direct Founder Mentorship</span>
+          <span>Unpaid internship · stated upfront</span>
         </div>
       </div>
 
@@ -692,7 +789,7 @@
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
           </div>
           <h3 class="cr-val-title">Tangible Campus Reach</h3>
-          <p class="cr-val-desc">Your features and curated notes power actual preparation for thousands of peers across tier-1, tier-2, and state universities.</p>
+          <p class="cr-val-desc">Help us learn what students need and shape practical tools together as the product grows.</p>
         </div>
 
         <div class="cr-val-card">
@@ -700,7 +797,7 @@
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
           </div>
           <h3 class="cr-val-title">Verified Proof of Work</h3>
-          <p class="cr-val-desc">Receive verifiable digital internship credentials, LinkedIn recommendations, and contributor royalty benefits.</p>
+          <p class="cr-val-desc">Build practical experience, share feedback, and learn how an early-stage education startup works. Any reference or completion letter depends on agreed scope and completed work.</p>
         </div>
       </div>
     </div>
@@ -709,67 +806,24 @@
   <!-- 3. Filter Navigation Strip -->
   <nav class="cr-filter-section" id="openings">
     <div class="cr-container cr-filter-row">
-      <div class="cr-tabs" role="tablist">
-        <button class="cr-tab active" data-filter="all">All Positions (11)</button>
-        <button class="cr-tab" data-filter="creator">🎓 Creator &amp; Campus (4)</button>
-        <button class="cr-tab" data-filter="engineering">💻 Engineering &amp; AI (3)</button>
-        <button class="cr-tab" data-filter="growth">🎨 Content &amp; Design (4)</button>
+      <div class="cr-tabs" role="tablist" aria-label="Filter internship openings">
+        <button class="cr-tab active" data-filter="all" role="tab" aria-selected="true">All Internships (10)</button>
+        <button class="cr-tab" data-filter="creator" role="tab" aria-selected="false">🎓 Creator &amp; Campus (4)</button>
+        <button class="cr-tab" data-filter="engineering" role="tab" aria-selected="false">💻 Engineering &amp; AI (3)</button>
+        <button class="cr-tab" data-filter="growth" role="tab" aria-selected="false">🎨 Content &amp; Design (3)</button>
       </div>
       <div class="cr-status-toggle">
-        <span>Showing: <strong id="cr-filter-count">11 roles</strong></span>
+        <span>Showing: <strong id="cr-filter-count">10 internships</strong></span>
       </div>
     </div>
   </nav>
 
-  <!-- 4. Featured Program: Creator Partnerships -->
+  <!-- Internship listings -->
   <section class="cr-container" style="padding-top: 3rem;">
-    <div class="cr-cohort-box" data-track="creator">
-      <div class="cr-cohort-head">
-        <div>
-          <span class="cr-badge cr-badge-live" style="margin-bottom:0.5rem;">🎓 Featured 6-Week Cohort</span>
-          <h2 style="font-size:1.4rem; font-weight:800; margin:0 0 0.4rem;">Creator Partnerships &amp; Educator Outreach Cohort</h2>
-          <p style="font-size:0.9rem; color:var(--cr-gray); margin:0; max-width:740px; line-height:1.5;">
-            Join our dedicated student BD track connecting with YouTube educators, university professors, and subject toppers to publish verified study materials on AbhiHub. Freshers are warmly welcome.
-          </p>
-        </div>
-        <div style="text-align:right;">
-          <span style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:var(--cr-gray); display:block;">Cohort Status</span>
-          <span style="font-size:1rem; font-weight:800; color:var(--cr-green);">● Open for Applications</span>
-        </div>
-      </div>
-
-      <div class="cr-cohort-grid">
-        <div>
-          <div class="cr-cohort-item-label">Track</div>
-          <div class="cr-cohort-item-val">Marketing &amp; BD</div>
-        </div>
-        <div>
-          <div class="cr-cohort-item-label">Mode</div>
-          <div class="cr-cohort-item-val">100% Remote</div>
-        </div>
-        <div>
-          <div class="cr-cohort-item-label">Commitment</div>
-          <div class="cr-cohort-item-val">5–8 hrs / week</div>
-        </div>
-        <div>
-          <div class="cr-cohort-item-label">Duration</div>
-          <div class="cr-cohort-item-val">6 Weeks</div>
-        </div>
-        <div>
-          <div class="cr-cohort-item-label">Intake</div>
-          <div class="cr-cohort-item-val">3 Openings</div>
-        </div>
-        <div>
-          <div class="cr-cohort-item-label">Eligibility</div>
-          <div class="cr-cohort-item-val">Undergrad Students</div>
-        </div>
-      </div>
-    </div>
-
     <!-- Job Cards Grid -->
     <div class="cr-grid">
       <!-- 1. Creator Research Intern -->
-      <article class="cr-card" data-category="creator" data-status="live">
+      <article class="cr-card" data-category="creator" data-status="live" tabindex="0" aria-haspopup="dialog">
         <div>
           <div class="cr-card-meta">
             <span class="cr-badge cr-badge-live">● Actively Hiring</span>
@@ -780,6 +834,7 @@
           <p class="cr-desc">
             Discover educational YouTube channels, independent professors, and teachers across India with original notes, PDFs, and exam solutions.
           </p>
+          <div class="cr-role-details" aria-label="Internship details"><span><strong>Mode</strong> Remote across India</span><span><strong>Duration</strong> Choose 2 or 6 months</span><span><strong>Commitment</strong> Flexible, agreed with the team</span><span><strong>Compensation</strong> Unpaid</span><span><strong>Eligibility</strong> Students; relevant skills or work samples welcomed</span></div>
           <ul class="cr-points">
             <li>Discover educational YouTube creators &amp; faculty across Indian states</li>
             <li>Identify creators with original notes, question papers, and study guides</li>
@@ -788,13 +843,13 @@
           </ul>
         </div>
         <div class="cr-footer">
-          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; 5-8h/wk</div>
-          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Creator%20Research%20Intern%20-%20AbhiHub&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Creator%20Research%20Intern%20position.%0A%0A1.%20Full%20Name%3A%0A2.%20College%20%26%20Year%3A%0A3.%20Branch%2FStream%3A%0A4.%20Relevant%20Skills%20(Research%2C%20Sheets)%3A%0A5.%20Weekly%20Availability%3A%0A%0AThank%20you!" class="cr-btn cr-btn-primary">Apply Now &rarr;</a>
+          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; 2 or 6 months &bull; Unpaid</div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Creator%20Research%20Intern%20-%20AbhiHub&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Creator%20Research%20Intern%20position.%0A%0A1.%20Full%20Name%3A%0A2.%20College%20%26%20Year%3A%0A3.%20Branch%2FStream%3A%0A4.%20Relevant%20Skills%20(Research%2C%20Sheets)%3A%0A5.%20Weekly%20Availability%3A%0A6.%20Preferred%20duration%20(2%20or%206%20months)%3A%0A%0AThank%20you!" class="cr-btn cr-btn-primary">Apply Now &rarr;</a>
         </div>
       </article>
 
       <!-- 2. Creator Outreach Intern -->
-      <article class="cr-card" data-category="creator" data-status="live">
+      <article class="cr-card" data-category="creator" data-status="live" tabindex="0" aria-haspopup="dialog">
         <div>
           <div class="cr-card-meta">
             <span class="cr-badge cr-badge-live">● Actively Hiring</span>
@@ -805,6 +860,7 @@
           <p class="cr-desc">
             Research educator distribution methods, draft personalized partnership messages, and manage professional communication with creators.
           </p>
+          <div class="cr-role-details" aria-label="Internship details"><span><strong>Mode</strong> Remote across India</span><span><strong>Duration</strong> Choose 2 or 6 months</span><span><strong>Commitment</strong> Flexible, agreed with the team</span><span><strong>Compensation</strong> Unpaid</span><span><strong>Eligibility</strong> Students; relevant skills or work samples welcomed</span></div>
           <ul class="cr-points">
             <li>Draft personalized outreach pitches for educators and YouTube teachers</li>
             <li>Send approved partnership pitches via authorized channels</li>
@@ -813,13 +869,13 @@
           </ul>
         </div>
         <div class="cr-footer">
-          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; 5-8h/wk</div>
-          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Creator%20Outreach%20Intern%20-%20AbhiHub&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Creator%20Outreach%20Intern%20position.%0A%0A1.%20Full%20Name%3A%0A2.%20College%20%26%20Year%3A%0A3.%20Branch%2FStream%3A%0A4.%20Communication%20%2F%20Pitching%20Experience%3A%0A5.%20Weekly%20Availability%3A%0A%0AThank%20you!" class="cr-btn cr-btn-primary">Apply Now &rarr;</a>
+          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; 2 or 6 months &bull; Unpaid</div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Creator%20Outreach%20Intern%20-%20AbhiHub&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Creator%20Outreach%20Intern%20position.%0A%0A1.%20Full%20Name%3A%0A2.%20College%20%26%20Year%3A%0A3.%20Branch%2FStream%3A%0A4.%20Communication%20%2F%20Pitching%20Experience%3A%0A5.%20Weekly%20Availability%3A%0A6.%20Preferred%20duration%20(2%20or%206%20months)%3A%0A%0AThank%20you!" class="cr-btn cr-btn-primary">Apply Now &rarr;</a>
         </div>
       </article>
 
       <!-- 3. Creator Onboarding Intern -->
-      <article class="cr-card" data-category="creator" data-status="live">
+      <article class="cr-card" data-category="creator" data-status="live" tabindex="0" aria-haspopup="dialog">
         <div>
           <div class="cr-card-meta">
             <span class="cr-badge cr-badge-live">● Actively Hiring</span>
@@ -830,6 +886,7 @@
           <p class="cr-desc">
             Guide onboarded educators on publishing notes, organize educator study resources, gather platform feedback, and support creator channels.
           </p>
+          <div class="cr-role-details" aria-label="Internship details"><span><strong>Mode</strong> Remote across India</span><span><strong>Duration</strong> Choose 2 or 6 months</span><span><strong>Commitment</strong> Flexible, agreed with the team</span><span><strong>Compensation</strong> Unpaid</span><span><strong>Eligibility</strong> Students; relevant skills or work samples welcomed</span></div>
           <ul class="cr-points">
             <li>Walk educators through channel studio setup and note uploading</li>
             <li>Collect, format, and organize educator notes and exam materials</li>
@@ -838,23 +895,24 @@
           </ul>
         </div>
         <div class="cr-footer">
-          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; 5-8h/wk</div>
-          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Creator%20Onboarding%20Intern%20-%20AbhiHub&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Creator%20Onboarding%20Intern%20position.%0A%0A1.%20Full%20Name%3A%0A2.%20College%20%26%20Year%3A%0A3.%20Branch%2FStream%3A%0A4.%20Relevant%20Skills%20(Docs%2C%20Drive%2C%20Coordination)%3A%0A5.%20Weekly%20Availability%3A%0A%0AThank%20you!" class="cr-btn cr-btn-primary">Apply Now &rarr;</a>
+          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; 2 or 6 months &bull; Unpaid</div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Creator%20Onboarding%20Intern%20-%20AbhiHub&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Creator%20Onboarding%20Intern%20position.%0A%0A1.%20Full%20Name%3A%0A2.%20College%20%26%20Year%3A%0A3.%20Branch%2FStream%3A%0A4.%20Relevant%20Skills%20(Docs%2C%20Drive%2C%20Coordination)%3A%0A5.%20Weekly%20Availability%3A%0A6.%20Preferred%20duration%20(2%20or%206%20months)%3A%0A%0AThank%20you!" class="cr-btn cr-btn-primary">Apply Now &rarr;</a>
         </div>
       </article>
 
       <!-- 4. Campus Growth & Ambassador Lead -->
-      <article class="cr-card" data-category="creator" data-status="live">
+      <article class="cr-card" data-category="creator" data-status="live" tabindex="0" aria-haspopup="dialog">
         <div>
           <div class="cr-card-meta">
             <span class="cr-badge cr-badge-live">● Actively Hiring</span>
             <span class="cr-badge cr-badge-track">Campus Track</span>
             <span class="cr-badge cr-badge-track">Leadership</span>
           </div>
-          <h3 class="cr-title">Campus Growth &amp; Ambassador Lead</h3>
+          <h3 class="cr-title">Campus Growth &amp; Ambassador Intern</h3>
           <p class="cr-desc">
             Lead student outreach, introduce AbhiHub to engineering colleges across regions, and manage peer contributor networks.
           </p>
+          <div class="cr-role-details" aria-label="Internship details"><span><strong>Mode</strong> Remote across India</span><span><strong>Duration</strong> Choose 2 or 6 months</span><span><strong>Commitment</strong> Flexible, agreed with the team</span><span><strong>Compensation</strong> Unpaid</span><span><strong>Eligibility</strong> Students; relevant skills or work samples welcomed</span></div>
           <ul class="cr-points">
             <li>Build grassroots awareness across college Telegram/WhatsApp groups</li>
             <li>Coordinate peer notes contributions and verified exam uploads</li>
@@ -863,13 +921,13 @@
           </ul>
         </div>
         <div class="cr-footer">
-          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Campus &bull; Flexible</div>
-          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Campus%20Growth%20Lead&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20would%20like%20to%20apply%20as%20a%20Campus%20Growth%20Lead.%0A%0A1.%20Full%20Name%3A%0A2.%20College%20%26%20City%3A%0A3.%20Branch%20%26%20Semester%3A%0A4.%20Student%20Clubs%20or%20Communities%20Involved%20With%3A%0A%0AThank%20you!" class="cr-btn cr-btn-primary">Apply Now &rarr;</a>
+          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; 2 or 6 months &bull; Unpaid</div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Campus%20Growth%20Lead&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20would%20like%20to%20apply%20as%20a%20Campus%20Growth%20Lead.%0A%0A1.%20Full%20Name%3A%0A2.%20College%20%26%20City%3A%0A3.%20Branch%20%26%20Semester%3A%0A4.%20Student%20Clubs%20or%20Communities%20Involved%20With%3A%0A6.%20Preferred%20duration%20(2%20or%206%20months)%3A%0A%0AThank%20you!" class="cr-btn cr-btn-primary">Apply Now &rarr;</a>
         </div>
       </article>
 
       <!-- 5. Full-Stack Python & Flask Developer -->
-      <article class="cr-card" data-category="engineering" data-status="live">
+      <article class="cr-card" data-category="engineering" data-status="live" tabindex="0" aria-haspopup="dialog">
         <div>
           <div class="cr-card-meta">
             <span class="cr-badge cr-badge-live">● Actively Hiring</span>
@@ -880,6 +938,7 @@
           <p class="cr-desc">
             Develop core web platform features, Supabase integrations, search query caching, and student exam viewing tools.
           </p>
+          <div class="cr-role-details" aria-label="Internship details"><span><strong>Mode</strong> Remote across India</span><span><strong>Duration</strong> Choose 2 or 6 months</span><span><strong>Commitment</strong> Flexible, agreed with the team</span><span><strong>Compensation</strong> Unpaid</span><span><strong>Eligibility</strong> Students; relevant skills or work samples welcomed</span></div>
           <ul class="cr-points">
             <li>Python 3.10+, Flask, Jinja2, vanilla JS, and modern responsive CSS</li>
             <li>PostgreSQL / Supabase schema design &amp; query optimization</li>
@@ -887,22 +946,23 @@
           </ul>
         </div>
         <div class="cr-footer">
-          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; Full / Part-Time</div>
-          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Full-Stack%20Python%20Flask%20Developer&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Full-Stack%20Python%20%26%20Flask%20Developer%20position.%0A%0A1.%20Full%20Name%3A%0A2.%20GitHub%20Profile%3A%0A3.%20Portfolio%20%2F%20Live%20Projects%3A%0A4.%20Resume%20Link%3A%0A%0AThank%20you!" class="cr-btn cr-btn-primary">Apply Now &rarr;</a>
+          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; 2 or 6 months &bull; Unpaid</div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Full-Stack%20Python%20Flask%20Developer&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Full-Stack%20Python%20%26%20Flask%20Developer%20position.%0A%0A1.%20Full%20Name%3A%0A2.%20GitHub%20Profile%3A%0A3.%20Portfolio%20%2F%20Live%20Projects%3A%0A4.%20Resume%20Link%3A%0A6.%20Preferred%20duration%20(2%20or%206%20months)%3A%0A%0AThank%20you!" class="cr-btn cr-btn-primary">Apply Now &rarr;</a>
         </div>
       </article>
 
       <!-- 6. AI & LLM Specialist -->
-      <article class="cr-card" data-category="engineering" data-status="soon">
+      <article class="cr-card" data-category="engineering" data-status="live" tabindex="0" aria-haspopup="dialog">
         <div>
           <div class="cr-card-meta">
-            <span class="cr-badge cr-badge-soon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Opening Soon</span>
+            <span class="cr-badge cr-badge-live"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>● Actively Hiring</span>
             <span class="cr-badge cr-badge-track">AI Engineering</span>
           </div>
-          <h3 class="cr-title">AI &amp; LLM Integration Specialist</h3>
+          <h3 class="cr-title">AI &amp; LLM Integration Intern</h3>
           <p class="cr-desc">
             Architecting Tarika AI study assistant workflows, vector retrieval pipelines, and automated academic summarization.
           </p>
+          <div class="cr-role-details" aria-label="Internship details"><span><strong>Mode</strong> Remote across India</span><span><strong>Duration</strong> Choose 2 or 6 months</span><span><strong>Commitment</strong> Flexible, agreed with the team</span><span><strong>Compensation</strong> Unpaid</span><span><strong>Eligibility</strong> Students; relevant skills or work samples welcomed</span></div>
           <ul class="cr-points">
             <li>LangChain, Gemini API, OpenAI APIs, and vector embeddings</li>
             <li>Retrieval-Augmented Generation (RAG) over engineering textbooks</li>
@@ -910,16 +970,16 @@
           </ul>
         </div>
         <div class="cr-footer">
-          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; Pipeline</div>
-          <a href="mailto:careers@abhihub.edu.eu.org?subject=Expression%20of%20Interest%3A%20AI%20LLM%20Specialist&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20would%20like%20to%20register%20early%20interest%20for%20the%20AI%20%26%20LLM%20Specialist%20role.%0A%0AName%3A%0AGitHub%20%2F%20Portfolio%3A" class="cr-btn cr-btn-outline">Register Interest &rarr;</a>
+          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; 2 or 6 months &bull; Unpaid</div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20AI%20LLM%20Specialist&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20AI%20%26%20LLM%20Integration%20Internship.%0A%0AName%3A%0AGitHub%20%2F%20Portfolio%3A" class="cr-btn cr-btn-primary">Apply Now &rarr;</a>
         </div>
       </article>
 
       <!-- 7. Frontend UI Developer Intern (Filled) -->
-      <article class="cr-card cr-card--filled" data-category="engineering" data-status="filled">
+      <article class="cr-card" data-category="engineering" data-status="live" tabindex="0" aria-haspopup="dialog">
         <div>
           <div class="cr-card-meta">
-            <span class="cr-badge cr-badge-filled"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Position Filled</span>
+            <span class="cr-badge cr-badge-live">● Actively Hiring</span>
             <span class="cr-badge cr-badge-track">Engineering</span>
             <span class="cr-badge cr-badge-track">Cohort 2026</span>
           </div>
@@ -927,28 +987,31 @@
           <p class="cr-desc">
             Building client-side responsive components, study tools, and interactive notes views using Tailwind and modern CSS.
           </p>
+          <div class="cr-role-details" aria-label="Internship details"><span><strong>Mode</strong> Remote across India</span><span><strong>Duration</strong> Choose 2 or 6 months</span><span><strong>Commitment</strong> Flexible, agreed with the team</span><span><strong>Compensation</strong> Unpaid</span><span><strong>Eligibility</strong> Students; relevant skills or work samples welcomed</span></div>
           <ul class="cr-points">
-            <li>Candidate selected and actively onboarded</li>
-            <li>Applications closed for current intake</li>
+            <li>Build accessible, responsive study interfaces for mobile and desktop</li>
+            <li>Work with HTML, CSS, JavaScript, and existing component patterns</li>
+            <li><strong>Deliverable:</strong> Reviewed interface improvements and portfolio-ready work</li>
           </ul>
         </div>
         <div class="cr-footer">
-          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote</div>
-          <span class="cr-btn cr-btn-disabled">Closed</span>
+          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; 2 or 6 months &bull; Unpaid</div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Frontend%20UI%20Developer%20Intern%20-%20AbhiHub" class="cr-btn cr-btn-primary">Apply Now &rarr;</a>
         </div>
       </article>
 
       <!-- 8. Academic Notes & PYQ Curator -->
-      <article class="cr-card" data-category="growth" data-status="live">
+      <article class="cr-card" data-category="growth" data-status="live" tabindex="0" aria-haspopup="dialog">
         <div>
           <div class="cr-card-meta">
             <span class="cr-badge cr-badge-live">● Actively Hiring</span>
             <span class="cr-badge cr-badge-track">Academic Operations</span>
           </div>
-          <h3 class="cr-title">Academic Notes &amp; PYQ Curator</h3>
+          <h3 class="cr-title">Academic Notes &amp; PYQ Curator Intern</h3>
           <p class="cr-desc">
             Review, verify, and categorize university syllabus papers and engineering study resources submitted by contributors.
           </p>
+          <div class="cr-role-details" aria-label="Internship details"><span><strong>Mode</strong> Remote across India</span><span><strong>Duration</strong> Choose 2 or 6 months</span><span><strong>Commitment</strong> Flexible, agreed with the team</span><span><strong>Compensation</strong> Unpaid</span><span><strong>Eligibility</strong> Students; relevant skills or work samples welcomed</span></div>
           <ul class="cr-points">
             <li>Engineering or Computer Science student or graduate</li>
             <li>Strong eye for clarity in handwriting, formulas &amp; diagrams</li>
@@ -956,22 +1019,23 @@
           </ul>
         </div>
         <div class="cr-footer">
-          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; Flexible</div>
-          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Academic%20Notes%20Curator&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Academic%20Notes%20Curator%20role.%0A%0A1.%20Full%20Name%3A%0A2.%20University%20%2F%20College%3A%0A3.%20Branch%20%26%20Year%3A%0A4.%20LinkedIn%20Profile%3A%0A%0AThank%20you!" class="cr-btn cr-btn-primary">Apply Now &rarr;</a>
+          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; 2 or 6 months &bull; Unpaid</div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Academic%20Notes%20Curator&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Academic%20Notes%20Curator%20role.%0A%0A1.%20Full%20Name%3A%0A2.%20University%20%2F%20College%3A%0A3.%20Branch%20%26%20Year%3A%0A4.%20LinkedIn%20Profile%3A%0A6.%20Preferred%20duration%20(2%20or%206%20months)%3A%0A%0AThank%20you!" class="cr-btn cr-btn-primary">Apply Now &rarr;</a>
         </div>
       </article>
 
       <!-- 9. Product & UI/UX Designer -->
-      <article class="cr-card" data-category="growth" data-status="soon">
+      <article class="cr-card" data-category="growth" data-status="live" tabindex="0" aria-haspopup="dialog">
         <div>
           <div class="cr-card-meta">
-            <span class="cr-badge cr-badge-soon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Opening Soon</span>
+            <span class="cr-badge cr-badge-live"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>● Actively Hiring</span>
             <span class="cr-badge cr-badge-track">Product Design</span>
           </div>
-          <h3 class="cr-title">Product &amp; UI/UX Designer</h3>
+          <h3 class="cr-title">Product &amp; UI/UX Design Intern</h3>
           <p class="cr-desc">
             Crafting mobile-first student experiences, clean study dashboards, reading modes, and dark-mode design systems.
           </p>
+          <div class="cr-role-details" aria-label="Internship details"><span><strong>Mode</strong> Remote across India</span><span><strong>Duration</strong> Choose 2 or 6 months</span><span><strong>Commitment</strong> Flexible, agreed with the team</span><span><strong>Compensation</strong> Unpaid</span><span><strong>Eligibility</strong> Students; relevant skills or work samples welcomed</span></div>
           <ul class="cr-points">
             <li>Figma prototyping, component libraries, and design tokens</li>
             <li>Deep empathy for student workflows during exam preparation</li>
@@ -979,22 +1043,23 @@
           </ul>
         </div>
         <div class="cr-footer">
-          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; Pipeline</div>
-          <a href="mailto:careers@abhihub.edu.eu.org?subject=Expression%20of%20Interest%3A%20UI%2FUX%20Designer&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20would%20like%20to%20register%20early%20interest%20for%20the%20UI%2FUX%20Designer%20role.%0A%0AName%3A%0APortfolio%20Link%3A" class="cr-btn cr-btn-outline">Register Interest &rarr;</a>
+          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; 2 or 6 months &bull; Unpaid</div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20UI%2FUX%20Designer&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Product%20%26%20UI%2FUX%20Design%20Internship.%0A%0AName%3A%0APortfolio%20Link%3A" class="cr-btn cr-btn-primary">Apply Now &rarr;</a>
         </div>
       </article>
 
       <!-- 10. Technical SEO Specialist -->
-      <article class="cr-card" data-category="growth" data-status="soon">
+      <article class="cr-card" data-category="growth" data-status="live" tabindex="0" aria-haspopup="dialog">
         <div>
           <div class="cr-card-meta">
-            <span class="cr-badge cr-badge-soon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Opening Soon</span>
+            <span class="cr-badge cr-badge-live"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>● Actively Hiring</span>
             <span class="cr-badge cr-badge-track">Growth &amp; SEO</span>
           </div>
-          <h3 class="cr-title">Technical SEO &amp; Content Strategist</h3>
+          <h3 class="cr-title">Technical SEO &amp; Content Intern</h3>
           <p class="cr-desc">
             Scaling organic discovery for college question papers, syllabus hubs, and academic resource directories across India.
           </p>
+          <div class="cr-role-details" aria-label="Internship details"><span><strong>Mode</strong> Remote across India</span><span><strong>Duration</strong> Choose 2 or 6 months</span><span><strong>Commitment</strong> Flexible, agreed with the team</span><span><strong>Compensation</strong> Unpaid</span><span><strong>Eligibility</strong> Students; relevant skills or work samples welcomed</span></div>
           <ul class="cr-points">
             <li>Programmatic SEO, JSON-LD structured data, and crawl efficiency</li>
             <li>Academic search trend research across Indian technical boards</li>
@@ -1002,43 +1067,21 @@
           </ul>
         </div>
         <div class="cr-footer">
-          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; Pipeline</div>
-          <a href="mailto:careers@abhihub.edu.eu.org?subject=Expression%20of%20Interest%3A%20Technical%20SEO&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20would%20like%20to%20register%20early%20interest%20for%20the%20SEO%20role.%0A%0AName%3A%0ALinkedIn%3A" class="cr-btn cr-btn-outline">Register Interest &rarr;</a>
+          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote &bull; 2 or 6 months &bull; Unpaid</div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Technical%20SEO&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Technical%20SEO%20%26%20Content%20Internship.%0A%0AName%3A%0ALinkedIn%3A" class="cr-btn cr-btn-primary">Apply Now &rarr;</a>
         </div>
       </article>
 
-      <!-- 11. Student Social Media & Community Creator (Filled) -->
-      <article class="cr-card cr-card--filled" data-category="growth" data-status="filled">
-        <div>
-          <div class="cr-card-meta">
-            <span class="cr-badge cr-badge-filled"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Position Filled</span>
-            <span class="cr-badge cr-badge-track">Community Track</span>
-            <span class="cr-badge cr-badge-track">Cohort 2026</span>
-          </div>
-          <h3 class="cr-title">Student Social Media &amp; Community Creator</h3>
-          <p class="cr-desc">
-            Campus outreach and academic reels/infographics production for exam time tips and PYQ announcements.
-          </p>
-          <ul class="cr-points">
-            <li>Candidate selected and actively onboarded</li>
-            <li>Applications closed for this academic semester</li>
-          </ul>
-        </div>
-        <div class="cr-footer">
-          <div class="cr-loc"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Remote / Nagpur</div>
-          <span class="cr-btn cr-btn-disabled">Closed</span>
-        </div>
-      </article>
     </div>
   </section>
 
-  <!-- 5. 3-Step Simple Application Flow -->
+  <!-- 4. Application flow -->
   <section class="cr-steps-section">
     <div class="cr-container">
       <div class="cr-sec-head" style="margin-top:0;">
         <span class="cr-eyebrow">Zero Red Tape</span>
         <h2 class="cr-sec-title">How Our Application Process Works</h2>
-        <p class="cr-sec-sub">Fast, human, and transparent. We review every student submission within 48 hours.</p>
+        <p class="cr-sec-sub">Fast, human, and transparent. We review applications and contact shortlisted students by email.</p>
       </div>
 
       <div class="cr-steps-grid">
@@ -1056,20 +1099,20 @@
 
         <div class="cr-step-card">
           <span class="cr-step-num">Step 03</span>
-          <h3 class="cr-step-title">48-Hour Review &amp; Onboard</h3>
-          <p class="cr-step-desc">We review your submission, conduct a friendly 15-minute introductory video chat, and set up your workspace tools immediately.</p>
+          <h3 class="cr-step-title">Review &amp; Onboard</h3>
+          <p class="cr-step-desc">Shortlisted applicants meet the team for a brief conversation; selected interns receive the next steps by email.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- 6. Legal Standards & Candidate Protection -->
+  <!-- 5. Candidate protections -->
   <section class="cr-legal-sec">
     <div class="cr-container">
       <div class="cr-sec-head" style="margin-top:0;">
         <span class="cr-eyebrow">Fair-Chance Policy</span>
-        <h2 class="cr-sec-title">Legal Standards &amp; Candidate Protection</h2>
-        <p class="cr-sec-sub">AbhiHub strictly adheres to labor guidelines, anti-fraud safeguards, and student privacy.</p>
+        <h2 class="cr-sec-title">Clear terms and candidate care</h2>
+        <p class="cr-sec-sub">We want every applicant to understand the terms and the stage of the company before applying.</p>
       </div>
 
       <div class="cr-legal-grid">
@@ -1090,20 +1133,20 @@
 
         <div class="cr-legal-card">
           <h4><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg> Formal Agreements</h4>
-          <p>All internships include formal offer documentation, non-disclosure (NDA), intellectual property safeguards, and verified completion credentials.</p>
+          <p>Selected interns receive written scope and terms before starting. Any certificate or recommendation is based on completed work and review.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- 7. Bottom CTA -->
+  <!-- 6. Bottom CTA -->
   <section class="cr-cta">
     <div class="cr-container">
       <h2 style="font-size:clamp(1.9rem, 4vw, 2.7rem); font-weight:800; letter-spacing:-0.025em; margin:0 0 0.75rem;">
         Don't See Your Exact Role?
       </h2>
-      <p style="font-size:1.05rem; color:var(--cr-gray); max-width:580px; margin:0 auto 2rem; line-height:1.5;">
-        We are always excited to collaborate with passionate students, campus leaders, faculty advisors, and open-source contributors.
+      <p style="font-size:1.05rem; color:var(--cr-gray); max-width:650px; margin:0 auto 2rem; line-height:1.5;">
+        AbhiHub is new to this field and still learning. These unpaid internships are a first experience for our team too: we will build, learn, and improve together.
       </p>
       <a href="mailto:careers@abhihub.edu.eu.org?subject=General%20Talent%20Inquiry%20-%20AbhiHub" class="cr-btn cr-btn-primary" style="font-size:1rem; padding:0.85rem 2.2rem;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
@@ -1111,40 +1154,103 @@
       </a>
     </div>
   </section>
+  <dialog class="cr-job-dialog" id="cr-job-dialog" aria-labelledby="cr-dialog-title">
+    <div class="cr-dialog-scroll">
+      <header class="cr-dialog-head">
+        <div class="cr-dialog-head-row"><div><span class="cr-badge cr-badge-live">Internship details</span><h2 class="cr-dialog-title" id="cr-dialog-title"></h2></div><button class="cr-dialog-close" type="button" aria-label="Close job details">&times;</button></div>
+        <p class="cr-dialog-summary" id="cr-dialog-summary"></p>
+      </header>
+      <div class="cr-dialog-body">
+        <div class="cr-dialog-facts" id="cr-dialog-facts"></div>
+        <section class="cr-dialog-section"><h4>What you’ll do</h4><div id="cr-dialog-responsibilities"></div></section>
+        <section class="cr-dialog-section cr-dialog-startup-note"><h4>About this first cohort</h4><p>AbhiHub is an early-stage startup and new to this field. This is a first experience for both the team and interns: we will agree on a practical scope, build together, share feedback, and learn as we go. The internship is unpaid. Please apply only if these terms work for you.</p></section>
+        <div class="cr-dialog-actions"><button class="cr-btn cr-btn-outline cr-dialog-close-action" type="button">Close</button><a id="cr-dialog-apply" class="cr-btn cr-btn-primary" href="mailto:careers@abhihub.edu.eu.org">Apply by email &rarr;</a></div>
+      </div>
+    </div>
+  </dialog>
 </div>
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     const tabs = document.querySelectorAll('.cr-tab');
     const cards = document.querySelectorAll('.cr-card');
-    const cohortBox = document.querySelector('.cr-cohort-box');
     const countEl = document.getElementById('cr-filter-count');
+    const dialog = document.getElementById('cr-job-dialog');
+    const closeButtons = dialog.querySelectorAll('.cr-dialog-close, .cr-dialog-close-action');
+    const applyLink = document.getElementById('cr-dialog-apply');
+    let lastFocusedCard = null;
+
+    const setText = (selector, value) => { dialog.querySelector(selector).textContent = value; };
+
+    function openRole(card) {
+      lastFocusedCard = card;
+      const title = card.querySelector('.cr-title')?.textContent.trim() || 'Internship';
+      const summary = card.querySelector('.cr-desc')?.textContent.trim() || '';
+      const details = card.querySelector('.cr-role-details');
+      const points = card.querySelector('.cr-points');
+      const apply = card.querySelector('.cr-footer a[href^="mailto:"]');
+      setText('#cr-dialog-title', title);
+      setText('#cr-dialog-summary', summary);
+      const facts = dialog.querySelector('#cr-dialog-facts');
+      facts.replaceChildren();
+      details?.querySelectorAll('span').forEach(item => {
+        const fact = document.createElement('div');
+        fact.className = 'cr-dialog-fact';
+        const label = document.createElement('strong');
+        label.textContent = item.querySelector('strong')?.textContent.trim() || 'Details';
+        const value = document.createElement('span');
+        value.textContent = item.textContent.replace(label.textContent, '').trim();
+        fact.append(label, value);
+        facts.append(fact);
+      });
+      const responsibilities = dialog.querySelector('#cr-dialog-responsibilities');
+      responsibilities.replaceChildren();
+      if (points) responsibilities.append(points.cloneNode(true));
+      applyLink.href = apply?.href || 'mailto:careers@abhihub.edu.eu.org';
+      applyLink.setAttribute('aria-label', 'Apply for ' + title);
+      dialog.showModal();
+    }
+
+    cards.forEach(card => {
+      const detailsTrigger = document.createElement('button');
+      detailsTrigger.type = 'button';
+      detailsTrigger.className = 'cr-card-details-trigger';
+      detailsTrigger.textContent = 'View details ↗';
+      detailsTrigger.setAttribute('aria-label', 'View details for ' + (card.querySelector('.cr-title')?.textContent.trim() || 'internship'));
+      card.querySelector('.cr-card-meta')?.append(detailsTrigger);
+      detailsTrigger.addEventListener('click', () => openRole(card));
+      card.addEventListener('click', event => {
+        if (event.target.closest('a, button')) return;
+        openRole(card);
+      });
+      card.addEventListener('keydown', event => {
+        if (event.target !== card || !['Enter', ' '].includes(event.key)) return;
+        event.preventDefault();
+        openRole(card);
+      });
+      card.setAttribute('aria-label', 'View internship details: ' + (card.querySelector('.cr-title')?.textContent.trim() || 'Internship'));
+    });
+
+    closeButtons.forEach(button => button.addEventListener('click', () => dialog.close()));
+    dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+    dialog.addEventListener('close', () => lastFocusedCard?.focus());
 
     tabs.forEach(tab => {
       tab.addEventListener('click', function() {
-        tabs.forEach(t => t.classList.remove('active'));
+        tabs.forEach(item => {
+          item.classList.remove('active');
+          item.setAttribute('aria-selected', 'false');
+        });
         this.classList.add('active');
+        this.setAttribute('aria-selected', 'true');
         const filter = this.dataset.filter;
-
         let visibleCount = 0;
         cards.forEach(card => {
-          const category = card.dataset.category;
-          if (filter === 'all' || category === filter) {
-            card.style.display = 'flex';
-            visibleCount++;
-          } else {
-            card.style.display = 'none';
-          }
+          const visible = filter === 'all' || card.dataset.category === filter;
+          card.style.display = visible ? 'flex' : 'none';
+          if (visible) visibleCount++;
         });
-
-        // Hide cohort banner if filtering away from creator or all
-        if (cohortBox) {
-          cohortBox.style.display = (filter === 'all' || filter === 'creator') ? 'block' : 'none';
-        }
-
-        if (countEl) {
-          countEl.textContent = visibleCount + (visibleCount === 1 ? ' role' : ' roles');
-        }
+        if (countEl) countEl.textContent = visibleCount + (visibleCount === 1 ? ' internship' : ' internships');
       });
     });
   });
