@@ -1,22 +1,30 @@
 /**
  * AbhiHub Client Security & Personalized Context Menu Module
- * - Replaces default browser right-click with a custom AbhiHub Personalized Quick-Action Menu
- * - Disables text selection and drag-and-drop on content areas
- * - Blocks developer tools keyboard shortcuts & detects DevTools activation
- * - Restricts console execution & clears console buffer
- * - Blocks screenshot / screen-record keyboard shortcuts (PC & Mac)
- * - Detects mobile screenshot attempts via visibility / blur heuristics
+ * - Replaces default browser right-click with an Apple HIG Personalized Quick-Action Menu
+ * - Disables text selection, copying, and drag-and-drop on content areas
+ * - Provides keyboard shortcut deterrence for source inspection and saving
+ * - Client-side deterrence only: OS-level screenshots and downloads cannot be fully blocked in browser JS
+ * - True document security relies on authenticated backend access tokens and watermarking
  */
 
 (function () {
   'use strict';
 
-  /* ── 1. Text Selection & Copy/Drag Prevention ──────────────────────────── */
+  window.__ABHIHUB_SECURITY_LOADED__ = true;
+
+  // Build configuration: Developer bypass is disabled in production
+  const ENABLE_DEV_BYPASS = false;
+
+  /* ── 1. Text Selection & Copy/Drag Prevention Styles ─────────────────────── */
   function injectStyles() {
     if (document.getElementById('abhihub-sec-styles')) return;
     const style = document.createElement('style');
     style.id = 'abhihub-sec-styles';
     style.textContent = `
+      html, body {
+        -webkit-text-size-adjust: 100% !important;
+        text-size-adjust: 100% !important;
+      }
       *, *::before, *::after {
         -webkit-user-select: none !important;
         -moz-user-select: none !important;
@@ -31,47 +39,80 @@
         user-select: text !important;
       }
 
-      /* ── Personalized Context Menu Styles ── */
+      /* ── Apple HIG Personalized Context Menu Styles ── */
       #abhihub-custom-contextmenu {
         position: fixed;
-        z-index: 9999999;
-        min-width: 220px;
-        background: rgba(18, 24, 38, 0.88);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 14px;
-        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05);
+        z-index: 2147483647;
+        min-width: 240px;
+        max-width: 280px;
+        background: rgba(28, 28, 30, 0.92);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 16px;
+        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05);
         padding: 6px;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        color: #f1f5f9;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+        color: #f5f5f7;
         display: none;
         opacity: 0;
         transform: scale(0.96) translateY(-4px);
-        transition: opacity 0.15s ease, transform 0.15s ease;
+        transition: opacity 0.15s cubic-bezier(0.16, 1, 0.3, 1), transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
         user-select: none;
       }
       [data-theme="light"] #abhihub-custom-contextmenu {
-        background: rgba(255, 255, 255, 0.92);
-        border-color: rgba(0, 0, 0, 0.1);
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.04);
-        color: #1e293b;
+        background: rgba(255, 255, 255, 0.94);
+        border-color: rgba(0, 0, 0, 0.09);
+        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(0, 0, 0, 0.04);
+        color: #1d1d1f;
       }
       #abhihub-custom-contextmenu.active {
         display: block;
         opacity: 1;
         transform: scale(1) translateY(0);
       }
-      .cm-header {
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
-        padding: 8px 10px 4px;
-        color: #94a3b8;
+      .cm-profile-card {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.05);
+      }
+      [data-theme="light"] .cm-profile-card {
+        background: rgba(0, 0, 0, 0.035);
+      }
+      .cm-profile-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--apple-blue, #0071e3);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .cm-profile-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .cm-profile-email {
+        font-size: 12.5px;
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: inherit;
+        letter-spacing: -0.01em;
+      }
+      .cm-profile-id {
+        font-size: 11px;
+        color: #86868b;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        margin-top: 1px;
       }
       .cm-item {
         display: flex;
@@ -80,28 +121,24 @@
         padding: 8px 10px;
         font-size: 13px;
         font-weight: 500;
-        border-radius: 8px;
+        border-radius: 10px;
         cursor: pointer;
         transition: background 0.12s ease, color 0.12s ease;
         text-decoration: none;
         color: inherit;
       }
       .cm-item:hover {
-        background: rgba(99, 102, 241, 0.18);
-        color: #818cf8;
+        background: var(--apple-blue, #0071e3);
+        color: #ffffff !important;
       }
-      [data-theme="light"] .cm-item:hover {
-        background: rgba(99, 102, 241, 0.12);
-        color: #4f46e5;
+      .cm-item:hover svg, .cm-item:hover .cm-badge {
+        color: #ffffff !important;
       }
-      .cm-item svg, .cm-item .cm-icon {
-        width: 16px;
-        height: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 14px;
-        opacity: 0.9;
+      .cm-item svg {
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0;
+        opacity: 0.85;
       }
       .cm-divider {
         height: 1px;
@@ -109,23 +146,34 @@
         margin: 5px 4px;
       }
       [data-theme="light"] .cm-divider {
-        background: rgba(0, 0, 0, 0.08);
+        background: rgba(0, 0, 0, 0.06);
       }
       .cm-badge {
         margin-left: auto;
-        font-size: 10px;
-        padding: 2px 6px;
-        border-radius: 6px;
-        background: rgba(99, 102, 241, 0.25);
-        color: #a5b4fc;
+        font-size: 9.5px;
+        padding: 2px 7px;
+        border-radius: 980px;
+        background: rgba(0, 113, 227, 0.2);
+        color: #2997ff;
         font-weight: 600;
       }
       [data-theme="light"] .cm-badge {
-        background: rgba(99, 102, 241, 0.15);
-        color: #4f46e5;
+        background: rgba(0, 113, 227, 0.1);
+        color: #0071e3;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #abhihub-custom-contextmenu {
+          transition: none !important;
+          transform: none !important;
+        }
       }
     `;
-    document.head ? document.head.appendChild(style) : document.addEventListener('DOMContentLoaded', () => document.head.appendChild(style));
+    if (document.head) {
+      document.head.appendChild(style);
+    } else {
+      document.addEventListener('DOMContentLoaded', () => document.head.appendChild(style));
+    }
   }
   injectStyles();
 
@@ -157,52 +205,96 @@
     }
   }, { capture: true });
 
-  /* ── 2. Personalized Context Menu ────────────────────────────────────────── */
+  /* ── 2. Personalized Context Menu (Safe DOM Construction) ─────────────────── */
   let contextMenuEl = null;
 
   function createContextMenu() {
     if (contextMenuEl) return contextMenuEl;
     contextMenuEl = document.createElement('div');
     contextMenuEl.id = 'abhihub-custom-contextmenu';
-    contextMenuEl.innerHTML = `
-      <div class="cm-header">
-        <span>⚡ AbhiHub Menu</span>
-      </div>
+    contextMenuEl.setAttribute('role', 'menu');
+
+    // Safe user profile header (built strictly with textContent & setAttribute to prevent XSS)
+    const user = window.__CURRENT_USER__ || {};
+    const email = String(user.email || '').trim();
+    const studentId = String(user.registrationNumber || user.studentId || user.uid || '').trim();
+
+    if (email || studentId) {
+      const profileCard = document.createElement('div');
+      profileCard.className = 'cm-profile-card';
+
+      const avatar = document.createElement('div');
+      avatar.className = 'cm-profile-avatar';
+      avatar.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
+      profileCard.appendChild(avatar);
+
+      const profileInfo = document.createElement('div');
+      profileInfo.className = 'cm-profile-info';
+
+      const emailEl = document.createElement('div');
+      emailEl.className = 'cm-profile-email';
+      emailEl.textContent = email || 'Personalized View';
+      emailEl.setAttribute('title', email || 'AbhiHub Student');
+      profileInfo.appendChild(emailEl);
+
+      if (studentId) {
+        const idEl = document.createElement('div');
+        idEl.className = 'cm-profile-id';
+        const displayId = studentId.length > 20 ? studentId.substring(0, 18) + '…' : studentId;
+        idEl.textContent = 'ID: ' + displayId;
+        idEl.setAttribute('title', studentId);
+        profileInfo.appendChild(idEl);
+      }
+
+      profileCard.appendChild(profileInfo);
+      contextMenuEl.appendChild(profileCard);
+
+      const divider = document.createElement('div');
+      divider.className = 'cm-divider';
+      contextMenuEl.appendChild(divider);
+    }
+
+    // Static action buttons (safe static templates)
+    const menuItemsContainer = document.createElement('div');
+    menuItemsContainer.innerHTML = `
       <div class="cm-item" data-action="ai">
-        <span class="cm-icon">✨</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"></path></svg>
         <span>Tarika (AI Assistant)</span>
         <span class="cm-badge">AI</span>
       </div>
       <div class="cm-item" data-action="search">
-        <span class="cm-icon">🔍</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
         <span>Search Notes & PYQs</span>
       </div>
       <div class="cm-item" data-action="upload">
-        <span class="cm-icon">📤</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
         <span>Upload Paper / Notes</span>
       </div>
       <div class="cm-item" data-action="leaderboard">
-        <span class="cm-icon">🏆</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
         <span>Leaderboard & Rank</span>
       </div>
       <div class="cm-divider"></div>
       <div class="cm-item" data-action="copylink">
-        <span class="cm-icon">🔗</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
         <span>Copy Page Link</span>
       </div>
       <div class="cm-item" data-action="theme">
-        <span class="cm-icon">🌓</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
         <span>Toggle Theme</span>
       </div>
       <div class="cm-item" data-action="refresh">
-        <span class="cm-icon">🔄</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
         <span>Reload Page</span>
       </div>
       <div class="cm-item" data-action="update-pwa">
-        <span class="cm-icon">⬆️</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path></svg>
         <span>Update App Cache</span>
       </div>
     `;
+    while (menuItemsContainer.firstChild) {
+      contextMenuEl.appendChild(menuItemsContainer.firstChild);
+    }
 
     contextMenuEl.addEventListener('click', function (e) {
       const item = e.target.closest('.cm-item');
@@ -243,7 +335,7 @@
         }
         break;
       case 'search':
-        const searchInput = document.getElementById('search-input') || document.querySelector('input[type="search"]');
+        const searchInput = document.getElementById('search-input') || document.querySelector('input[type="search"]') || document.querySelector('input[name="search"]');
         if (searchInput) {
           searchInput.focus();
         } else if (typeof window.navigateTo === 'function') {
@@ -328,26 +420,37 @@
 
   function showContextMenu(x, y) {
     const menu = createContextMenu();
+
+    // Dynamically update identity if changed, safely via textContent
+    const user = window.__CURRENT_USER__ || {};
+    const email = String(user.email || '').trim();
+    const studentId = String(user.registrationNumber || user.studentId || user.uid || '').trim();
+    const profileEmailEl = menu.querySelector('.cm-profile-email');
+    const profileIdEl = menu.querySelector('.cm-profile-id');
+    if (profileEmailEl && email) {
+      profileEmailEl.textContent = email;
+      profileEmailEl.setAttribute('title', email);
+    }
+    if (profileIdEl && studentId) {
+      profileIdEl.textContent = 'ID: ' + (studentId.length > 20 ? studentId.substring(0, 18) + '…' : studentId);
+      profileIdEl.setAttribute('title', studentId);
+    }
+
     menu.style.display = 'block';
+    menu.style.visibility = 'hidden';
 
-    // Position adjustments to prevent overflowing window bounds
-    const menuWidth = 230;
-    const menuHeight = 325;
-    const winWidth = window.innerWidth;
-    const winHeight = window.innerHeight;
+    // Viewport clamping
+    const rect = menu.getBoundingClientRect();
+    const pad = 12;
+    const maxX = window.innerWidth - rect.width - pad;
+    const maxY = window.innerHeight - rect.height - pad;
 
-    let posX = x;
-    let posY = y;
+    const posX = Math.max(pad, Math.min(x, maxX));
+    const posY = Math.max(pad, Math.min(y, maxY));
 
-    if (x + menuWidth > winWidth) {
-      posX = winWidth - menuWidth - 10;
-    }
-    if (y + menuHeight > winHeight) {
-      posY = winHeight - menuHeight - 10;
-    }
-
-    menu.style.left = `${Math.max(10, posX)}px`;
-    menu.style.top = `${Math.max(10, posY)}px`;
+    menu.style.left = `${posX}px`;
+    menu.style.top = `${posY}px`;
+    menu.style.visibility = 'visible';
 
     requestAnimationFrame(() => {
       menu.classList.add('active');
@@ -365,14 +468,12 @@
     }
   }
 
-  // Intercept Right-Click to present Personalized Menu
   document.addEventListener('contextmenu', function (e) {
     e.preventDefault();
     showContextMenu(e.clientX, e.clientY);
     return false;
   }, { capture: true });
 
-  // Hide context menu on outside click or scroll or Esc
   document.addEventListener('click', function (e) {
     if (contextMenuEl && !contextMenuEl.contains(e.target)) {
       hideContextMenu();
@@ -403,6 +504,7 @@
         color: #f8fafc;
         border: 1px solid rgba(255, 255, 255, 0.15);
         backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
         padding: 8px 18px;
         border-radius: 20px;
         font-size: 13px;
@@ -425,23 +527,25 @@
   }
 
   function isDeveloperMode() {
+    if (!ENABLE_DEV_BYPASS) return false;
     try {
       if (window.__IS_DEVELOPER__ === true) return true;
       const script = document.currentScript || document.querySelector('script[src*="security.js"]');
       if (script && (script.getAttribute('data-env') === 'developer' || script.getAttribute('data-developer') === 'true')) return true;
       const envMeta = document.querySelector('meta[name="app-env"], meta[name="environment"]');
       if (envMeta && ['developer', 'development', 'dev'].includes((envMeta.content || '').toLowerCase())) return true;
-      if (['developer', 'development', 'dev'].includes((document.documentElement.getAttribute('data-env') || '').toLowerCase())) return true;
-      if (typeof window !== 'undefined' && window.location && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) return true;
+      if (window.location && window.location.search.includes('bypass_shield=1')) return true;
     } catch (e) {}
     return false;
   }
 
-  /* ── 4. Block Developer Tools & Shortcuts (Disabled in Developer Mode) ────── */
+  /* ── 4. Block Developer Tools & Shortcuts (Deterrence Only) ───────────────── */
+  // NOTE: Browser-level and OS-level shortcuts (including screenshots and downloads)
+  // cannot be completely intercepted by client JavaScript. These listeners serve as UX
+  // deterrence. True platform document security must be enforced by backend token authorization.
   if (!isDeveloperMode()) {
     document.addEventListener('keydown', function (e) {
       const key   = (e.key  || '').toLowerCase();
-      const code  = (e.code || '');
       const ctrl  = e.ctrlKey  || e.metaKey;
       const shift = e.shiftKey;
 
@@ -469,34 +573,19 @@
       // Ctrl/Cmd + S (Save page)
       if (ctrl && !shift && key === 's') {
         e.preventDefault();
+        showToast('⚠️ Saving pages is disabled on AbhiHub.');
         return false;
       }
     }, { capture: true });
 
-    /* ── 5. Console Protection & Anti-Scripting Trap ─────────────────────────── */
-    function protectConsole() {
-      try {
-        const banner = 'color: #ff3344; font-size: 26px; font-weight: bold;';
-        const text = 'color: #fbbf24; font-size: 13px; font-weight: 500;';
-        console.log('%c⚡ AbhiHub Security', banner);
-        console.log('%cRunning untrusted scripts in this console violates AbhiHub Terms of Service.', text);
-
-        // Periodically clean console
-        setInterval(function () {
-          try { console.clear(); } catch(e) {}
-        }, 5000);
-
-        // DevTools debugger trap: pauses execution if inspector is opened
-        setInterval(function () {
-          const start = performance.now();
-          (function () { return true; }["constructor"]("debugger")());
-          if (performance.now() - start > 100) {
-            showToast('⚠️ DevTools detected.');
-          }
-        }, 2500);
-      } catch (e) {}
-    }
-    protectConsole();
+    /* ── 5. Console Protection Banner ──────────────────────────────────────── */
+    try {
+      const banner = 'color: #ff3344; font-size: 26px; font-weight: bold;';
+      const text = 'color: #fbbf24; font-size: 13px; font-weight: 500;';
+      console.log('%c⚡ AbhiHub Security', banner);
+      console.log('%cRunning untrusted scripts in this console violates AbhiHub Terms of Service.', text);
+    } catch (e) {}
   }
 
+  window.showToast = showToast;
 })();
