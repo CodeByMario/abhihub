@@ -11,12 +11,12 @@ else ('Syllabus' if 'syllabus' in cat_lower
 else ('Assignment' if ('assignment' in cat_lower or 'assisment' in cat_lower or 'submission' in cat_lower)
 else ('Timetable' if ('timetable' in cat_lower or 'datesheet' in cat_lower or 'schedule' in cat_lower)
 else 'Notes'))))) %}
-{% set subj_name = (document.subject.name if (document.subject and document.subject is mapping and document.subject.name) else (document.subject_name or document.subject or 'Uncategorized')) %}
+{% set subj_name = (document.subject.name if (document.subject and document.subject is mapping and document.subject.name) else (document.subject_name or (document.subject if (document.subject and document.subject != 'Uncategorized') else '')))|trim %}
 {% set coll_name = (document.college.name if (document.college and document.college is mapping and document.college.name) else (document.college_name or 'AbhiHub')) %}
 {% set coll_abbr = ((document.college.abbreviation or document.college.name) if (document.college and document.college is mapping and (document.college.abbreviation or document.college.name)) else (document.college_abbr or document.college_name or 'AbhiHub')) %}
 {% set dept_name = (document.department.name if (document.department and document.department is mapping and document.department.name) else (document.department_name or '')) %}
 {% set uploader_name = (document.uploader.full_name if (document.uploader and document.uploader is mapping and document.uploader.full_name) else (document.uploader_name or 'Anonymous')) %}
-{% set resource_title = document.title or (subj_name ~ ' ' ~ file_type) %}
+{% set resource_title = document.title or ((subj_name ~ ' ' ~ file_type) if subj_name else (dept_name ~ ' ' ~ file_type if dept_name else file_type)) %}
 {% set viewer_user = session.get('user', {}) %}
 {% set viewer_profile = session.get('profile', {}) %}
 {% set watermark_email = viewer_user.get('email', '') %}
@@ -30,8 +30,8 @@ else 'Notes'))))) %}
 </div>
 {% endmacro %}
 
-{% set seo_title = resource_title ~ ' | ' ~ subj_name ~ ' ' ~ file_type ~ ' | ' ~ coll_abbr ~ ' | AbhiHub' %}
-{% set seo_description = 'View ' ~ resource_title ~ ', a verified ' ~ file_type ~ ' for ' ~ subj_name ~ ' from ' ~
+{% set seo_title = resource_title ~ ' | ' ~ ((subj_name ~ ' ') if subj_name else '') ~ file_type ~ ' | ' ~ coll_abbr ~ ' | AbhiHub' %}
+{% set seo_description = 'View ' ~ resource_title ~ ', a verified ' ~ file_type ~ (( ' for ' ~ subj_name) if subj_name else '') ~ ' from ' ~
 coll_name ~ ' uploaded by ' ~ uploader_name ~ '. Free academic resources.' %}
 {% set seo_keywords = subj_name ~ ' ' ~ file_type ~ ', ' ~ coll_name ~ ' ' ~ subj_name ~ ', ' ~ resource_title ~ ', ' ~
 uploader_name %}
@@ -74,13 +74,13 @@ uploader_name %}
           "@type": "ListItem",
           "position": 2,
           "name": {{ coll_abbr | tojson }},
-          "item": "{{ canonical_domain }}/pyq"
+          "item": "{{ canonical_domain }}/college/{{ (coll_abbr or 'college') | lower | replace(' ', '-') }}"
         },
         {
           "@type": "ListItem",
           "position": 3,
-          "name": {{ subj_name | tojson }},
-          "item": "{{ canonical_domain }}/subject/{{ (subj_name or 'engineering') | lower | replace(' ', '-') }}"
+          "name": {{ (subj_name if subj_name else (file_type ~ ' Files')) | tojson }},
+          "item": "{{ canonical_domain }}/{{ ('subject/' ~ (subj_name | lower | replace(' ', '-'))) if subj_name else ('college/' ~ ((coll_abbr or 'college') | lower | replace(' ', '-')) ~ '/files') }}"
         },
         {
           "@type": "ListItem",

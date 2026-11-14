@@ -401,3 +401,269 @@ def generate_static_page_og(title: str, subtitle: str = "") -> bytes:
 
 def generate_default_og() -> bytes:
     return generate_home_og()
+
+
+def generate_department_og(dept_data: dict) -> bytes:
+    """Branded OG image for college department pages (1200x630)."""
+    college_name = str(dept_data.get("college_name") or "Engineering College").strip()[:50]
+    college_abbr = str(dept_data.get("college_abbr") or "COLLEGE").strip().upper()[:16]
+    dept_name = str(dept_data.get("department_name") or "Department of Engineering").strip()[:55]
+    dept_code = str(dept_data.get("department_code") or "BRANCH").strip().upper()[:12]
+
+    cache_key = f"dept_og:{college_abbr}:{dept_code}"
+    if cache_key in _OG_CACHE:
+        return _OG_CACHE[cache_key]
+
+    w, h = 1200, 630
+    img = Image.new("RGB", (w, h), color=BRAND_CONFIG["colors"]["bg_dark"])
+    draw = ImageDraw.Draw(img, "RGBA")
+
+    # Ambient glows
+    draw.ellipse([950, -50, 1350, 350], fill=(0, 113, 227, 45))
+    draw.ellipse([-50, 350, 450, 850], fill=(104, 52, 213, 35))
+
+    _draw_header(draw, active_pill=f"{college_abbr} • {dept_code}")
+
+    draw.rounded_rectangle([50, 135, 1150, 545], radius=24, fill="#131c31", outline="#22324f", width=1)
+
+    # Department Badge
+    draw.rounded_rectangle([90, 170, 320, 215], radius=14, fill="#1e293b", outline="#334155")
+    f_badge = _get_font(bold=True, size=16)
+    draw.text((105, 182), "🔬 ACADEMIC DEPARTMENT", fill="#38bdf8", font=f_badge)
+
+    f_title = _get_font(bold=True, size=42)
+    f_sub = _get_font(bold=False, size=23)
+    f_stat = _get_font(bold=True, size=28)
+    f_label = _get_font(bold=False, size=15)
+
+    # Title & Subtitle
+    draw.text((90, 235), dept_name, fill="#ffffff", font=f_title)
+    draw.text((90, 295), f"College: {college_name} ({college_abbr})", fill="#94a3b8", font=f_sub)
+
+    # Divider
+    draw.line([(90, 355), (1110, 355)], fill="#1e293b", width=1)
+
+    metrics = [
+        ("BRANCH CODE", dept_code),
+        ("SEMESTER COVERAGE", "Semesters 1 to 8"),
+        ("STUDY RESOURCES", "PYQs • Notes • Practicals • Viva"),
+    ]
+
+    col_x = 90
+    for label, val in metrics:
+        draw.text((col_x, 385), label, fill="#64748b", font=f_label)
+        draw.text((col_x, 415), val, fill="#38bdf8", font=f_stat)
+        col_x += 345
+
+    # Bottom Call to Action banner inside card
+    draw.rounded_rectangle([90, 480, 1110, 525], radius=12, fill="#0f172a", outline="#1e293b")
+    draw.text(
+        (115, 493),
+        f"⚡ Explore verified question papers and lecture notes for {dept_code} at {college_abbr}.",
+        fill="#ffffff",
+        font=f_badge,
+    )
+
+    _draw_footer(draw)
+
+    res = _render_image_to_bytes(img)
+    _OG_CACHE[cache_key] = res
+    return res
+
+
+def generate_semester_og(sem_data: dict) -> bytes:
+    """Branded OG image for semester pages (1200x630)."""
+    college_abbr = str(sem_data.get("college_abbr") or "CAMPUS").strip().upper()[:16]
+    dept_code = str(sem_data.get("department_code") or "BRANCH").strip().upper()[:12]
+    semester = str(sem_data.get("semester") or "Semester").strip()
+    sem_label = f"Semester {semester}" if str(semester).isdigit() else str(semester)
+
+    cache_key = f"sem_og:{college_abbr}:{dept_code}:{semester}"
+    if cache_key in _OG_CACHE:
+        return _OG_CACHE[cache_key]
+
+    w, h = 1200, 630
+    img = Image.new("RGB", (w, h), color=BRAND_CONFIG["colors"]["bg_dark"])
+    draw = ImageDraw.Draw(img, "RGBA")
+
+    # Ambient glows
+    draw.ellipse([950, -50, 1350, 350], fill=(16, 185, 129, 45))
+    draw.ellipse([-50, 350, 450, 850], fill=(0, 113, 227, 35))
+
+    _draw_header(draw, active_pill=f"{college_abbr} • {sem_label.upper()}")
+
+    draw.rounded_rectangle([50, 135, 1150, 545], radius=24, fill="#131c31", outline="#22324f", width=1)
+
+    # Semester Badge
+    draw.rounded_rectangle([90, 170, 270, 215], radius=14, fill="#1e293b", outline="#334155")
+    f_badge = _get_font(bold=True, size=16)
+    draw.text((105, 182), "📚 SEMESTER EXAM HUB", fill="#10b981", font=f_badge)
+
+    f_title = _get_font(bold=True, size=42)
+    f_sub = _get_font(bold=False, size=23)
+    f_stat = _get_font(bold=True, size=28)
+    f_label = _get_font(bold=False, size=15)
+
+    title_text = f"{sem_label} • {dept_code} Engineering"
+    draw.text((90, 235), title_text, fill="#ffffff", font=f_title)
+    draw.text((90, 295), f"Curated subject notes, past university papers, and exam prep at {college_abbr}", fill="#94a3b8", font=f_sub)
+
+    # Divider
+    draw.line([(90, 355), (1110, 355)], fill="#1e293b", width=1)
+
+    metrics = [
+        ("SEMESTER", sem_label),
+        ("DEPARTMENT", dept_code),
+        ("EXAM PREPARATION", "Mid-Sem & End-Sem Solved"),
+    ]
+
+    col_x = 90
+    for label, val in metrics:
+        draw.text((col_x, 385), label, fill="#64748b", font=f_label)
+        draw.text((col_x, 415), val, fill="#38bdf8", font=f_stat)
+        col_x += 345
+
+    draw.rounded_rectangle([90, 480, 1110, 525], radius=12, fill="#0f172a", outline="#1e293b")
+    draw.text(
+        (115, 493),
+        f"⚡ All subject notes and PYQs for {sem_label} {dept_code} at {college_abbr}.",
+        fill="#ffffff",
+        font=f_badge,
+    )
+
+    _draw_footer(draw)
+
+    res = _render_image_to_bytes(img)
+    _OG_CACHE[cache_key] = res
+    return res
+
+
+def generate_subject_og(subject_data: dict) -> bytes:
+    """Branded OG image for subject landing pages (1200x630)."""
+    subject_name = str(subject_data.get("name") or "Engineering Subject").strip()[:55]
+    subject_code = str(subject_data.get("subject_code") or subject_data.get("code") or "").strip().upper()[:14]
+    dept_code = str(subject_data.get("department_code") or subject_data.get("dept") or "Engineering").strip()[:20]
+    semester = str(subject_data.get("semester") or "").strip()
+    sem_text = f"Sem {semester}" if semester and semester.isdigit() else (semester or "All Semesters")
+    docs_count = str(subject_data.get("documents_count") or subject_data.get("total_docs") or "Dozens of")
+
+    cache_key = f"subj_og:{subject_name}:{subject_code}:{sem_text}"
+    if cache_key in _OG_CACHE:
+        return _OG_CACHE[cache_key]
+
+    w, h = 1200, 630
+    img = Image.new("RGB", (w, h), color=BRAND_CONFIG["colors"]["bg_dark"])
+    draw = ImageDraw.Draw(img, "RGBA")
+
+    # Ambient glows
+    draw.ellipse([950, -50, 1350, 350], fill=(0, 113, 227, 45))
+    draw.ellipse([-50, 350, 450, 850], fill=(245, 158, 11, 35))
+
+    pill_label = f"{subject_code} • {sem_text}" if subject_code else f"SUBJECT • {sem_text}"
+    _draw_header(draw, active_pill=pill_label)
+
+    draw.rounded_rectangle([50, 135, 1150, 545], radius=24, fill="#131c31", outline="#22324f", width=1)
+
+    # Subject badge
+    draw.rounded_rectangle([90, 170, 280, 215], radius=14, fill="#1e293b", outline="#334155")
+    f_badge = _get_font(bold=True, size=16)
+    draw.text((105, 182), "📖 COURSE SYLLABUS", fill="#f59e0b", font=f_badge)
+
+    f_title = _get_font(bold=True, size=42)
+    f_sub = _get_font(bold=False, size=23)
+    f_stat = _get_font(bold=True, size=28)
+    f_label = _get_font(bold=False, size=15)
+
+    title_display = f"{subject_name} ({subject_code})" if subject_code else subject_name
+    draw.text((90, 235), title_display[:50], fill="#ffffff", font=f_title)
+    draw.text((90, 295), f"Branch: {dept_code}  •  {sem_text}  •  Aggregated Study Material & Past Papers", fill="#94a3b8", font=f_sub)
+
+    # Divider
+    draw.line([(90, 355), (1110, 355)], fill="#1e293b", width=1)
+
+    metrics = [
+        ("STUDY RESOURCES", f"{docs_count}+ Files"),
+        ("CONTENT TYPES", "Past Papers • Notes • Labs"),
+        ("EXAM RELEVANCE", "Solved Questions & Topper Notes"),
+    ]
+
+    col_x = 90
+    for label, val in metrics:
+        draw.text((col_x, 385), label, fill="#64748b", font=f_label)
+        draw.text((col_x, 415), val, fill="#38bdf8", font=f_stat)
+        col_x += 345
+
+    draw.rounded_rectangle([90, 480, 1110, 525], radius=12, fill="#0f172a", outline="#1e293b")
+    draw.text(
+        (115, 493),
+        f"⚡ Download free syllabus-mapped PYQs and handwritten notes for {subject_name}.",
+        fill="#ffffff",
+        font=f_badge,
+    )
+
+    _draw_footer(draw)
+
+    res = _render_image_to_bytes(img)
+    _OG_CACHE[cache_key] = res
+    return res
+
+
+def generate_pyq_hub_og() -> bytes:
+    """Branded OG image for the /pyq central repository hub (1200x630)."""
+    cache_key = "pyq_hub_og_v1"
+    if cache_key in _OG_CACHE:
+        return _OG_CACHE[cache_key]
+
+    w, h = 1200, 630
+    img = Image.new("RGB", (w, h), color=BRAND_CONFIG["colors"]["bg_dark"])
+    draw = ImageDraw.Draw(img, "RGBA")
+
+    # Ambient glows
+    draw.ellipse([950, -50, 1350, 350], fill=(0, 113, 227, 45))
+    draw.ellipse([-50, 350, 450, 850], fill=(16, 185, 129, 35))
+
+    _draw_header(draw, active_pill="ENGINEERING PYQ HUB")
+
+    draw.rounded_rectangle([50, 135, 1150, 545], radius=24, fill="#131c31", outline="#22324f", width=1)
+
+    # Hub badge
+    draw.rounded_rectangle([90, 170, 300, 215], radius=14, fill="#1e293b", outline="#334155")
+    f_badge = _get_font(bold=True, size=16)
+    draw.text((105, 182), "📑 QUESTION PAPER VAULT", fill="#38bdf8", font=f_badge)
+
+    f_title = _get_font(bold=True, size=44)
+    f_sub = _get_font(bold=False, size=23)
+    f_stat = _get_font(bold=True, size=28)
+    f_label = _get_font(bold=False, size=15)
+
+    draw.text((90, 235), "University & Engineering PYQs", fill="#ffffff", font=f_title)
+    draw.text((90, 295), "Search past 5-10 years solved & unsolved semester question papers across India", fill="#94a3b8", font=f_sub)
+
+    # Divider
+    draw.line([(90, 355), (1110, 355)], fill="#1e293b", width=1)
+
+    metrics = [
+        ("EXAM PAPERS", "4,500+ Exam Papers"),
+        ("CAMPUSES", "60+ Engineering Colleges"),
+        ("COVERAGE", "Mid-Sem & End-Sem (MSE/ESE)"),
+    ]
+
+    col_x = 90
+    for label, val in metrics:
+        draw.text((col_x, 385), label, fill="#64748b", font=f_label)
+        draw.text((col_x, 415), val, fill="#38bdf8", font=f_stat)
+        col_x += 345
+
+    draw.rounded_rectangle([90, 480, 1110, 525], radius=12, fill="#0f172a", outline="#1e293b")
+    draw.text(
+        (115, 493),
+        "⚡ Filter by university, department, semester, and course code instantly.",
+        fill="#ffffff",
+        font=f_badge,
+    )
+
+    _draw_footer(draw)
+
+    res = _render_image_to_bytes(img)
+    _OG_CACHE[cache_key] = res
+    return res

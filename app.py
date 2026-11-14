@@ -33,7 +33,9 @@ from observability.request_context import install_request_context
 load_dotenv()
 
 # IndexNow must use one environment-managed key for both submission and ownership verification.
-BASE_DOMAIN = os.getenv('BASE_DOMAIN', 'www.abhihub.edu.eu.org').strip().lower()
+BASE_DOMAIN = os.getenv('CANONICAL_HOST', os.getenv('BASE_DOMAIN', 'www.abhihub.edu.eu.org')).strip().lower()
+if BASE_DOMAIN == 'abhihub.edu.eu.org':
+    BASE_DOMAIN = 'www.abhihub.edu.eu.org'
 INDEXNOW_KEY = os.getenv('INDEX_NOW_BING_API_KEY', '').strip()
 TURNSTILE_SITEKEY = os.getenv('TURNSTILE_SITEKEY', '')
 
@@ -794,13 +796,13 @@ def check_csrf():
         csrf.protect()
 
 
-# Redirect old Heroku domain to new custom domain (301 permanent redirect)
+# Redirect old legacy domains to canonical BASE_DOMAIN (301 permanent redirect)
 @app.before_request
 def redirect_to_new_domain():
-    old_domains = ["app.abhihub.run.place", "abhihub.herokuapp.com", "abhihub.run.place"]
-    if any(d in request.host for d in old_domains):
-        new_url = "https://www.abhihub.edu.eu.org" + request.full_path
-        return redirect(new_url, code=301)
+    old_domains = ("app.abhihub.run.place", "abhihub.herokuapp.com", "abhihub.run.place")
+    if any(d in request.host.lower() for d in old_domains):
+        qs = f"?{request.query_string.decode('utf-8')}" if request.query_string else ""
+        return redirect(f"https://{BASE_DOMAIN}{request.path}{qs}", code=301)
 
 init_push_api(app)
 

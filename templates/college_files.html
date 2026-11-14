@@ -6,6 +6,15 @@
 {% set og_title = seo_title %}
 {% set og_description = seo_description %}
 {% set og_type = 'website' %}
+{% set current_host = BASE_URL | default('https://www.abhihub.edu.eu.org') %}
+{% if filters and filters.branch %}
+  {% set og_image = current_host ~ '/api/og/department/' ~ (request.view_args.get('college_slug') or 'campus') ~ '/' ~ filters.branch ~ '.png' %}
+{% else %}
+  {% set og_image = current_host ~ '/api/og/college/' ~ (request.view_args.get('college_slug') or 'campus') ~ '.png' %}
+{% endif %}
+{% set twitter_image = og_image %}
+{% set og_image_width = '1200' %}
+{% set og_image_height = '630' %}
 
 {% extends 'p_struct.html' %}
 {% block page_head %}

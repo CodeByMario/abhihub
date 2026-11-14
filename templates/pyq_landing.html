@@ -1,9 +1,14 @@
-{% set seo_title = "World's #1 Previous Year Question Papers (PYQ) Platform | Free Exam Prep & Notes on AbhiHub" %}
-{% set seo_description = "Download free PYQs and engineering notes on AbhiHub — World's #1 previous year question paper platform. Featuring Tarika personalized AI assistant, multi-device sync, and 3000+ verified papers." %}
-{% set seo_keywords = "World's #1 PYQ platform, previous year question papers, college PYQ, engineering PYQ, engineering notes sharing, exam preparation platform, Tarika AI assistant, Made in India, GHRCE PYQ, Raisoni PYQ, RCOEM PYQ, VIT PYQ, AbhiHub" %}
+{% set seo_title = "Engineering PYQs & University Question Papers | AbhiHub" %}
+{% set seo_description = "Browse verified engineering previous year question papers, solutions, and college notes across universities and institutes on AbhiHub." %}
+{% set seo_keywords = "engineering PYQs, previous year question papers, university question papers, college PYQ, engineering notes, semester exam preparation, AbhiHub" %}
 {% set og_title = seo_title %}
 {% set og_description = seo_description %}
 {% set og_type = 'website' %}
+{% set current_host = BASE_URL | default('https://www.abhihub.edu.eu.org') %}
+{% set og_image = current_host ~ '/api/og/pyq.png' %}
+{% set twitter_image = og_image %}
+{% set og_image_width = '1200' %}
+{% set og_image_height = '630' %}
 
 {% extends 'p_struct.html' %}
 {% block page_head %}
@@ -13,10 +18,10 @@
   "@graph": [
     {
       "@type": "CollectionPage",
-      "name": "World's #1 Previous Year Question Papers (PYQ) Platform | AbhiHub",
-      "url": "{{ request.url_root.rstrip('/') }}/pyq",
-      "description": "Free previous year question papers for engineering colleges across India, organized by college, department and subject. Features Tarika personalized AI exam assistant.",
-      "provider": { "@type": "Organization", "name": "AbhiHub", "url": "{{ request.url_root.rstrip('/') }}/" }
+      "name": "Engineering PYQs & University Question Papers | AbhiHub",
+      "url": "{{ canonical_domain | default('https://www.abhihub.edu.eu.org') }}/pyq",
+      "description": "Verified previous year question papers and study notes for engineering colleges across India, organized by college, department and subject on AbhiHub.",
+      "provider": { "@type": "Organization", "name": "AbhiHub", "url": "{{ canonical_domain | default('https://www.abhihub.edu.eu.org') }}/" }
     }
   ]
 }

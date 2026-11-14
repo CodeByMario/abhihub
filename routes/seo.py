@@ -11,7 +11,9 @@ from methods.seo_helper import is_resource_indexable
 
 seo_bp = Blueprint('seo', __name__)
 
-BASE_DOMAIN = os.getenv('BASE_DOMAIN', 'www.abhihub.edu.eu.org').strip().lower()
+BASE_DOMAIN = os.getenv('CANONICAL_HOST', os.getenv('BASE_DOMAIN', 'www.abhihub.edu.eu.org')).strip().lower()
+if BASE_DOMAIN == 'abhihub.edu.eu.org':
+    BASE_DOMAIN = 'www.abhihub.edu.eu.org'
 INDEXNOW_KEY = os.getenv('INDEX_NOW_BING_API_KEY', '').strip()
 
 _SITEMAP_REGISTRY = {}
@@ -299,23 +301,12 @@ def sitemap_colleges():
         add_u(f"/college/{c_slug}", c.get('created_at'), "0.90", "weekly")
         add_u(f"/college/{c_slug}/files", c.get('created_at'), "0.85", "weekly")
 
+    # Parameter-free canonical URLs only; ?branch= URLs canonicalize to /college/<slug>/files
     dept_slugs = {
         d.get('id'): slugify(d.get('abbreviation') or d.get('name'))
         for d in departments
         if d.get('id')
     }
-
-    populated_pairs = {
-        (doc.get('college_id'), doc.get('department_id'))
-        for doc in documents
-        if doc.get('college_id') and doc.get('department_id')
-    }
-
-    for c_id, d_id in populated_pairs:
-        c_slug = college_slugs.get(c_id)
-        d_slug = dept_slugs.get(d_id)
-        if c_slug and d_slug:
-            add_u(f"/college/{c_slug}/files?branch={d_slug}", priority="0.85", changefreq="weekly")
 
     seen_subjects = set()
     for s in subjects:
@@ -437,4 +428,122 @@ def service_worker_root():
     response.headers['Expires'] = '0'
     response.headers['Service-Worker-Allowed'] = '/'
     return response
+
+
+@seo_bp.route('/api/og/pyq.png')
+@seo_bp.route('/api/og/pyq')
+def og_image_pyq():
+    """Dynamic 1200x630 OG image for /pyq hub."""
+    from methods.og_engine import generate_pyq_hub_og
+    img_bytes = generate_pyq_hub_og()
+    resp = make_response(img_bytes)
+    resp.headers['Content-Type'] = 'image/png'
+    resp.headers['Cache-Control'] = 'public, max-age=86400, stale-while-revalidate=604800'
+    return resp
+
+
+@seo_bp.route('/api/og/subject/<path:subject_slug>.png')
+@seo_bp.route('/api/og/subject/<path:subject_slug>')
+def og_image_subject(subject_slug):
+    """Dynamic 1200x630 OG image for subject landing pages."""
+    import app
+    from methods.og_engine import generate_subject_og
+    from methods.library_service import get_subjects_by_slug, get_subject_stats
+
+    clean_slug = subject_slug.strip().lower()
+    subject_data = {'name': clean_slug.replace('-', ' ').title(), 'code': '', 'semester': '', 'department_code': 'Engineering'}
+
+    try:
+        s_res = get_subjects_by_slug(clean_slug)
+        if s_res and s_res.get('success'):
+            sd = s_res.get('data', {})
+            s_ids = sd.get('ids', [])
+            stats = get_subject_stats(s_ids).get('data', {}) if s_ids else {}
+            subject_data['name'] = sd.get('name') or subject_data['name']
+            subject_data['documents_count'] = stats.get('total_documents', 'Dozens of')
+            # Extract code or semester from details if available
+            subject_data['code'] = sd.get('subject_code') or ''
+            subject_data['semester'] = str(sd.get('semester') or '')
+    except Exception as e:
+        logger.warning(f"[SEO] og_image_subject lookup error: {e}")
+
+    img_bytes = generate_subject_og(subject_data)
+    resp = make_response(img_bytes)
+    resp.headers['Content-Type'] = 'image/png'
+    resp.headers['Cache-Control'] = 'public, max-age=86400, stale-while-revalidate=604800'
+    return resp
+
+
+@seo_bp.route('/api/og/department/<college_slug>/<dept_code>.png')
+@seo_bp.route('/api/og/department/<college_slug>/<dept_code>')
+def og_image_department(college_slug, dept_code):
+    """Dynamic 1200x630 OG image for college department pages."""
+    import app
+    from methods.og_engine import generate_department_og
+    from methods.library_service import get_college_by_slug, get_department_by_slug
+
+    c_slug = college_slug.strip().lower()
+    d_code = dept_code.strip().lower()
+
+    dept_data = {
+        'college_name': c_slug.upper(),
+        'college_abbr': c_slug.upper(),
+        'department_name': f"Department of {d_code.upper()}",
+        'department_code': d_code.upper()
+    }
+
+    try:
+        c_res = get_college_by_slug(c_slug)
+        if c_res and c_res.get('success'):
+            coll = c_res.get('data', {})
+            dept_data['college_name'] = coll.get('name') or dept_data['college_name']
+            dept_data['college_abbr'] = coll.get('abbreviation') or coll.get('name') or dept_data['college_abbr']
+            coll_id = coll.get('id')
+            d_res = get_department_by_slug(d_code, college_id=coll_id)
+            if d_res and d_res.get('success'):
+                d_obj = d_res.get('data', {})
+                dept_data['department_name'] = d_obj.get('name') or dept_data['department_name']
+                dept_data['department_code'] = d_obj.get('abbreviation') or d_code.upper()
+    except Exception as e:
+        logger.warning(f"[SEO] og_image_department lookup error: {e}")
+
+    img_bytes = generate_department_og(dept_data)
+    resp = make_response(img_bytes)
+    resp.headers['Content-Type'] = 'image/png'
+    resp.headers['Cache-Control'] = 'public, max-age=86400, stale-while-revalidate=604800'
+    return resp
+
+
+@seo_bp.route('/api/og/semester/<college_slug>/<dept_code>/<semester>.png')
+@seo_bp.route('/api/og/semester/<college_slug>/<dept_code>/<semester>')
+def og_image_semester(college_slug, dept_code, semester):
+    """Dynamic 1200x630 OG image for college semester pages."""
+    import app
+    from methods.og_engine import generate_semester_og
+    from methods.library_service import get_college_by_slug, get_department_by_slug
+
+    c_slug = college_slug.strip().lower()
+    d_code = dept_code.strip().lower()
+    sem_val = str(semester).strip()
+
+    sem_data = {
+        'college_abbr': c_slug.upper(),
+        'department_code': d_code.upper(),
+        'semester': sem_val
+    }
+
+    try:
+        c_res = get_college_by_slug(c_slug)
+        if c_res and c_res.get('success'):
+            coll = c_res.get('data', {})
+            sem_data['college_abbr'] = coll.get('abbreviation') or coll.get('name') or sem_data['college_abbr']
+    except Exception as e:
+        logger.warning(f"[SEO] og_image_semester lookup error: {e}")
+
+    img_bytes = generate_semester_og(sem_data)
+    resp = make_response(img_bytes)
+    resp.headers['Content-Type'] = 'image/png'
+    resp.headers['Cache-Control'] = 'public, max-age=86400, stale-while-revalidate=604800'
+    return resp
+
 

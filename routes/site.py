@@ -159,10 +159,10 @@ def features():
         colleges=colleges[:10],
         branches=branches[:8],
         recent_docs=recent_docs,
-        seo_title="AbhiHub — Engineering PYQs, Handwritten Notes & Creator Marketplace",
-        seo_description="India's verified engineering peer study marketplace. Download verified PYQs and handwritten solutions. Launch Deal: 90% off view packs, 90% creator royalties, payouts in T+9 days or earlier.",
-        og_title="AbhiHub — Verified Engineering PYQs & Student Notes Marketplace",
-        og_description="Download verified engineering PYQs and study notes. Sell handwritten notes and keep 90% of earnings with payouts in T+9 days or earlier. Founded at GHRCEN.",
+        seo_title="AbhiHub - Engineering PYQs, Notes & Practicals",
+        seo_description="AbhiHub is a student-powered academic platform providing engineering previous year question papers, handwritten notes, practicals and college-specific study resources.",
+        og_title="AbhiHub - Engineering PYQs, Notes & Practicals",
+        og_description="AbhiHub is a student-powered academic platform providing engineering previous year question papers, handwritten notes, practicals and college-specific study resources.",
         og_image=url_for('seo.og_image_home', _external=True)
     )
 
