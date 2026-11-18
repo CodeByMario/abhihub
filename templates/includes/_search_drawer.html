@@ -1239,7 +1239,9 @@
     a.href = docUrl;
 
     const subjName = file.subject || file.subject_name;
-    const displaySubject = (subjName && subjName !== 'General') ? subjName : (file['file-name'] || file.title || 'Academic Resource');
+    const subjCode = file.subject_code || file.code || '';
+    const displaySubject = (subjName && subjName !== 'General') ? subjName : (subjCode ? `${subjCode} Course` : 'Academic Course');
+    const headerTitle = subjCode && !displaySubject.includes(subjCode) ? `${displaySubject} (${subjCode})` : displaySubject;
 
     const rawCat = (file.type || file.document_category || 'Paper').trim();
     const categoryBadge = rawCat.replace(/s$/i, '').toUpperCase();
@@ -1284,7 +1286,7 @@
       </div>
       <div class="arch-card-body">
         <div class="arch-card-top-line">
-          <h4 class="arch-card-title">${escapeHtml(displaySubject)}</h4>
+          <h4 class="arch-card-title">${escapeHtml(headerTitle)}</h4>
           <span class="arch-category-tag" style="background:${iconBg}; color:${iconColor}; border:1px solid ${borderTint};">${escapeHtml(categoryBadge)}</span>
         </div>
         <p class="arch-card-desc">${escapeHtml(sub)}</p>

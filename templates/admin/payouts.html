@@ -1,0 +1,549 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Payouts, KYC & Wallets{% endblock %}
+
+{% block admin_content %}
+<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+    <div>
+        <h1 style="font-size:1.6rem; font-weight:800; color:var(--text-primary); margin:0 0 0.25rem 0;">Payouts, KYC & Wallets</h1>
+        <p style="color:var(--text-secondary); font-size:0.88rem; margin:0;">Process creator withdrawals, review encrypted KYC credentials, and inspect creator balances.</p>
+    </div>
+    <div style="display:flex; gap:0.5rem;">
+        <button class="btn-action" onclick="loadPayouts(); loadKyc();" style="background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-subtle);"><i class="fas fa-sync-alt"></i> Refresh</button>
+    </div>
+</div>
+
+<!-- Tabs Bar -->
+<div style="display:flex; gap:0.5rem; margin-bottom:1.25rem; border-bottom:1px solid var(--border-subtle); padding-bottom:0.5rem;">
+    <button class="btn-action primary" id="tabBtnPayouts" onclick="switchPayoutTab('payouts')"><i class="fas fa-money-check-alt"></i> Payout Requests</button>
+    <button class="btn-action" id="tabBtnKyc" onclick="switchPayoutTab('kyc')" style="background:transparent; color:var(--text-secondary);"><i class="fas fa-id-card"></i> KYC Verifications</button>
+    <button class="btn-action" id="tabBtnWallets" onclick="switchPayoutTab('wallets')" style="background:transparent; color:var(--text-secondary);"><i class="fas fa-wallet"></i> Wallet & Ledger Explorer</button>
+</div>
+
+<!-- TAB 1: PAYOUT REQUESTS -->
+<div id="tabPayouts">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <div style="display:flex; gap:0.5rem;">
+            <select id="payoutStatusFilter" class="form-control" style="width:auto;" onchange="loadPayouts();">
+                <option value="pending">Pending</option>
+                <option value="processing">Processing</option>
+                <option value="completed">Completed</option>
+                <option value="rejected">Rejected</option>
+                <option value="all">All Statuses</option>
+            </select>
+        </div>
+        <div style="display:flex; gap:0.5rem;">
+            <button class="btn-action success" id="btnBulkApprove" onclick="bulkApprovePayouts()" style="display:none;"><i class="fas fa-check-double"></i> Bulk Approve Selected (<span id="selectedPayoutCount">0</span>)</button>
+        </div>
+    </div>
+
+    <div class="data-card">
+        <div class="table-responsive" style="border:none;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th style="width:36px;"><input type="checkbox" id="selectAllPayouts" onchange="toggleSelectAllPayouts(this)"></th>
+                        <th>Payout ID</th>
+                        <th>Creator</th>
+                        <th>Amount</th>
+                        <th>Requested At</th>
+                        <th>Status</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="payoutsTableBody">
+                    <tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-muted);">Loading payouts...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.25rem;">
+            <div style="font-size:0.82rem; color:var(--text-secondary);" id="payoutsPaginationSummary"></div>
+            <div style="display:flex; gap:0.4rem;" id="payoutsPaginationBtns"></div>
+        </div>
+    </div>
+</div>
+
+<!-- TAB 2: KYC VERIFICATIONS -->
+<div id="tabKyc" style="display:none;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <div>
+            <select id="kycStatusFilter" class="form-control" style="width:auto;" onchange="loadKyc(1);">
+                <option value="pending">Pending Review</option>
+                <option value="verified">Verified</option>
+                <option value="rejected">Rejected</option>
+                <option value="all">All Applications</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="data-card">
+        <div class="table-responsive" style="border:none;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Full Name</th>
+                        <th>Masked PAN</th>
+                        <th>Masked Bank Account</th>
+                        <th>Masked UPI</th>
+                        <th>Status</th>
+                        <th>Submitted</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="kycTableBody">
+                    <tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-muted);">Loading KYC records...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.25rem;">
+            <div style="font-size:0.82rem; color:var(--text-secondary);" id="kycPaginationSummary"></div>
+            <div style="display:flex; gap:0.4rem;" id="kycPaginationBtns"></div>
+        </div>
+    </div>
+</div>
+
+<!-- TAB 3: WALLET & LEDGER EXPLORER -->
+<div id="tabWallets" style="display:none;">
+    <div class="filter-card">
+        <div style="display:flex; gap:0.75rem; align-items:flex-end;">
+            <div style="flex:1;">
+                <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Creator User UUID</label>
+                <input type="text" id="walletUserSearch" class="form-control" placeholder="Enter creator user UUID (e.g. e8a564a7-...)" onkeydown="if(event.key==='Enter') inspectWallet();">
+            </div>
+            <button class="btn-action primary" onclick="inspectWallet();"><i class="fas fa-search"></i> Inspect Ledger</button>
+        </div>
+    </div>
+
+    <div id="walletDetailView" style="display:none;">
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-bottom:1.5rem;">
+            <div class="stat-card">
+                <div class="stat-label">Withdrawable Balance</div>
+                <div class="stat-value" id="dispWithdrawable">₹0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Pending / Locked</div>
+                <div class="stat-value" id="dispPending">₹0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Withdrawn</div>
+                <div class="stat-value" id="dispTotalWithdrawn">₹0.00</div>
+            </div>
+        </div>
+
+        <div class="data-card">
+            <h3 style="font-size:1.05rem; font-weight:700; color:var(--text-primary); margin:0 0 1rem 0;">Immutable Ledger History</h3>
+            <div class="table-responsive" style="border:none;">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Order / Reference</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Unlock Date</th>
+                            <th>Created At</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledgerTableBody">
+                        <tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">No ledger entries recorded.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1rem;">
+                <div style="font-size:0.82rem; color:var(--text-secondary);" id="ledgerPaginationSummary"></div>
+                <div style="display:flex; gap:0.4rem;" id="ledgerPaginationBtns"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const selectedPayoutIds = new Set();
+
+function switchPayoutTab(tab) {
+    const tabP = document.getElementById('tabPayouts');
+    const tabK = document.getElementById('tabKyc');
+    const tabW = document.getElementById('tabWallets');
+    const btnP = document.getElementById('tabBtnPayouts');
+    const btnK = document.getElementById('tabBtnKyc');
+    const btnW = document.getElementById('tabBtnWallets');
+
+    tabP.style.display = tab === 'payouts' ? 'block' : 'none';
+    tabK.style.display = tab === 'kyc' ? 'block' : 'none';
+    tabW.style.display = tab === 'wallets' ? 'block' : 'none';
+
+    btnP.className = tab === 'payouts' ? 'btn-action primary' : 'btn-action';
+    btnP.style.background = tab === 'payouts' ? '' : 'transparent';
+    btnP.style.color = tab === 'payouts' ? '' : 'var(--text-secondary)';
+
+    btnK.className = tab === 'kyc' ? 'btn-action primary' : 'btn-action';
+    btnK.style.background = tab === 'kyc' ? '' : 'transparent';
+    btnK.style.color = tab === 'kyc' ? '' : 'var(--text-secondary)';
+
+    btnW.className = tab === 'wallets' ? 'btn-action primary' : 'btn-action';
+    btnW.style.background = tab === 'wallets' ? '' : 'transparent';
+    btnW.style.color = tab === 'wallets' ? '' : 'var(--text-secondary)';
+}
+
+let currentPayoutPage = 1;
+async function loadPayouts(page = 1) {
+    currentPayoutPage = page;
+    const status = document.getElementById('payoutStatusFilter').value;
+    const tbody = document.getElementById('payoutsTableBody');
+    const summary = document.getElementById('payoutsPaginationSummary');
+    const btns = document.getElementById('payoutsPaginationBtns');
+
+    try {
+        const res = await fetch(`/api/admin/payouts?status=${status}&page=${page}&limit=12`);
+        const data = await res.json();
+        const payouts = data.requests || data.data || [];
+        const total = data.total || payouts.length;
+        const totalPages = Math.ceil(total / 12);
+
+        selectedPayoutIds.clear();
+        updateBulkButton();
+
+        if (summary) summary.textContent = total > 0 ? `Showing ${(page - 1) * 12 + 1}-${Math.min(page * 12, total)} of ${total}` : '';
+        if (btns) {
+            if (totalPages <= 1) {
+                btns.innerHTML = '';
+            } else {
+                let bHtml = '';
+                if (page > 1) {
+                    bHtml += `<button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="loadPayouts(${page - 1})"><i class="fas fa-chevron-left"></i> Prev</button>`;
+                }
+                bHtml += `<span style="font-size:0.82rem; color:var(--text-secondary); padding:0.4rem 0.6rem;">Page ${page} of ${totalPages}</span>`;
+                if (page < totalPages) {
+                    bHtml += `<button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="loadPayouts(${page + 1})">Next <i class="fas fa-chevron-right"></i></button>`;
+                }
+                btns.innerHTML = bHtml;
+            }
+        }
+
+        if (!payouts.length) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:2.5rem; color:var(--text-muted);">No payout requests found.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = payouts.map(p => {
+            const isPending = p.status === 'pending';
+            return `
+                <tr>
+                    <td>${isPending ? `<input type="checkbox" onchange="togglePayoutSelect('${p.id}', this)">` : ''}</td>
+                    <td><strong style="font-family:var(--font-mono); font-size:0.78rem;">${p.id.slice(0, 13)}...</strong></td>
+                    <td><a href="/admin/users/${p.creator_id}" style="color:var(--accent-indigo); text-decoration:none; font-family:var(--font-mono); font-size:0.75rem;">${p.creator_id.slice(0, 13)}...</a></td>
+                    <td><strong style="color:var(--accent-emerald);">₹${parseFloat(p.amount || 0).toFixed(2)}</strong></td>
+                    <td><span style="font-family:var(--font-mono); font-size:0.78rem;">${(p.created_at || '').slice(0, 16).replace('T', ' ')}</span></td>
+                    <td><span class="role-badge ${p.status === 'completed' ? 'admin' : (p.status === 'rejected' ? 'superadmin' : 'moderator')}">${p.status}</span></td>
+                    <td style="text-align:right;">
+                        ${isPending ? `
+                            <button class="btn-action success" onclick="actionPayout('${p.id}', 'completed')" style="font-size:0.75rem; padding:0.25rem 0.55rem;"><i class="fas fa-check"></i> Approve</button>
+                            <button class="btn-action danger" onclick="actionPayout('${p.id}', 'rejected')" style="font-size:0.75rem; padding:0.25rem 0.55rem;"><i class="fas fa-times"></i> Reject</button>
+                        ` : `
+                            <span style="font-size:0.75rem; color:var(--text-muted);">${p.admin_notes || 'Processed'}</span>
+                        `}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--accent-rose);">Error loading payouts: ${e.message}</td></tr>`;
+    }
+}
+
+function togglePayoutSelect(id, cb) {
+    if (cb.checked) selectedPayoutIds.add(id);
+    else selectedPayoutIds.delete(id);
+    updateBulkButton();
+}
+
+function toggleSelectAllPayouts(master) {
+    const cbs = document.querySelectorAll('#payoutsTableBody input[type="checkbox"]');
+    cbs.forEach(cb => {
+        cb.checked = master.checked;
+        const pid = cb.getAttribute('onchange').match(/'([^']+)'/)[1];
+        if (master.checked) selectedPayoutIds.add(pid);
+        else selectedPayoutIds.delete(pid);
+    });
+    updateBulkButton();
+}
+
+function updateBulkButton() {
+    const btn = document.getElementById('btnBulkApprove');
+    const countSpan = document.getElementById('selectedPayoutCount');
+    countSpan.textContent = selectedPayoutIds.size;
+    btn.style.display = selectedPayoutIds.size > 0 ? 'inline-flex' : 'none';
+}
+
+async function bulkApprovePayouts() {
+    if (!selectedPayoutIds.size) return;
+    openConfirmModal({
+        title: `Bulk Approve ${selectedPayoutIds.size} Payouts`,
+        message: 'Are you sure you want to approve and finalize all selected payout requests?',
+        confirmText: 'Approve Selected',
+        danger: false,
+        requireReason: false,
+        onConfirm: async () => {
+            try {
+                const res = await fetch('/api/admin/payouts/bulk-approve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                    body: JSON.stringify({ payout_ids: Array.from(selectedPayoutIds) })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAdminToast(`Successfully approved ${data.approved_count} payouts!`, 'success');
+                    loadPayouts();
+                } else {
+                    showAdminToast(data.error || 'Bulk approve failed', 'error');
+                }
+            } catch (e) {
+                showAdminToast('Network error during bulk approval', 'error');
+            }
+        }
+    });
+}
+
+function actionPayout(payoutId, action) {
+    const isReject = action === 'rejected';
+    openConfirmModal({
+        title: `${isReject ? 'Reject' : 'Approve'} Payout`,
+        message: isReject ? 'Provide reason for rejection (funds will be restored back to creator wallet):' : 'Confirm payout disbursement and finalize ledger entry:',
+        confirmText: isReject ? 'Reject Payout' : 'Approve Payout',
+        danger: isReject,
+        requireReason: isReject,
+        onConfirm: async (adminNotes) => {
+            try {
+                const res = await fetch('/api/admin/payout/action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                    body: JSON.stringify({ payout_id: payoutId, action, admin_notes: adminNotes })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAdminToast(data.message, 'success');
+                    loadPayouts();
+                } else {
+                    showAdminToast(data.error || 'Action failed', 'error');
+                }
+            } catch (e) {
+                showAdminToast('Network error', 'error');
+            }
+        }
+    });
+}
+
+let kycRecordsCache = [];
+let currentKycPage = 1;
+
+async function loadKyc(page = 1) {
+    currentKycPage = page;
+    const status = document.getElementById('kycStatusFilter').value;
+    const tbody = document.getElementById('kycTableBody');
+    const summary = document.getElementById('kycPaginationSummary');
+    const btns = document.getElementById('kycPaginationBtns');
+
+    if (page === 1 || !kycRecordsCache.length) {
+        try {
+            const res = await fetch(`/api/admin/kyc/list?status=${status}`);
+            const data = await res.json();
+            kycRecordsCache = data.data || [];
+        } catch (e) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--accent-rose);">Error loading KYC records: ${e.message}</td></tr>`;
+            return;
+        }
+    }
+
+    const total = kycRecordsCache.length;
+    if (!total) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:2.5rem; color:var(--text-muted);">No KYC records found.</td></tr>`;
+        if (summary) summary.textContent = '';
+        if (btns) btns.innerHTML = '';
+        return;
+    }
+
+    const totalPages = Math.ceil(total / 12);
+    const sliceStart = (page - 1) * 12;
+    const sliceEnd = Math.min(sliceStart + 12, total);
+    const records = kycRecordsCache.slice(sliceStart, sliceEnd);
+
+    if (summary) summary.textContent = `Showing ${sliceStart + 1}-${sliceEnd} of ${total}`;
+    if (btns) {
+        if (totalPages <= 1) {
+            btns.innerHTML = '';
+        } else {
+            let bHtml = '';
+            if (page > 1) {
+                bHtml += `<button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="loadKyc(${page - 1})"><i class="fas fa-chevron-left"></i> Prev</button>`;
+            }
+            bHtml += `<span style="font-size:0.82rem; color:var(--text-secondary); padding:0.4rem 0.6rem;">Page ${page} of ${totalPages}</span>`;
+            if (page < totalPages) {
+                bHtml += `<button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="loadKyc(${page + 1})">Next <i class="fas fa-chevron-right"></i></button>`;
+            }
+            btns.innerHTML = bHtml;
+        }
+    }
+
+    tbody.innerHTML = records.map(k => `
+        <tr>
+            <td><strong style="color:var(--text-primary);">${k.full_name || '—'}</strong></td>
+            <td><span style="font-family:var(--font-mono); font-size:0.8rem;">${k.masked_pan || '—'}</span></td>
+            <td><span style="font-family:var(--font-mono); font-size:0.8rem;">${k.masked_account || '—'}</span></td>
+            <td><span style="font-family:var(--font-mono); font-size:0.8rem;">${k.masked_upi || '—'}</span></td>
+            <td>
+                <span class="role-badge ${k.is_verified ? 'admin' : (k.rejection_reason ? 'superadmin' : 'student')}">
+                    ${k.is_verified ? 'Verified' : (k.rejection_reason ? 'Rejected' : 'Pending')}
+                </span>
+            </td>
+            <td><span style="font-family:var(--font-mono); font-size:0.78rem;">${(k.submitted_at || '').slice(0, 10)}</span></td>
+            <td style="text-align:right; display:flex; justify-content:flex-end; gap:0.4rem;">
+                <button class="btn-action" onclick="revealKyc('${k.id}')" title="Superadmin Reveal Credentials" style="background:var(--border-subtle); color:var(--text-primary); font-size:0.75rem; padding:0.25rem 0.55rem;"><i class="fas fa-eye"></i> Reveal</button>
+                ${!k.is_verified ? `
+                    <button class="btn-action success" onclick="actionKyc('${k.id}', 'approve')" style="font-size:0.75rem; padding:0.25rem 0.55rem;"><i class="fas fa-check"></i></button>
+                    <button class="btn-action danger" onclick="actionKyc('${k.id}', 'reject')" style="font-size:0.75rem; padding:0.25rem 0.55rem;"><i class="fas fa-times"></i></button>
+                ` : ''}
+            </td>
+        </tr>
+    `).join('');
+}
+
+function revealKyc(kycId) {
+    openConfirmModal({
+        title: 'Superadmin KYC Reveal',
+        message: 'Viewing raw unmasked financial credentials generates an immutable security audit log entry. Specify the audit reason:',
+        confirmText: 'Decrypt & Reveal',
+        danger: true,
+        requireReason: true,
+        onConfirm: async (reason) => {
+            try {
+                const res = await fetch(`/api/admin/kyc/${kycId}/reveal`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                    body: JSON.stringify({ reason })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert(`UNMASKED CREDENTIALS:\n\nPAN: ${data.pan_number || 'None'}\nAccount: ${data.account_number || 'None'}\nIFSC: ${data.ifsc_code || 'None'}\nUPI ID: ${data.upi_id || 'None'}\nBank: ${data.bank_name || 'None'}`);
+                } else {
+                    showAdminToast(data.error || 'Failed revealing credentials', 'error');
+                }
+            } catch (e) {
+                showAdminToast('Network error during reveal', 'error');
+            }
+        }
+    });
+}
+
+function actionKyc(kycId, action) {
+    const isReject = action === 'reject';
+    openConfirmModal({
+        title: `${isReject ? 'Reject' : 'Approve'} KYC Application`,
+        message: isReject ? 'Enter justification for rejecting creator KYC application:' : 'Confirm verification of creator identity and bank documents:',
+        confirmText: isReject ? 'Reject Application' : 'Approve KYC',
+        danger: isReject,
+        requireReason: isReject,
+        onConfirm: async (reason) => {
+            try {
+                const res = await fetch(`/api/admin/kyc/${kycId}/verify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                    body: JSON.stringify({ action, reason })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAdminToast(data.message, 'success');
+                    loadKyc();
+                } else {
+                    showAdminToast(data.error || 'KYC action failed', 'error');
+                }
+            } catch (e) {
+                showAdminToast('Network error', 'error');
+            }
+        }
+    });
+}
+
+async function inspectWallet() {
+    const userId = document.getElementById('walletUserSearch').value.trim();
+    if (!userId) {
+        showAdminToast('Enter creator user UUID', 'error');
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/admin/wallets/${userId}`);
+        const data = await res.json();
+        if (!data.success) {
+            showAdminToast(data.error || 'Failed inspecting wallet', 'error');
+            return;
+        }
+
+        document.getElementById('walletDetailView').style.display = 'block';
+        const w = data.wallet || {};
+        document.getElementById('dispWithdrawable').textContent = '₹' + parseFloat(w.balance || w.withdrawable_balance || 0).toFixed(2);
+        document.getElementById('dispPending').textContent = '₹' + parseFloat(w.pending_balance || 0).toFixed(2);
+        document.getElementById('dispTotalWithdrawn').textContent = '₹' + parseFloat(w.total_withdrawn || 0).toFixed(2);
+
+        let ledgerCache = data.ledger || [];
+        renderLedgerPage(1);
+
+        function renderLedgerPage(page = 1) {
+            const tbody = document.getElementById('ledgerTableBody');
+            const summary = document.getElementById('ledgerPaginationSummary');
+            const btns = document.getElementById('ledgerPaginationBtns');
+            const total = ledgerCache.length;
+
+            if (!total) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">No ledger history found for this creator.</td></tr>`;
+                if (summary) summary.textContent = '';
+                if (btns) btns.innerHTML = '';
+                return;
+            }
+
+            const totalPages = Math.ceil(total / 12);
+            const sliceStart = (page - 1) * 12;
+            const sliceEnd = Math.min(sliceStart + 12, total);
+            const pageLedger = ledgerCache.slice(sliceStart, sliceEnd);
+
+            if (summary) summary.textContent = `Showing ${sliceStart + 1}-${sliceEnd} of ${total}`;
+            if (btns) {
+                if (totalPages <= 1) {
+                    btns.innerHTML = '';
+                } else {
+                    let bHtml = '';
+                    if (page > 1) {
+                        bHtml += `<button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="renderLedgerPage(${page - 1})"><i class="fas fa-chevron-left"></i> Prev</button>`;
+                    }
+                    bHtml += `<span style="font-size:0.82rem; color:var(--text-secondary); padding:0.4rem 0.6rem;">Page ${page} of ${totalPages}</span>`;
+                    if (page < totalPages) {
+                        bHtml += `<button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="renderLedgerPage(${page + 1})">Next <i class="fas fa-chevron-right"></i></button>`;
+                    }
+                    btns.innerHTML = bHtml;
+                }
+            }
+
+            tbody.innerHTML = pageLedger.map(l => {
+                const isDebit = (parseFloat(l.amount || 0) < 0) || l.type === 'debit';
+                return `
+                    <tr>
+                        <td><strong style="font-family:var(--font-mono); font-size:0.8rem; color:var(--text-primary);">${l.order_id || '—'}</strong></td>
+                        <td><span class="role-badge ${isDebit ? 'superadmin' : 'admin'}">${l.type || (isDebit ? 'debit' : 'credit')}</span></td>
+                        <td><strong style="color:${isDebit ? 'var(--accent-rose)' : 'var(--accent-emerald)'};">${isDebit ? '' : '+'}₹${parseFloat(l.amount || 0).toFixed(2)}</strong></td>
+                        <td><span class="role-badge" style="background:rgba(99,102,241,0.15);">${l.status || 'available'}</span></td>
+                        <td><span style="font-family:var(--font-mono); font-size:0.75rem;">${(l.unlock_at || '').slice(0, 10)}</span></td>
+                        <td><span style="font-family:var(--font-mono); font-size:0.75rem;">${(l.created_at || '').slice(0, 16).replace('T', ' ')}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+    } catch (e) {
+        showAdminToast('Network error loading wallet', 'error');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadPayouts();
+    loadKyc();
+});
+</script>
+{% endblock %}

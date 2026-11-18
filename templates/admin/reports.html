@@ -1,0 +1,289 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Reports & Support Queue{% endblock %}
+
+{% block admin_content %}
+<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+    <div>
+        <h1 style="font-size:1.6rem; font-weight:800; color:var(--text-primary); margin:0 0 0.25rem 0;">Reports & Customer Support</h1>
+        <p style="color:var(--text-secondary); font-size:0.88rem; margin:0;">Triage document rendering failures, content flags, and student support inquiries.</p>
+    </div>
+    <div style="display:flex; gap:0.5rem;">
+        <button class="btn-action" onclick="loadActiveTab();" style="background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-subtle);"><i class="fas fa-sync-alt"></i> Refresh</button>
+    </div>
+</div>
+
+<div style="display:flex; gap:0.5rem; margin-bottom:1.25rem; border-bottom:1px solid var(--border-subtle); padding-bottom:0.5rem;">
+    <button class="btn-action primary" id="tabBtnFailures" onclick="switchReportTab('failures')"><i class="fas fa-bug"></i> Content & Viewer Failures</button>
+    <button class="btn-action" id="tabBtnTickets" onclick="switchReportTab('tickets')" style="background:transparent; color:var(--text-secondary);"><i class="fas fa-headset"></i> Support Tickets</button>
+</div>
+
+<!-- TAB 1: VIEWER & CONTENT FAILURE REPORTS -->
+<div id="tabFailures">
+    <div class="data-card">
+        <div class="table-responsive" style="border:none;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Report ID</th>
+                        <th>Document / File</th>
+                        <th>Reporter</th>
+                        <th>Error / Issue</th>
+                        <th>Status</th>
+                        <th>Reported At</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="failuresTbody">
+                    <tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-muted);">Loading failure reports...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.25rem;">
+            <div style="font-size:0.82rem; color:var(--text-secondary);" id="failuresPaginationSummary"></div>
+            <div style="display:flex; gap:0.4rem;" id="failuresPaginationBtns"></div>
+        </div>
+    </div>
+</div>
+
+<!-- TAB 2: SUPPORT TICKETS -->
+<div id="tabTickets" style="display:none;">
+    <div class="data-card">
+        <div class="table-responsive" style="border:none;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>User</th>
+                        <th>Category</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Submitted</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="ticketsTbody">
+                    <tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-muted);">Loading support tickets...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.25rem;">
+            <div style="font-size:0.82rem; color:var(--text-secondary);" id="ticketsPaginationSummary"></div>
+            <div style="display:flex; gap:0.4rem;" id="ticketsPaginationBtns"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentTab = 'failures';
+
+function switchReportTab(tab) {
+    currentTab = tab;
+    const tabF = document.getElementById('tabFailures');
+    const tabT = document.getElementById('tabTickets');
+    const btnF = document.getElementById('tabBtnFailures');
+    const btnT = document.getElementById('tabBtnTickets');
+
+    tabF.style.display = tab === 'failures' ? 'block' : 'none';
+    tabT.style.display = tab === 'tickets' ? 'block' : 'none';
+
+    btnF.className = tab === 'failures' ? 'btn-action primary' : 'btn-action';
+    btnF.style.background = tab === 'failures' ? '' : 'transparent';
+    btnF.style.color = tab === 'failures' ? '' : 'var(--text-secondary)';
+
+    btnT.className = tab === 'tickets' ? 'btn-action primary' : 'btn-action';
+    btnT.style.background = tab === 'tickets' ? '' : 'transparent';
+    btnT.style.color = tab === 'tickets' ? '' : 'var(--text-secondary)';
+
+    loadActiveTab();
+}
+
+function loadActiveTab() {
+    if (currentTab === 'failures') loadFailures();
+    else loadTickets();
+}
+
+let failuresCache = [];
+let currentFailurePage = 1;
+let currentTicketPage = 1;
+
+async function loadFailures(page = 1) {
+    currentFailurePage = page;
+    const tbody = document.getElementById('failuresTbody');
+    const summary = document.getElementById('failuresPaginationSummary');
+    const btns = document.getElementById('failuresPaginationBtns');
+
+    if (page === 1 || !failuresCache.length) {
+        try {
+            const res = await fetch('/api/admin/file-reports');
+            const data = await res.json();
+            failuresCache = data.data || [];
+        } catch (e) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--accent-rose);">Error loading reports: ${e.message}</td></tr>`;
+            return;
+        }
+    }
+
+    const total = failuresCache.length;
+    if (!total) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:2.5rem; color:var(--text-muted);">No active file or viewer failure reports!</td></tr>`;
+        if (summary) summary.textContent = '';
+        if (btns) btns.innerHTML = '';
+        return;
+    }
+
+    const totalPages = Math.ceil(total / 12);
+    const sliceStart = (page - 1) * 12;
+    const sliceEnd = Math.min(sliceStart + 12, total);
+    const reports = failuresCache.slice(sliceStart, sliceEnd);
+
+    if (summary) summary.textContent = `Showing ${sliceStart + 1}-${sliceEnd} of ${total}`;
+    if (btns) {
+        if (totalPages <= 1) {
+            btns.innerHTML = '';
+        } else {
+            let bHtml = '';
+            if (page > 1) {
+                bHtml += `<button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="loadFailures(${page - 1})"><i class="fas fa-chevron-left"></i> Prev</button>`;
+            }
+            bHtml += `<span style="font-size:0.82rem; color:var(--text-secondary); padding:0.4rem 0.6rem;">Page ${page} of ${totalPages}</span>`;
+            if (page < totalPages) {
+                bHtml += `<button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="loadFailures(${page + 1})">Next <i class="fas fa-chevron-right"></i></button>`;
+            }
+            btns.innerHTML = bHtml;
+        }
+    }
+
+    tbody.innerHTML = reports.map(r => {
+        const isResolved = r.status === 'resolved' || r.status === 'closed';
+        return `
+            <tr>
+                <td><strong style="font-family:var(--font-mono); font-size:0.78rem;">${(r.id || '').slice(0, 10)}...</strong></td>
+                <td>
+                    <a href="/admin/files/${r.doc_id}" style="color:var(--text-primary); font-weight:600; text-decoration:none;">${r.file_name || 'Document'}</a>
+                </td>
+                <td><span style="font-size:0.8rem; color:var(--text-secondary);">${r.reporter_email || 'Anonymous'}</span></td>
+                <td style="max-width:280px; font-size:0.82rem; color:var(--accent-rose);">${r.error_msg || r.issue_type || 'Rendering error'}</td>
+                <td><span class="role-badge ${isResolved ? 'admin' : 'superadmin'}">${r.status || 'open'}</span></td>
+                <td><span style="font-family:var(--font-mono); font-size:0.78rem;">${(r.created_at || '').slice(0, 10)}</span></td>
+                <td style="text-align:right;">
+                    ${!isResolved ? `
+                        <button class="btn-action success" onclick="resolveFailure('${r.id}')" style="font-size:0.75rem; padding:0.25rem 0.5rem;"><i class="fas fa-check"></i> Resolve</button>
+                    ` : '<span style="font-size:0.75rem; color:var(--accent-emerald);">Resolved</span>'}
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function resolveFailure(reportId) {
+    try {
+        const res = await fetch(`/api/admin/file-reports/${reportId}/status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+            body: JSON.stringify({ status: 'resolved' })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showAdminToast('Failure report marked as resolved.', 'success');
+            failuresCache = [];
+            loadFailures(currentFailurePage);
+        } else {
+            showAdminToast(data.message || 'Action failed', 'error');
+        }
+    } catch (e) {
+        showAdminToast('Network error', 'error');
+    }
+}
+
+async function loadTickets(page = 1) {
+    currentTicketPage = page;
+    const tbody = document.getElementById('ticketsTbody');
+    const summary = document.getElementById('ticketsPaginationSummary');
+    const btns = document.getElementById('ticketsPaginationBtns');
+
+    try {
+        const res = await fetch(`/api/admin/support/tickets?page=${page}&limit=12`);
+        const data = await res.json();
+        const tickets = data.tickets || [];
+        const total = data.total || tickets.length;
+        const totalPages = Math.ceil(total / 12);
+
+        if (summary) summary.textContent = total > 0 ? `Showing ${(page - 1) * 12 + 1}-${Math.min(page * 12, total)} of ${total}` : '';
+        if (btns) {
+            if (totalPages <= 1) {
+                btns.innerHTML = '';
+            } else {
+                let bHtml = '';
+                if (page > 1) {
+                    bHtml += `<button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="loadTickets(${page - 1})"><i class="fas fa-chevron-left"></i> Prev</button>`;
+                }
+                bHtml += `<span style="font-size:0.82rem; color:var(--text-secondary); padding:0.4rem 0.6rem;">Page ${page} of ${totalPages}</span>`;
+                if (page < totalPages) {
+                    bHtml += `<button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="loadTickets(${page + 1})">Next <i class="fas fa-chevron-right"></i></button>`;
+                }
+                btns.innerHTML = bHtml;
+            }
+        }
+
+        if (!tickets.length) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:2.5rem; color:var(--text-muted);">No open customer support tickets.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = tickets.map(t => {
+            const isResolved = t.status === 'resolved' || t.status === 'closed';
+            return `
+                <tr>
+                    <td><strong style="color:var(--text-primary); font-size:0.88rem;">${t.subject}</strong></td>
+                    <td><a href="/admin/users/${t.user_id}" style="color:var(--accent-indigo); text-decoration:none; font-size:0.82rem;">${t.user_name || 'User'}</a></td>
+                    <td><span class="role-badge" style="background:var(--border-subtle);">${t.category || 'General'}</span></td>
+                    <td><span class="role-badge ${t.priority === 'urgent' ? 'superadmin' : (t.priority === 'high' ? 'moderator' : 'student')}">${t.priority}</span></td>
+                    <td><span class="role-badge ${isResolved ? 'admin' : 'superadmin'}">${t.status}</span></td>
+                    <td><span style="font-family:var(--font-mono); font-size:0.78rem;">${(t.created_at || '').slice(0, 10)}</span></td>
+                    <td style="text-align:right;">
+                        ${!isResolved ? `
+                            <button class="btn-action success" onclick="resolveTicket('${t.id}')" style="font-size:0.75rem; padding:0.25rem 0.5rem;"><i class="fas fa-check"></i> Resolve</button>
+                        ` : '<span style="font-size:0.75rem; color:var(--accent-emerald);">Closed</span>'}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--accent-rose);">Error loading tickets: ${e.message}</td></tr>`;
+    }
+}
+
+function resolveTicket(ticketId) {
+    openConfirmModal({
+        title: 'Resolve Support Ticket',
+        message: 'Enter resolution note to log into customer ticket record:',
+        confirmText: 'Resolve Ticket',
+        danger: false,
+        requireReason: true,
+        onConfirm: async (notes) => {
+            try {
+                const res = await fetch(`/api/admin/support/tickets/${ticketId}/status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                    body: JSON.stringify({ status: 'resolved', resolution_notes: notes })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAdminToast('Ticket marked as resolved!', 'success');
+                    loadTickets();
+                } else {
+                    showAdminToast(data.error || 'Failed updating ticket', 'error');
+                }
+            } catch (e) {
+                showAdminToast('Network error', 'error');
+            }
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadActiveTab();
+});
+</script>
+{% endblock %}

@@ -38,8 +38,6 @@ def test_paid_view_pack_credits_balance_when_supabase_insert_is_unavailable():
         session["user"] = {"uid": "user-1", "email": "user@example.com"}
 
     engine = MagicMock()
-    engine.credit_views.return_value = True
-    engine.get_view_balance.return_value = 27
     with patch("routes.payments.init_supabase", return_value=None), \
          patch("data.transactions.is_order_completed", return_value=False), \
          patch("data.transactions.save_transaction_record"), \
@@ -55,11 +53,8 @@ def test_paid_view_pack_credits_balance_when_supabase_insert_is_unavailable():
         )
 
     assert response.status_code == 200
-    assert response.json["status"] == "completed"
-    engine.credit_views.assert_called_once_with(
-        "user-1", 25, reason="pack_purchase",
-        ref_id="order-pack-1", source="payment_status"
-    )
+    assert response.json["status"] == "submitted"
+    engine.credit_views.assert_not_called()
 
 
 def test_paid_document_unlocks_buyer_and_credits_creator():
@@ -87,8 +82,8 @@ def test_paid_document_unlocks_buyer_and_credits_creator():
 
     assert response.status_code == 200
     with client.session_transaction() as session:
-        assert "doc-1" in session["purchased_documents"]
-    credit_creator.assert_called_once()
+        assert "doc-1" not in session.get("purchased_documents", [])
+    credit_creator.assert_not_called()
 
 
 def test_replayed_payment_does_not_credit_again():

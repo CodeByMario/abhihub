@@ -114,7 +114,7 @@ def home():
         if cached_purch is not None:
             purchased_files = cached_purch
         else:
-            purchased_doc_ids = list(session.get('purchased_documents', []))
+            purchased_doc_ids = []
             try:
                 from data.transactions import TRANSACTIONS_FILE
                 if os.path.exists(TRANSACTIONS_FILE):
@@ -157,11 +157,12 @@ def home():
 
         try:
             profile_data = session.get('profile')
-            if not profile_data or not profile_data.get('college_id'):
+            if not profile_data or not profile_data.get('college_id') or 'semester' not in profile_data:
                 profile_res = get_student_profile(user_id)
                 profile_data = profile_res.get('data', {}) if profile_res.get('success') else {}
                 if profile_data:
                     session['profile'] = profile_data
+                    session.modified = True
             college_name = profile_data.get('college_name') or ''
 
             needs_onboarding = bool(not profile_data or not profile_data.get('college_id'))
@@ -235,7 +236,9 @@ def home():
             'college_id': profile_data.get('college_id') or '',
             'college_slug': profile_data.get('college_slug') or (profile_data.get('college_abbreviation') or '').lower() or re.sub(r'[^a-z0-9]+', '-', college_name.lower()).strip('-'),
             'branch_name': profile_data.get('branch_name') or '',
-            'branch_id': profile_data.get('branch_id') or ''
+            'branch_id': profile_data.get('branch_id') or '',
+            'semester': profile_data.get('semester') or '',
+            'section': profile_data.get('section') or ''
         }
 
     if user_data is None:
@@ -353,24 +356,43 @@ def home():
                 })
 
     recommended_files = []
+    upcoming_exams = []
+    completed_exams_today = []
+    today_exams = []
     college_id = user_data.get('college_id') if user_data else ''
     branch_id = user_data.get('branch_id') if user_data else ''
-    peer_doc_ids = get_peer_recommended_files(user_id=current_user_id, college_id=college_id, department_id=branch_id, limit=8) if current_user_id else []
 
-    for pid in peer_doc_ids:
-        if pid in file_lookup and pid not in user_viewed_ids:
-            recommended_files.append(file_lookup[pid])
+    # Timetable-Based Exam Recommendation Engine (Asia/Kolkata)
+    if current_user_id:
+        try:
+            from services.recommendation_service import get_exam_based_recommendations
+            exam_rec_result = get_exam_based_recommendations(user_id=current_user_id)
+            if exam_rec_result.get('source') == 'timetable':
+                recommended_files = exam_rec_result.get('recommended_files', [])
+                upcoming_exams = exam_rec_result.get('upcoming_exams') or exam_rec_result.get('exams', [])
+                completed_exams_today = exam_rec_result.get('completed_exams_today', [])
+                today_exams = exam_rec_result.get('today_exams', [])
+        except Exception as e:
+            logging.warning(f"[Dashboard] Exam recommendations fallback: {e}")
 
-    if len(recommended_files) < 6:
-        seen_rec_ids = {r.get('record_id') for r in recommended_files} | user_viewed_ids
-        pool = relevant_papers + relevant_notes
-        for item in pool:
-            rid = item.get('record_id')
-            if rid and rid not in seen_rec_ids:
-                seen_rec_ids.add(rid)
-                recommended_files.append(item)
-                if len(recommended_files) >= 8:
-                    break
+    # Fallback to peer recommendations if no exam files returned
+    if not recommended_files:
+        peer_doc_ids = get_peer_recommended_files(user_id=current_user_id, college_id=college_id, department_id=branch_id, limit=8) if current_user_id else []
+
+        for pid in peer_doc_ids:
+            if pid in file_lookup and pid not in user_viewed_ids:
+                recommended_files.append(file_lookup[pid])
+
+        if len(recommended_files) < 6:
+            seen_rec_ids = {r.get('record_id') for r in recommended_files} | user_viewed_ids
+            pool = relevant_papers + relevant_notes
+            for item in pool:
+                rid = item.get('record_id')
+                if rid and rid not in seen_rec_ids:
+                    seen_rec_ids.add(rid)
+                    recommended_files.append(item)
+                    if len(recommended_files) >= 8:
+                        break
 
     community_feedbacks = []
     user_college_id = user_data.get('college_id') or None
@@ -398,6 +420,9 @@ def home():
         purchased_files=purchased_files,
         user_uploads=user_files,
         recommended_files=recommended_files,
+        upcoming_exams=upcoming_exams,
+        completed_exams_today=completed_exams_today,
+        today_exams=today_exams,
         recently_added_files=recently_added_files,
         premium_files=premium_files,
         top_authors=top_authors,
@@ -1202,6 +1227,7 @@ def upload():
         user_info = session.get('user', {})
         user_id = user_info.get('uid')
         prof_data = None
+        recent_exams = []
         if user_id:
             try:
                 from methods.supabase_helper import get_student_profile
@@ -1210,12 +1236,18 @@ def upload():
                     prof_data = sp_res.get('data')
             except Exception:
                 pass
+            try:
+                from services.recommendation_service import get_exam_based_recommendations
+                rec_res = get_exam_based_recommendations(user_id=user_id)
+                recent_exams = (rec_res.get('completed_exams_today') or []) + (rec_res.get('upcoming_exams') or [])
+            except Exception:
+                pass
         try:
             from methods.feature_telemetry import log_feature_event
             log_feature_event(user_id, 'upload_intent', 'page_visit', path='/upload', req=request)
         except Exception:
             pass
-        return render_template('app/upload.html', profile_data=prof_data)
+        return render_template('app/upload.html', profile_data=prof_data, recent_exams=recent_exams)
 
     import app
     if 'upload_document' not in request.files:
@@ -2102,3 +2134,140 @@ def instagram_profile(user_id):
 
 # Backwards compatibility alias
 dashboard = home
+
+
+# ─── Notes in Demand & Exam Forecast ──────────────────────────────────────────
+
+@app_pages_bp.route('/notes-in-demand')
+@app_pages_bp.route('/requests')
+def notes_in_demand_page():
+    """Notes in Demand and Exam Forecast page."""
+    user_info = session.get('user', {})
+    return render_template('app/notes_in_demand.html', user_info=user_info)
+
+
+@app_pages_bp.route('/api/notes-in-demand/forecast', methods=['GET'])
+def api_get_demand_forecast():
+    """Retrieve 30-day exam course demand forecast with pagination and caching."""
+    from services.demand_service import compute_course_demand_forecast
+    from cache_manager import get_cache
+
+    cache = get_cache()
+    college_id = request.args.get('college_id') or "87928d20-edb3-4185-94e3-b0678470e850"
+    cache_key = f"demand_forecast:{college_id}"
+
+    # Cache calculation for 10 minutes (600s)
+    forecast = cache.get_cached(cache_key, ttl=600, fetcher=lambda: compute_course_demand_forecast(college_id=college_id)) or []
+
+    try:
+        page = max(1, int(request.args.get('page', 1)))
+    except (ValueError, TypeError):
+        page = 1
+
+    try:
+        limit = max(0, int(request.args.get('limit', 0)))
+    except (ValueError, TypeError):
+        limit = 0
+
+    total = len(forecast)
+    if limit > 0:
+        start = (page - 1) * limit
+        end = start + limit
+        items = forecast[start:end]
+        total_pages = max(1, (total + limit - 1) // limit)
+    else:
+        items = forecast
+        total_pages = 1
+        page = 1
+
+    resp = jsonify({
+        'success': True,
+        'forecast': items,
+        'pagination': {
+            'page': page,
+            'limit': limit,
+            'total': total,
+            'total_pages': total_pages
+        }
+    })
+    return cache.set_cache_headers(resp, max_age=300)
+
+
+@app_pages_bp.route('/api/notes-in-demand/requests', methods=['GET'])
+def api_get_demand_requests():
+    """Retrieve active and fulfilled material requests with caching."""
+    from cache_manager import get_cache
+    cache = get_cache()
+    status = request.args.get('status') or 'ALL'
+    cache_key = f"demand_requests:{status}"
+
+    def fetch_requests():
+        client = init_supabase()
+        if not client:
+            return []
+        try:
+            q = client.table('material_requests').select(
+                'id, subject_id, department_id, subject, details, exam_type, status, upvotes_count, created_at, profiles!material_requests_requester_id_fkey(full_name)'
+            ).order('created_at', desc=True)
+            if status and status != 'ALL':
+                q = q.eq('status', status)
+            res = q.limit(50).execute()
+            return res.data or []
+        except Exception as e:
+            logging.warning(f"[DemandRequests] query error: {e}")
+            return []
+
+    requests_data = cache.get_cached(cache_key, ttl=60, fetcher=fetch_requests) or []
+    resp = jsonify({'success': True, 'requests': requests_data})
+    return cache.set_cache_headers(resp, max_age=30)
+
+
+@app_pages_bp.route('/api/notes-in-demand/requests', methods=['POST'])
+@auth_required
+def api_create_demand_request():
+    """Submit a student study material request."""
+    from services.demand_service import create_material_request
+    user_info = session.get('user', {})
+    user_id = user_info.get('uid') or user_info.get('id')
+    payload = request.get_json() or {}
+    subject_input = payload.get('subject', '').strip()
+    details = payload.get('details', '').strip()
+    exam_type = payload.get('exam_type', 'THEORY')
+
+    if not subject_input:
+        return jsonify({'success': False, 'message': 'Subject name is required'}), 400
+
+    # Resolve subject_id
+    client = init_supabase()
+    subject_id = None
+    if client:
+        s_res = client.table('subjects').select('id').ilike('name', f"%{subject_input}%").limit(1).execute()
+        if s_res.data:
+            subject_id = s_res.data[0]['id']
+
+    res = create_material_request(
+        requester_id=user_id,
+        subject_id=subject_id,
+        title=subject_input,
+        details=details,
+        exam_type=exam_type
+    )
+    if res.get('success'):
+        from cache_manager import get_cache
+        get_cache().invalidate_pattern("demand_requests:*")
+    return jsonify(res), (200 if res.get('success') else 400)
+
+
+@app_pages_bp.route('/api/notes-in-demand/requests/<request_id>/vote', methods=['POST'])
+@auth_required
+def api_vote_demand_request(request_id):
+    """Toggle upvote on a material request."""
+    from services.demand_service import toggle_request_vote
+    from cache_manager import get_cache
+    user_info = session.get('user', {})
+    user_id = user_info.get('uid') or user_info.get('id')
+    res = toggle_request_vote(request_id, user_id)
+    if res.get('success'):
+        get_cache().invalidate_pattern("demand_requests:*")
+    return jsonify(res), (200 if res.get('success') else 400)
+

@@ -1,0 +1,223 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Reviews & Ratings Moderation{% endblock %}
+
+{% block admin_content %}
+<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+    <div>
+        <h1 style="font-size:1.6rem; font-weight:800; color:var(--text-primary); margin:0 0 0.25rem 0;">Reviews Moderation</h1>
+        <p style="color:var(--text-secondary); font-size:0.88rem; margin:0;">Moderate student ratings, flag fake reviews, and maintain content trust.</p>
+    </div>
+    <div style="display:flex; gap:0.5rem;">
+        <button class="btn-action" onclick="loadReviews(1);" style="background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-subtle);"><i class="fas fa-sync-alt"></i> Refresh</button>
+    </div>
+</div>
+
+<div class="filter-card">
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:0.75rem;">
+        <div>
+            <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Search Text</label>
+            <input type="text" id="reviewSearch" class="form-control" placeholder="Search feedback..." onkeydown="if(event.key==='Enter') loadReviews(1);">
+        </div>
+        <div>
+            <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Status</label>
+            <select id="reviewStatusFilter" class="form-control" onchange="loadReviews(1);">
+                <option value="">All Statuses</option>
+                <option value="approved">Approved</option>
+                <option value="hidden">Hidden</option>
+                <option value="rejected">Rejected</option>
+            </select>
+        </div>
+        <div>
+            <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Rating</label>
+            <select id="reviewRatingFilter" class="form-control" onchange="loadReviews(1);">
+                <option value="">All Ratings</option>
+                <option value="5">5 Stars ★★★★★</option>
+                <option value="4">4 Stars ★★★★☆</option>
+                <option value="3">3 Stars ★★★☆☆</option>
+                <option value="2">2 Stars ★★☆☆☆</option>
+                <option value="1">1 Star ★☆☆☆☆</option>
+            </select>
+        </div>
+        <div style="display:flex; align-items:flex-end;">
+            <button class="btn-action primary" onclick="loadReviews(1);" style="width:100%;"><i class="fas fa-filter"></i> Apply</button>
+        </div>
+    </div>
+</div>
+
+<div class="data-card">
+    <div class="table-responsive" style="border:none;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Document</th>
+                    <th>Author</th>
+                    <th>Rating</th>
+                    <th>Feedback</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="reviewsTbody">
+                <tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-muted);">Loading reviews...</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1rem; padding-top:0.75rem; border-top:1px solid var(--border-subtle);">
+        <div style="font-size:0.8rem; color:var(--text-muted);" id="reviewsCount">Showing 0 reviews</div>
+        <div style="display:flex; gap:0.5rem;" id="reviewsPagination"></div>
+    </div>
+</div>
+
+<script>
+let currentReviewPage = 1;
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[m]));
+}
+
+async function loadReviews(page = 1) {
+    currentReviewPage = page;
+    const search = document.getElementById('reviewSearch').value.trim();
+    const status = document.getElementById('reviewStatusFilter').value;
+    const rating = document.getElementById('reviewRatingFilter').value;
+
+    const params = new URLSearchParams({ page, limit: 12 });
+    if (search) params.append('search', search);
+    if (status) params.append('status', status);
+    if (rating) params.append('rating', rating);
+
+    const tbody = document.getElementById('reviewsTbody');
+    try {
+        const res = await fetch(`/api/admin/reviews?${params.toString()}`);
+        const data = await res.json();
+        const reviews = data.reviews || [];
+
+        if (!reviews.length) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:2.5rem; color:var(--text-muted);">No reviews found matching criteria.</td></tr>`;
+            document.getElementById('reviewsCount').textContent = 'Showing 0 reviews';
+            document.getElementById('reviewsPagination').innerHTML = '';
+            return;
+        }
+
+        tbody.innerHTML = reviews.map(r => {
+            const isApproved = r.status === 'approved';
+            const stars = '★'.repeat(r.rating || 5) + '☆'.repeat(5 - (r.rating || 5));
+            return `
+                <tr>
+                    <td>
+                        ${r.document_id ? `
+                            <a href="/admin/files/${r.document_id}" style="color:var(--text-primary); font-weight:600; text-decoration:none;">${escapeHtml(r.document_title || 'Document')}</a>
+                        ` : `
+                            <span style="display:inline-flex; align-items:center; gap:0.35rem; color:var(--accent-indigo); font-weight:600; font-size:0.82rem;">
+                                <i class="fas fa-layer-group"></i> ${escapeHtml(r.document_title || 'Platform Feedback')}
+                            </span>
+                        `}
+                    </td>
+                    <td>
+                        ${r.user_id ? `
+                            <a href="/admin/users/${r.user_id}" style="color:var(--accent-indigo); text-decoration:none; font-size:0.82rem;">${escapeHtml(r.user_name || 'Student')}</a>
+                        ` : `
+                            <span style="color:var(--text-primary); font-size:0.82rem; font-weight:500;">${escapeHtml(r.user_name || 'Student')}</span>
+                        `}
+                        ${r.user_email ? `<div style="font-size:0.72rem; color:var(--text-muted); font-family:var(--font-mono);">${escapeHtml(r.user_email)}</div>` : ''}
+                        ${r.verified_purchase ? `<span title="Verified Purchase" style="color:var(--accent-emerald); font-size:0.72rem; margin-left:0.25rem;"><i class="fas fa-check-circle"></i></span>` : ''}
+                    </td>
+                    <td><span style="color:#fbbf24; font-size:0.95rem;">${stars}</span></td>
+                    <td style="max-width:320px; font-size:0.85rem; color:var(--text-secondary);">${escapeHtml(r.review_text || 'No written text')}</td>
+                    <td>
+                        <span class="role-badge ${isApproved ? 'admin' : (r.status === 'rejected' ? 'superadmin' : 'moderator')}">
+                            ${escapeHtml(r.status)}
+                        </span>
+                        ${r.flagged_as_fake ? `<span class="role-badge superadmin" style="margin-left:0.25rem;">Fake Flagged</span>` : ''}
+                    </td>
+                    <td><span style="font-family:var(--font-mono); font-size:0.78rem;">${(r.created_at || '').slice(0, 10)}</span></td>
+                    <td style="text-align:right; white-space:nowrap;">
+                        ${isApproved ? `
+                            <button class="btn-action" onclick="setReviewStatus('${r.id}', 'hidden')" style="background:var(--border-subtle); color:var(--text-primary); font-size:0.75rem; padding:0.25rem 0.5rem;"><i class="fas fa-eye-slash"></i> Hide</button>
+                        ` : `
+                            <button class="btn-action success" onclick="setReviewStatus('${r.id}', 'approved')" style="font-size:0.75rem; padding:0.25rem 0.5rem;"><i class="fas fa-check"></i> Approve</button>
+                        `}
+                        <button class="btn-action danger" onclick="deleteReview('${r.id}')" style="font-size:0.75rem; padding:0.25rem 0.5rem;"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        const total = data.total || reviews.length;
+        document.getElementById('reviewsCount').textContent = total > 0 ? `Showing ${(page - 1) * 12 + 1}-${Math.min(page * 12, total)} of ${total} reviews` : 'Showing 0 reviews';
+        renderPagination(total, 12, page);
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--accent-rose);">Error loading reviews: ${e.message}</td></tr>`;
+    }
+}
+
+function renderPagination(total, limit, page) {
+    const totalPages = Math.ceil(total / limit);
+    const container = document.getElementById('reviewsPagination');
+    if (totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+    }
+    container.innerHTML = `
+        <button class="btn-action" style="background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-subtle);" ${page <= 1 ? 'disabled' : ''} onclick="loadReviews(${page - 1})">Prev</button>
+        <span style="font-size:0.82rem; color:var(--text-secondary); display:flex; align-items:center;">${page} / ${totalPages}</span>
+        <button class="btn-action" style="background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-subtle);" ${page >= totalPages ? 'disabled' : ''} onclick="loadReviews(${page + 1})">Next</button>
+    `;
+}
+
+async function setReviewStatus(reviewId, status) {
+    try {
+        const res = await fetch(`/api/admin/reviews/${reviewId}/status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+            body: JSON.stringify({ status })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showAdminToast(data.message, 'success');
+            loadReviews(currentReviewPage);
+        } else {
+            showAdminToast(data.error || 'Failed updating review', 'error');
+        }
+    } catch (e) {
+        showAdminToast('Network error', 'error');
+    }
+}
+
+function deleteReview(reviewId) {
+    openConfirmModal({
+        title: 'Delete Review',
+        message: 'Are you sure you want to permanently remove this review? Provide justification:',
+        confirmText: 'Delete Review',
+        danger: true,
+        requireReason: true,
+        onConfirm: async (reason) => {
+            try {
+                const res = await fetch(`/api/admin/reviews/${reviewId}?reason=${encodeURIComponent(reason)}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRFToken': getCsrfToken() }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAdminToast('Review deleted.', 'success');
+                    loadReviews(currentReviewPage);
+                } else {
+                    showAdminToast(data.error || 'Failed deleting review', 'error');
+                }
+            } catch (e) {
+                showAdminToast('Network error', 'error');
+            }
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadReviews(1);
+});
+</script>
+{% endblock %}

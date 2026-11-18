@@ -70,80 +70,21 @@ def payment_status_api():
     except Exception as e:
         logging.warning("[PAYMENT_STATUS] Failed logging transaction (error_type=%s)", type(e).__name__)
 
-    # Credit pack fulfillment
-    is_credits = 'Credits-' in purpose or 'pack=' in purpose or 'credits' in purpose.lower()
-    if is_credits and user_id:
-        pack_size = 0
-        for part in (purpose or '').split(';'):
-            if 'Credits-' in part:
-                try: pack_size = int(part.split('Credits-')[1].split('-')[0].strip())
-                except: pass
-            elif 'pack=' in part:
-                try: pack_size = int(part.replace('pack=', '').strip())
-                except: pass
-        # Only credit if a valid pack size was resolved from configured package metadata
-        if pack_size <= 0:
-            logging.warning("[PAYMENT_STATUS] Unresolved pack size for purpose=%s", purpose)
-        if pack_size > 0:
-            try:
-                from methods.payment_engine import engine
-                if not engine.credit_views(
-                    user_id, pack_size, reason='pack_purchase',
-                    ref_id=order_id, source='payment_status'
-                ):
-                    raise RuntimeError('View credits could not be persisted')
-                new_q = engine.get_view_balance(user_id)
-                if 'paper_quota' in session and isinstance(session['paper_quota'], dict):
-                    session['paper_quota']['credits'] = new_q
-                else:
-                    session['paper_quota'] = {'credits': new_q, 'total_views': 0}
-                session.modified = True
-                try:
-                    from cache_manager import get_cache
-                    cache = get_cache()
-                    if cache and hasattr(cache, 'l1'):
-                        cache.l1.delete(f"user:quota:{user_id}")
-                except Exception:
-                    pass
-                logging.info("[PAYMENT_STATUS] Credit pack applied")
-            except Exception as cred_err:
-                logging.warning(
-                    "[PAYMENT_STATUS] Could not apply credit pack (error_type=%s)",
-                    type(cred_err).__name__,
-                )
-
-    if doc_id:
-        try:
-            from methods.wallet_service import credit_creator_for_purchase, get_document_creator
-            credit_creator_for_purchase(order_id, doc_id, amount)
-            creator_id = get_document_creator(doc_id)
-            user_id = session.get('user', {}).get('uid')
-            if creator_id and user_id and str(creator_id) != str(user_id):
-                from methods.creator_crm_service import record_creator_customer_purchase
-                record_creator_customer_purchase(
-                    creator_id=creator_id,
-                    customer_id=user_id,
-                    amount=amount,
-                    customer_name=session.get('user', {}).get('name'),
-                    customer_email=session.get('user', {}).get('email')
-                )
-        except Exception:
-            pass
-
-        purchased = session.get('purchased_documents', [])
-        if doc_id not in purchased:
-            purchased.append(doc_id)
-            session['purchased_documents'] = purchased
-            session.modified = True
-
+    # Manual UTR submission queue - Access is NOT granted until verified by an administrator
     save_transaction_record(order_id, {
         'user_id': user_id,
         'amount': float(amount),
-        'status': 'completed',
+        'status': 'submitted',
         'utr': utr,
         'admin_notes': admin_notes or ''
     })
-    return jsonify({'success': True, 'status': 'completed', 'order_id': order_id, 'doc_id': doc_id})
+    return jsonify({
+        'success': True,
+        'status': 'submitted',
+        'message': 'Payment submitted for verification. Access will be unlocked once approved by an administrator.',
+        'order_id': order_id,
+        'doc_id': doc_id
+    }), 200
 
 
 @payments_bp.route('/api/payment/phonepe/initiate', methods=['POST'])

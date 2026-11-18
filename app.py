@@ -9,7 +9,7 @@ except ImportError:
 import sys
 sys.modules.setdefault('app', sys.modules[__name__])
 
-from flask import Flask, redirect, render_template, request, make_response, session, abort, jsonify, url_for, send_file, send_from_directory, flash, Response
+from flask import Flask, redirect, render_template, request, make_response, session, abort, jsonify, url_for, send_file, send_from_directory, flash, Response, g
 from flask_socketio import SocketIO, emit, join_room, leave_room
 import secrets
 from functools import wraps
@@ -798,6 +798,105 @@ def check_csrf():
 
 # Redirect old legacy domains to canonical BASE_DOMAIN (301 permanent redirect)
 @app.before_request
+def handle_view_as_sandbox():
+    """Central guard for Read-Only 'View as user' support sessions."""
+    view_as = session.get('view_as')
+    if not view_as:
+        return None
+
+    # 1. Enforce 30-minute expiration
+    try:
+        now = datetime.now(timezone.utc)
+        expires_at = datetime.fromisoformat(view_as.get('expires_at'))
+        if now >= expires_at:
+            admin_orig = session.pop('admin_user_orig', None)
+            if admin_orig:
+                session['user'] = admin_orig
+            session.pop('view_as', None)
+            session.modified = True
+            if request.path.startswith('/api/'):
+                return jsonify({'error': 'View-As session has expired.'}), 403
+            return redirect(url_for('admin.admin_user_detail_page', user_id=view_as.get('user_id')))
+    except Exception:
+        pass
+
+    # 2. Whitelist view-as exit endpoint
+    if request.path == '/api/admin/view-as/stop':
+        return None
+
+    # 3. Block all non-GET requests centrally to prevent any state changes
+    if request.method not in ('GET', 'HEAD', 'OPTIONS'):
+        return jsonify({'error': 'Read-only mode active: actions are disabled while viewing as user'}), 403
+
+    # 4. Hard-block sensitive routes entirely
+    sensitive_prefixes = (
+        '/payments', '/api/payment', '/api/payments', '/checkout',
+        '/wallet', '/api/wallet', '/payouts', '/api/payouts',
+        '/kyc', '/api/kyc',
+        '/settings', '/admin/settings',
+        '/account', '/api/account', '/delete-account',
+        '/reset-password', '/change-password', '/auth/password',
+        '/api/chat/send', '/chat/send',
+        '/api/ai', '/ai-assistant', '/ai/chat',
+        '/upload', '/api/upload', '/api/documents/upload'
+    )
+    req_path = request.path.lower()
+    if any(req_path == sp or req_path.startswith(sp + '/') for sp in sensitive_prefixes):
+        if request.path.startswith('/api/'):
+            return jsonify({'error': 'Access to sensitive route forbidden in View-As mode'}), 403
+        abort(403)
+
+    # 5. Track page visited in audit breadcrumb trail (capped at 50)
+    pages = view_as.setdefault('pages_visited', [])
+    if request.path not in pages and len(pages) < 50:
+        pages.append(request.path)
+        session.modified = True
+
+    g.is_view_as = True
+    g.view_as = view_as
+
+
+@app.after_request
+def inject_view_as_banner(response):
+    """Inject persistent red warning banner into all rendered HTML pages during View-As."""
+    view_as = session.get('view_as')
+    if view_as and response.status_code == 200 and 'text/html' in (response.content_type or ''):
+        try:
+            now = datetime.now(timezone.utc)
+            expires_at = datetime.fromisoformat(view_as.get('expires_at'))
+            rem = max(0, int((expires_at - now).total_seconds()))
+            mins, secs = divmod(rem, 60)
+            u_name = view_as.get('user_name', 'User')
+            u_id = view_as.get('user_id', '')
+            banner_html = (
+                f'<div id="view-as-banner" style="position:fixed;top:0;left:0;right:0;height:42px;'
+                f'background:#dc2626;color:#ffffff;z-index:9999999;display:flex;align-items:center;'
+                f'justify-content:space-between;padding:0 1.5rem;font-family:-apple-system,BlinkMacSystemFont,sans-serif;'
+                f'font-size:13px;font-weight:600;box-shadow:0 2px 10px rgba(0,0,0,0.3);">'
+                f'<span>Viewing as <strong>{u_name}</strong> (read-only) · '
+                f'<span id="view-as-timer">{mins}m {secs}s left</span></span>'
+                f'<button onclick="stopViewAsMode()" style="background:#ffffff;color:#dc2626;border:none;'
+                f'padding:5px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px;">Exit</button>'
+                f'</div>'
+                f'<script>'
+                f'function stopViewAsMode() {{'
+                f'  fetch("/api/admin/view-as/stop", {{method: "POST"}}).then(function() {{'
+                f'    window.location.href = "/admin/users/{u_id}";'
+                f'  }});'
+                f'}};'
+                f'</script>'
+                f'<style>body {{ padding-top: 42px !important; }}</style>'
+            )
+            html = response.get_data(as_text=True)
+            if '<body' in html:
+                pos = html.find('>', html.find('<body')) + 1
+                response.set_data(html[:pos] + banner_html + html[pos:])
+        except Exception:
+            pass
+    return response
+
+
+@app.before_request
 def redirect_to_new_domain():
     old_domains = ("app.abhihub.run.place", "abhihub.herokuapp.com", "abhihub.run.place")
     if any(d in request.host.lower() for d in old_domains):
@@ -909,6 +1008,9 @@ def log_document_view(file_name, file_url, record_id=None,
     only ONCE per day for non-uploaders (uploaders view for free).
     Never raises: a logging failure must not break document delivery.
     """
+    if session.get('view_as') or getattr(g, 'is_view_as', False):
+        return False
+
     if user_email is None:
         user_email = session.get('user', {}).get('email', '')
     user_id = session.get('user', {}).get('uid', '')

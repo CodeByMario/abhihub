@@ -356,7 +356,19 @@ function psycoTriggerFastRetry() {
       if (timeLeft <= 0) {
         clearInterval(timer);
         cdEl.textContent = '0';
-        window.location.reload();
+        try {
+          const key = 'psyco_retry_' + window.location.pathname;
+          const attempts = parseInt(sessionStorage.getItem(key) || '0');
+          if (attempts < 1) {
+            sessionStorage.setItem(key, String(attempts + 1));
+            window.location.reload();
+          } else {
+            const btn = cdEl.closest('button');
+            if (btn) btn.innerHTML = '⚡ Ready to Retry';
+          }
+        } catch (e) {
+          // Prevent infinite reload loops on strict environments
+        }
       } else {
         cdEl.textContent = String(timeLeft);
       }

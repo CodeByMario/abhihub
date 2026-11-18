@@ -1,0 +1,145 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}System Settings & Configuration{% endblock %}
+
+{% block admin_content %}
+<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+    <div>
+        <h1 style="font-size:1.6rem; font-weight:800; color:var(--text-primary); margin:0 0 0.25rem 0;">Platform Settings</h1>
+        <p style="color:var(--text-secondary); font-size:0.88rem; margin:0;">Configure operational switches, maintenance guards, and financial payout rules.</p>
+    </div>
+    <div style="display:flex; gap:0.5rem;">
+        <button class="btn-action" onclick="loadSettings();" style="background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-subtle);"><i class="fas fa-sync-alt"></i> Refresh</button>
+    </div>
+</div>
+
+<div class="data-card" style="max-width:850px; margin-bottom:1.5rem;">
+    <h3 style="font-size:1.1rem; font-weight:700; color:var(--text-primary); margin:0 0 1rem 0; border-bottom:1px solid var(--border-subtle); padding-bottom:0.6rem;">
+        <i class="fas fa-toggle-on" style="color:var(--accent-indigo);"></i> Global Platform Switches
+    </h3>
+
+    <div style="display:flex; flex-direction:column; gap:1.25rem;">
+        <!-- Maintenance Mode -->
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <strong style="color:var(--text-primary); font-size:0.92rem;">Maintenance Mode</strong>
+                <div style="font-size:0.8rem; color:var(--text-secondary);">Redirects public traffic to maintenance notice. Admins retain full access.</div>
+            </div>
+            <input type="checkbox" id="set_maintenance_mode" onchange="toggleSetting('maintenance_mode', this.checked)" style="width:20px; height:20px; cursor:pointer;">
+        </div>
+
+        <!-- User Registration -->
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-subtle); padding-top:1rem;">
+            <div>
+                <strong style="color:var(--text-primary); font-size:0.92rem;">Allow User Signups</strong>
+                <div style="font-size:0.8rem; color:var(--text-secondary);">Permits new students and teachers to create accounts.</div>
+            </div>
+            <input type="checkbox" id="set_registration_enabled" onchange="toggleSetting('registration_enabled', this.checked)" style="width:20px; height:20px; cursor:pointer;">
+        </div>
+
+        <!-- Document Uploads -->
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-subtle); padding-top:1rem;">
+            <div>
+                <strong style="color:var(--text-primary); font-size:0.92rem;">Document Uploads Allowed</strong>
+                <div style="font-size:0.8rem; color:var(--text-secondary);">Toggle uploader pipeline. Disabling pauses new file submissions.</div>
+            </div>
+            <input type="checkbox" id="set_uploads_enabled" onchange="toggleSetting('uploads_enabled', this.checked)" style="width:20px; height:20px; cursor:pointer;">
+        </div>
+
+        <!-- Payouts Pipeline -->
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-subtle); padding-top:1rem;">
+            <div>
+                <strong style="color:var(--text-primary); font-size:0.92rem;">Creator Payout Withdrawals</strong>
+                <div style="font-size:0.8rem; color:var(--text-secondary);">Allow creators to request UPI and bank withdrawals from their creator wallet.</div>
+            </div>
+            <input type="checkbox" id="set_payouts_enabled" onchange="toggleSetting('payouts_enabled', this.checked)" style="width:20px; height:20px; cursor:pointer;">
+        </div>
+    </div>
+</div>
+
+<div class="data-card" style="max-width:850px;">
+    <h3 style="font-size:1.1rem; font-weight:700; color:var(--text-primary); margin:0 0 1rem 0; border-bottom:1px solid var(--border-subtle); padding-bottom:0.6rem;">
+        <i class="fas fa-coins" style="color:var(--accent-amber);"></i> Financial & Banner Rules
+    </h3>
+
+    <div style="display:flex; flex-direction:column; gap:1.25rem;">
+        <!-- Min Withdrawal INR -->
+        <div>
+            <label style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">Minimum Withdrawal Amount (INR)</label>
+            <div style="display:flex; gap:0.5rem; margin-top:0.35rem;">
+                <input type="number" id="set_min_withdrawal_inr" class="form-control" style="max-width:200px;" placeholder="100">
+                <button class="btn-action primary" onclick="saveNumberSetting('min_withdrawal_inr')">Save</button>
+            </div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">Minimum creator wallet balance required to request a payout.</div>
+        </div>
+
+        <!-- Site Announcement Banner -->
+        <div style="border-top:1px solid var(--border-subtle); padding-top:1rem;">
+            <label style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">Site-Wide Announcement Banner</label>
+            <div style="display:flex; gap:0.5rem; margin-top:0.35rem;">
+                <input type="text" id="set_site_announcement" class="form-control" placeholder="Announcement banner text (leave blank to hide)">
+                <button class="btn-action primary" onclick="saveTextSetting('site_announcement')">Publish</button>
+            </div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">Broadcast text displayed across the marketplace header.</div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function loadSettings() {
+    try {
+        const res = await fetch('/api/admin/settings');
+        const data = await res.json();
+        const settings = data.settings || {};
+
+        document.getElementById('set_maintenance_mode').checked = !!settings.maintenance_mode;
+        document.getElementById('set_registration_enabled').checked = settings.registration_enabled !== false;
+        document.getElementById('set_uploads_enabled').checked = settings.uploads_enabled !== false;
+        document.getElementById('set_payouts_enabled').checked = !!settings.payouts_enabled;
+
+        document.getElementById('set_min_withdrawal_inr').value = settings.min_withdrawal_inr || 100;
+        document.getElementById('set_site_announcement').value = settings.site_announcement || '';
+    } catch (e) {
+        showAdminToast('Failed loading settings', 'error');
+    }
+}
+
+async function toggleSetting(key, val) {
+    try {
+        const res = await fetch('/api/admin/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+            body: JSON.stringify({ key, value: val })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showAdminToast(`${key} updated!`, 'success');
+        } else {
+            showAdminToast(data.error || 'Failed saving setting', 'error');
+            loadSettings();
+        }
+    } catch (e) {
+        showAdminToast('Network error saving setting', 'error');
+    }
+}
+
+async function saveNumberSetting(key) {
+    const input = document.getElementById(`set_${key}`);
+    const num = parseFloat(input.value);
+    if (isNaN(num)) {
+        showAdminToast('Enter a valid number', 'error');
+        return;
+    }
+    await toggleSetting(key, num);
+}
+
+async function saveTextSetting(key) {
+    const input = document.getElementById(`set_${key}`);
+    await toggleSetting(key, input.value.trim());
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadSettings();
+});
+</script>
+{% endblock %}

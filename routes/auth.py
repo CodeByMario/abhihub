@@ -40,6 +40,23 @@ def auth_required(f):
                 return jsonify({'success': False, 'message': 'Unauthorized'}), 401
             next_url = request.full_path if request.query_string else request.path
             return redirect(url_for('auth.login', next=next_url))
+
+        # Check token version for session revocation / force logout
+        user = session.get('user', {})
+        uid = user.get('uid') or user.get('id')
+        sess_token_version = session.get('token_version')
+        if uid and sess_token_version is not None:
+            try:
+                from services.admin_service import get_user_token_version
+                current_version = get_user_token_version(uid)
+                if current_version is not None and current_version > sess_token_version:
+                    session.clear()
+                    if _is_api_request():
+                        return jsonify({'success': False, 'message': 'Session expired or revoked. Please log in again.'}), 401
+                    return redirect(url_for('auth.login', next=request.path))
+            except Exception:
+                pass
+
         return f(*args, **kwargs)
     return decorated_function
 

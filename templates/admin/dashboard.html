@@ -1,0 +1,274 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Executive Operations Dashboard{% endblock %}
+
+{% block admin_content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+    <div>
+        <h1 style="font-size:1.6rem; font-weight:800; color:var(--text-primary); margin:0 0 0.25rem 0;">Executive Operations Dashboard</h1>
+        <p style="color:var(--text-secondary); font-size:0.88rem; margin:0;">Real-time platform metrics, moderation alerts, financial volume, and conversion funnel.</p>
+    </div>
+    <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+        <!-- Data Caching & Age Indicator -->
+        <div id="dashboardDataAgeBadge" style="font-size:0.78rem; color:var(--text-secondary); background:var(--bg-card); border:1px solid var(--border-subtle); padding:0.35rem 0.65rem; border-radius:var(--radius-sm); display:inline-flex; align-items:center; gap:0.4rem;">
+            <i class="fas fa-clock" style="color:var(--accent-sky);"></i>
+            <span id="dataTimestampText">Fetching data...</span>
+            <span id="dataAgeText" style="color:var(--text-muted); font-family:var(--font-mono); font-size:0.75rem;"></span>
+        </div>
+
+        <select id="periodFilter" class="form-control" style="width:auto;" onchange="loadDashboard(false);">
+            <option value="7">Last 7 Days</option>
+            <option value="30" selected>Last 30 Days</option>
+            <option value="90">Last 90 Days</option>
+        </select>
+        <button class="btn-action" id="btnDashboardRefresh" onclick="loadDashboard(true);" title="Bypass cache and refresh live data" style="background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-subtle);"><i class="fas fa-sync-alt" id="refreshIcon"></i></button>
+    </div>
+</div>
+
+<!-- "NEEDS ATTENTION" ACTION BAR -->
+<div id="attentionBar" class="data-card" style="border-left:4px solid var(--accent-rose); margin-bottom:1.5rem; background:rgba(239,68,68,0.04); display:none;">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+        <div style="display:flex; align-items:center; gap:0.75rem;">
+            <i class="fas fa-exclamation-triangle" style="color:var(--accent-rose); font-size:1.25rem;"></i>
+            <div>
+                <strong style="color:var(--text-primary); font-size:0.92rem;">Pending Operational Queue</strong>
+                <div style="font-size:0.8rem; color:var(--text-secondary);">Items requiring immediate review or admin fulfillment:</div>
+            </div>
+        </div>
+        <div style="display:flex; gap:0.75rem; flex-wrap:wrap;" id="attentionBadges"></div>
+    </div>
+</div>
+
+<!-- EXECUTIVE METRICS STAT CARDS -->
+<div class="metrics-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap:1rem; margin-bottom:1.75rem;">
+    <div class="stat-card">
+        <div class="stat-label">Gross Volume (GMV)</div>
+        <div class="stat-value" id="dispGmv" style="color:var(--accent-emerald);">₹0.00</div>
+        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">Completed transactions</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Platform Commission</div>
+        <div class="stat-value" id="dispCommission" style="color:var(--accent-indigo);">₹0.00</div>
+        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">Standard 30% margin</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Total Users</div>
+        <div class="stat-value" id="dispTotalUsers">0</div>
+        <div style="font-size:0.75rem; color:var(--accent-emerald); margin-top:0.25rem;" id="dispNewUsers">+0 new</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Total Documents</div>
+        <div class="stat-value" id="dispTotalFiles">0</div>
+        <div style="font-size:0.75rem; color:var(--accent-emerald); margin-top:0.25rem;" id="dispNewFiles">+0 new</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Refunds Processed</div>
+        <div class="stat-value" id="dispRefunds" style="color:var(--accent-rose);">₹0.00</div>
+        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">Clawed-back volume</div>
+    </div>
+</div>
+
+<!-- CHARTS GRID -->
+<div class="dashboard-charts-grid">
+    <!-- Chart 1: Revenue Over Time -->
+    <div class="data-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <h3 style="font-size:1.05rem; font-weight:700; color:var(--text-primary); margin:0;">Revenue Trend</h3>
+            <span style="font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono);">Daily Gross (INR)</span>
+        </div>
+        <div style="height:260px; position:relative;">
+            <canvas id="revenueChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Chart 2: Conversion Funnel -->
+    <div class="data-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <h3 style="font-size:1.05rem; font-weight:700; color:var(--text-primary); margin:0;">Conversion Funnel</h3>
+            <span style="font-size:0.75rem; color:var(--text-muted);">View > Preview > Buy</span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:1.25rem; padding-top:1rem;">
+            <div>
+                <div style="display:flex; justify-content:space-between; font-size:0.82rem; margin-bottom:0.35rem;">
+                    <span style="color:var(--text-secondary);"><i class="fas fa-eye"></i> Total Views</span>
+                    <strong style="color:var(--text-primary);" id="funnelViews">0</strong>
+                </div>
+                <div style="height:8px; background:var(--border-subtle); border-radius:4px; overflow:hidden;">
+                    <div style="height:100%; width:100%; background:var(--accent-indigo);"></div>
+                </div>
+            </div>
+            <div>
+                <div style="display:flex; justify-content:space-between; font-size:0.82rem; margin-bottom:0.35rem;">
+                    <span style="color:var(--text-secondary);"><i class="fas fa-file-pdf"></i> Preview Readers</span>
+                    <strong style="color:var(--text-primary);" id="funnelPreviews">0</strong>
+                </div>
+                <div style="height:8px; background:var(--border-subtle); border-radius:4px; overflow:hidden;">
+                    <div id="funnelPreviewsBar" style="height:100%; width:45%; background:var(--accent-amber);"></div>
+                </div>
+            </div>
+            <div>
+                <div style="display:flex; justify-content:space-between; font-size:0.82rem; margin-bottom:0.35rem;">
+                    <span style="color:var(--text-secondary);"><i class="fas fa-shopping-cart"></i> Completed Purchases</span>
+                    <strong style="color:var(--text-primary);" id="funnelPurchases">0</strong>
+                </div>
+                <div style="height:8px; background:var(--border-subtle); border-radius:4px; overflow:hidden;">
+                    <div id="funnelPurchasesBar" style="height:100%; width:15%; background:var(--accent-emerald);"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let revenueChartInstance = null;
+let lastCachedTimestamp = null;
+let ageUpdateInterval = null;
+
+function updateAgeDisplay() {
+    if (!lastCachedTimestamp) return;
+    const now = Date.now();
+    const diffSec = Math.max(0, Math.floor((now - lastCachedTimestamp) / 1000));
+    
+    let ageStr = '';
+    if (diffSec < 10) {
+        ageStr = 'just now';
+    } else if (diffSec < 60) {
+        ageStr = `${diffSec}s ago`;
+    } else if (diffSec < 3600) {
+        const mins = Math.floor(diffSec / 60);
+        const secs = diffSec % 60;
+        ageStr = `${mins}m ${secs}s ago`;
+    } else {
+        const hrs = Math.floor(diffSec / 3600);
+        ageStr = `${hrs}h ago`;
+    }
+    
+    const ageEl = document.getElementById('dataAgeText');
+    if (ageEl) ageEl.textContent = `(${ageStr})`;
+}
+
+async function loadDashboard(bypassCache = false) {
+    const days = document.getElementById('periodFilter').value;
+    const refreshIcon = document.getElementById('refreshIcon');
+    if (refreshIcon && bypassCache) refreshIcon.classList.add('fa-spin');
+
+    try {
+        const url = `/api/admin/dashboard/metrics?days=${days}${bypassCache ? '&refresh=true' : ''}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!data.success) {
+            showAdminToast(data.error || 'Failed loading metrics', 'error');
+            return;
+        }
+
+        // Cache Date & Time Display
+        if (data.cached_at) {
+            const dt = new Date(data.cached_at);
+            const timeStr = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const dateStr = dt.toLocaleDateString([], { month: 'short', day: 'numeric' });
+            const statusBadge = data.is_cached ? 'Cached' : 'Live';
+            const badgeColor = data.is_cached ? 'var(--accent-amber)' : 'var(--accent-emerald)';
+            document.getElementById('dataTimestampText').innerHTML = `<span style="color:${badgeColor}; font-weight:700;">${statusBadge}</span> · ${dateStr}, ${timeStr}`;
+            lastCachedTimestamp = data.cached_timestamp ? (data.cached_timestamp * 1000) : dt.getTime();
+            updateAgeDisplay();
+            
+            if (!ageUpdateInterval) {
+                ageUpdateInterval = setInterval(updateAgeDisplay, 5000);
+            }
+        }
+
+        const kpis = data.kpis || {};
+        document.getElementById('dispGmv').textContent = '₹' + parseFloat(kpis.gmv || 0).toFixed(2);
+        document.getElementById('dispCommission').textContent = '₹' + parseFloat(kpis.commission || 0).toFixed(2);
+        document.getElementById('dispTotalUsers').textContent = kpis.total_users || 0;
+        document.getElementById('dispNewUsers').textContent = `+${kpis.new_users || 0} new`;
+        document.getElementById('dispTotalFiles').textContent = kpis.total_files || 0;
+        document.getElementById('dispNewFiles').textContent = `+${kpis.new_files || 0} new`;
+        document.getElementById('dispRefunds').textContent = '₹' + parseFloat(kpis.refunds || 0).toFixed(2);
+
+        // Attention bar
+        const attentionBar = document.getElementById('attentionBar');
+        const attentionBadges = document.getElementById('attentionBadges');
+        const hasAttention = (kpis.pending_files > 0) || (kpis.pending_payouts > 0) || (kpis.pending_manual > 0) || (kpis.open_reports > 0);
+
+        if (hasAttention) {
+            attentionBar.style.display = 'block';
+            attentionBadges.innerHTML = `
+                ${kpis.pending_files > 0 ? `<a href="/admin/files" class="role-badge" style="background:rgba(239,68,68,0.15); color:#f87171; text-decoration:none;"><i class="fas fa-file-alt"></i> ${kpis.pending_files} Files to Moderate</a>` : ''}
+                ${kpis.pending_manual > 0 ? `<a href="/admin/payments" class="role-badge" style="background:rgba(245,158,11,0.15); color:#fbbf24; text-decoration:none;"><i class="fas fa-qrcode"></i> ${kpis.pending_manual} UTRs to Verify</a>` : ''}
+                ${kpis.pending_payouts > 0 ? `<a href="/admin/payouts" class="role-badge" style="background:rgba(99,102,241,0.15); color:#818cf8; text-decoration:none;"><i class="fas fa-money-bill-wave"></i> ${kpis.pending_payouts} Payouts Pending</a>` : ''}
+            `;
+        } else {
+            attentionBar.style.display = 'none';
+        }
+
+        // Funnel
+        const funnel = (data.charts || {}).funnel || {};
+        document.getElementById('funnelViews').textContent = funnel.views || 0;
+        document.getElementById('funnelPreviews').textContent = funnel.previews || 0;
+        document.getElementById('funnelPurchases').textContent = funnel.purchases || 0;
+        const pRatio = Math.min(100, Math.round(((funnel.previews || 0) / Math.max(1, funnel.views || 1)) * 100));
+        const bRatio = Math.min(100, Math.round(((funnel.purchases || 0) / Math.max(1, funnel.views || 1)) * 100));
+        document.getElementById('funnelPreviewsBar').style.width = pRatio + '%';
+        document.getElementById('funnelPurchasesBar').style.width = bRatio + '%';
+
+        // Render Chart
+        renderRevenueChart(data.charts?.labels || [], data.charts?.revenue || []);
+    } catch (e) {
+        showAdminToast('Network error loading dashboard', 'error');
+    } finally {
+        if (refreshIcon) refreshIcon.classList.remove('fa-spin');
+    }
+}
+
+function renderRevenueChart(labels, values) {
+    const ctx = document.getElementById('revenueChart');
+    if (!ctx) return;
+    if (revenueChartInstance) {
+        revenueChartInstance.destroy();
+    }
+    revenueChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Revenue (INR)',
+                data: values,
+                borderColor: '#6366f1',
+                backgroundColor: 'rgba(99, 102, 241, 0.12)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.35,
+                pointRadius: 3,
+                pointBackgroundColor: '#6366f1'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: val => '₹' + val
+                    },
+                    grid: { color: 'rgba(255,255,255,0.05)' }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadDashboard();
+});
+</script>
+{% endblock %}

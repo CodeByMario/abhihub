@@ -656,17 +656,20 @@ def api_sync_versions():
 
 
 @api_bp.route('/api/profile/update', methods=['POST'])
+@api_bp.route('/api/profile', methods=['POST'])
 @auth_required
 def api_update_profile():
-    """Update profile's default college and department selection."""
+    """Update profile's default college, department, semester, and section selection with cache invalidation."""
     try:
-        user_id = session.get('user', {}).get('uid')
+        user_id = session.get('user', {}).get('uid') or session.get('user', {}).get('id')
         if not user_id:
             return jsonify({'success': False, 'message': 'Not authenticated'}), 401
         
         data = request.get_json() or {}
         college_id = (data.get('college_id') or '').strip()
         department_id = (data.get('department_id') or '').strip()
+        semester = (data.get('semester') or '').strip()
+        section = (data.get('section') or '').strip()
         
         client = init_supabase()
         update_data = {}
@@ -674,16 +677,42 @@ def api_update_profile():
             update_data['college_id'] = college_id
         if validate_uuid(department_id):
             update_data['department_id'] = department_id
+        if semester:
+            update_data['semester'] = semester
+        if section:
+            update_data['section'] = section
 
         if update_data:
             client.table('profiles').update(update_data).eq('id', user_id).execute()
+
+            # Invalidate session cache & L1/L2 cache
+            session.pop('profile', None)
+            session.modified = True
+            try:
+                from cache_manager import get_cache
+                cache = get_cache()
+                cache.invalidate(f"user:profile:{user_id}", level="all")
+            except Exception:
+                pass
+
+            # Refresh session profile data
+            try:
+                from methods.supabase_helper import get_student_profile
+                fresh_p = get_student_profile(user_id)
+                if fresh_p.get('success') and fresh_p.get('data'):
+                    session['profile'] = fresh_p['data']
+                    session.modified = True
+            except Exception:
+                pass
+
             if 'college_id' in update_data:
                 try:
                     from methods.gamification_service import on_user_joined_college
                     on_user_joined_college(user_id, update_data['college_id'])
                 except Exception as _g_err:
                     logging.debug(f"[Gamification] on_user_joined_college error: {_g_err}")
-            return jsonify({'success': True}), 200
+
+            return jsonify({'success': True, 'profile': session.get('profile')}), 200
         
         return jsonify({'success': False, 'message': 'No valid fields provided'}), 400
     except Exception as e:
@@ -2200,9 +2229,6 @@ def has_document_access(user_id, doc_id, document=None):
     if u_email and uploader_email and u_email == uploader_email:
         return True
 
-    if doc_id in session.get('purchased_documents', []):
-        return True
-
     if u_uid or u_email:
         try:
             from data.transactions import TRANSACTIONS_FILE
@@ -2210,7 +2236,7 @@ def has_document_access(user_id, doc_id, document=None):
                 with open(TRANSACTIONS_FILE, 'r', encoding='utf-8') as f:
                     all_tx = json.load(f)
                     for tx in all_tx.values():
-                        if tx.get('status') in ['completed', 'verified']:
+                        if tx.get('status') == 'completed':
                             tx_uid = str(tx.get('user_id') or '')
                             tx_notes = str(tx.get('admin_notes') or '') + ' ' + str(tx.get('purpose') or '')
                             if (not tx_uid or tx_uid == u_uid) and doc_id in tx_notes:
@@ -2219,9 +2245,12 @@ def has_document_access(user_id, doc_id, document=None):
             pass
 
         try:
-            res = supabase.table('credit_transactions').select('id, status').eq('user_id', u_uid).ilike('admin_notes', f'%{doc_id}%').execute()
-            if res.data and any(t.get('status') in ['submitted', 'verified', 'completed'] for t in res.data):
-                return True
+            from methods.supabase_helper import init_supabase, supabase as sb_client
+            client = init_supabase() or sb_client
+            if client:
+                res = client.table('credit_transactions').select('id, status').eq('user_id', u_uid).ilike('admin_notes', f'%{doc_id}%').execute()
+                if res.data and any(t.get('status') == 'completed' for t in res.data):
+                    return True
         except Exception:
             pass
 
@@ -4026,6 +4055,44 @@ def feedback_endpoint():
     return jsonify({'success': True, 'feedbacks': feedbacks}), 200
 
 
+@api_bp.route('/api/documents/<document_id>/reviews', methods=['POST'])
+def submit_document_review(document_id):
+    """Submit a rating and review for a specific document."""
+    user = session.get('user', {})
+    user_id = user.get('uid')
+    if not user_id:
+        return jsonify({'success': False, 'message': 'Authentication required to review documents.'}), 401
+
+    data = request.get_json(silent=True) or request.form or {}
+    try:
+        rating = int(data.get('rating', 5))
+    except (ValueError, TypeError):
+        rating = 5
+    rating = max(1, min(5, rating))
+    review_text = (data.get('review_text') or data.get('comment') or data.get('message') or '').strip()
+
+    from config.supabase_client import get_supabase_client
+    db = get_supabase_client()
+    if not db:
+        return jsonify({'success': False, 'message': 'Database unavailable'}), 503
+
+    try:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        payload = {
+            'document_id': document_id,
+            'user_id': user_id,
+            'rating': rating,
+            'review_text': review_text,
+            'status': 'approved',
+            'created_at': now_iso,
+            'updated_at': now_iso
+        }
+        db.table('document_reviews').upsert(payload, on_conflict='document_id,user_id').execute()
+        return jsonify({'success': True, 'message': 'Review submitted successfully! ⭐'}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+
 @api_bp.route('/api/dashboard/summary', methods=['GET'])
 def dashboard_summary_api():
     """Return pre-computed, memory-cached dashboard summary data for fast client retrieval."""
@@ -4048,3 +4115,22 @@ def dashboard_summary_api():
     except Exception as e:
         logging.error("[API /api/dashboard/summary] Lookup failed (error_type=%s)", type(e).__name__)
         return jsonify({'success': False, 'message': 'Dashboard summary is temporarily unavailable'}), 500
+
+
+@api_bp.route('/api/exam-feedback', methods=['POST'])
+@auth_required
+def api_exam_feedback():
+    """Records student feedback on today's exam paper difficulty."""
+    data = request.get_json() or {}
+    schedule_id = data.get('schedule_id')
+    feedback = data.get('feedback')
+    user = session.get('user', {})
+    user_id = user.get('id') or user.get('uid')
+    if not schedule_id or not feedback:
+        return jsonify({'success': False, 'message': 'Missing schedule_id or feedback'}), 400
+    try:
+        from methods.feature_telemetry import log_feature_event
+        log_feature_event(user_id, 'exam_feedback', feedback, schedule_id=schedule_id)
+    except Exception:
+        pass
+    return jsonify({'success': True, 'message': 'Feedback received'}), 200

@@ -467,6 +467,9 @@
     <button type="button" class="tab-btn" onclick="switchPayTab('kyc', this)">
       <i class="fas fa-id-card"></i> KYC Verification (<span id="kpiPendingKycCount" style="color:#f59e0b; font-weight:700;">0</span>)
     </button>
+    <button type="button" class="tab-btn" onclick="switchPayTab('manual-utr', this)">
+      <i class="fas fa-shield-check"></i> Manual UTR Review (<span id="kpiPendingUtrBadge" style="color:#fb7185; font-weight:700;">0</span>)
+    </button>
   </div>
 
   <!-- Tab 1: Creator Payout Requests -->
@@ -686,6 +689,39 @@
   </div>
 </div>
 
+  <!-- Tab 5: Manual UTR Verification Queue -->
+  <div class="pay-panel" id="panel-manual-utr" style="display:none;">
+    <div class="panel-header">
+      <h2><i class="fas fa-shield-check" style="color:var(--accent-rose);"></i> Manual UTR Verification Queue</h2>
+      <div class="search-filter-row">
+        <input type="text" id="manualUtrSearch" class="pay-input" placeholder="Search order ID or UTR..." onkeyup="if(event.key==='Enter') loadManualUtrQueue()">
+        <button type="button" class="pay-btn pay-btn-outline" onclick="loadManualUtrQueue()">
+          <i class="fas fa-search"></i> Search
+        </button>
+      </div>
+    </div>
+
+    <div class="pay-table-wrap">
+      <table class="pay-table">
+        <thead>
+          <tr>
+            <th>Submitted At</th>
+            <th>Order ID</th>
+            <th>UTR Number</th>
+            <th>User ID</th>
+            <th>Amount</th>
+            <th>Purpose / Notes</th>
+            <th>Client IP</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="manualUtrTbody">
+          <tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Loading pending submissions...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 <script>
   let _allTransactions = [];
 
@@ -697,11 +733,129 @@
     document.getElementById('panel-transactions').style.display = tabKey === 'transactions' ? 'block' : 'none';
     document.getElementById('panel-wallets').style.display = tabKey === 'wallets' ? 'block' : 'none';
     document.getElementById('panel-kyc').style.display = tabKey === 'kyc' ? 'block' : 'none';
+    const manualPanel = document.getElementById('panel-manual-utr');
+    if (manualPanel) manualPanel.style.display = tabKey === 'manual-utr' ? 'block' : 'none';
 
     if (tabKey === 'payouts') loadPayoutRequests();
     else if (tabKey === 'transactions') loadTransactions();
     else if (tabKey === 'wallets') loadCreatorWallets();
     else if (tabKey === 'kyc') loadKycSubmissions();
+    else if (tabKey === 'manual-utr') loadManualUtrQueue();
+  }
+
+  // ── Manual UTR Verification Queue ──
+  async function loadManualUtrQueue() {
+    const tbody = document.getElementById('manualUtrTbody');
+    if (!tbody) return;
+    const search = document.getElementById('manualUtrSearch')?.value || '';
+    try {
+      const url = `/api/admin/payment/manual-pending${search ? '?search=' + encodeURIComponent(search) : ''}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const list = data.payments || [];
+      const badge = document.getElementById('kpiPendingUtrBadge');
+      if (badge) badge.textContent = data.total !== undefined ? data.total : list.length;
+
+      if (!list.length) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:2.5rem; color:var(--text-muted);"><i class="fas fa-check-circle" style="color:var(--accent-emerald); font-size:1.5rem; display:block; margin-bottom:0.5rem;"></i> No pending manual payments awaiting review.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(tx => `
+        <tr>
+          <td><span style="font-family:var(--font-mono); font-size:0.8rem;">${(tx.created_at || '').slice(0, 16).replace('T', ' ')}</span></td>
+          <td><span style="font-family:var(--font-mono); font-weight:600;">${tx.order_id || '—'}</span></td>
+          <td><span style="font-family:var(--font-mono); font-weight:700; color:#818cf8;">${tx.utr || '—'}</span></td>
+          <td><span style="font-family:var(--font-mono); font-size:0.78rem;">${(tx.user_id || '—').slice(0, 8)}...</span></td>
+          <td><strong>₹${parseFloat(tx.amount || 0).toFixed(2)}</strong></td>
+          <td><span style="font-size:0.8rem; color:var(--text-secondary);">${tx.admin_notes || '—'}</span></td>
+          <td><span style="font-family:var(--font-mono); font-size:0.78rem;">${tx.client_ip || '—'}</span></td>
+          <td>
+            <div style="display:flex; gap:0.4rem;">
+              <button type="button" class="pay-btn pay-btn-outline" style="color:var(--accent-emerald); border-color:var(--accent-emerald);" onclick="confirmVerifyUtr('${tx.order_id}', ${tx.amount})">
+                <i class="fas fa-check"></i> Verify
+              </button>
+              <button type="button" class="pay-btn pay-btn-outline" style="color:var(--accent-rose); border-color:var(--accent-rose);" onclick="confirmRejectUtr('${tx.order_id}')">
+                <i class="fas fa-xmark"></i> Reject
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--accent-rose); padding:2rem;">Failed to load manual submissions: ${e.message}</td></tr>`;
+    }
+  }
+
+  function confirmVerifyUtr(orderId, amount) {
+    if (typeof openConfirmModal === 'function') {
+      openConfirmModal({
+        title: 'Verify Manual Payment',
+        message: `Verify Order ${orderId} (₹${amount})? This will grant content access and credit the creator immediately.`,
+        confirmText: 'Verify & Fulfill',
+        danger: false,
+        requireReason: false,
+        onConfirm: async (notes) => {
+          try {
+            const res = await fetch('/api/admin/payment/manual-verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+              body: JSON.stringify({ order_id: orderId, notes })
+            });
+            const data = await res.json();
+            if (data.success) {
+              if (typeof showAdminToast === 'function') showAdminToast('Payment verified and fulfilled successfully!', 'success');
+              loadManualUtrQueue();
+            } else {
+              if (typeof showAdminToast === 'function') showAdminToast(data.error || 'Verification failed', 'error');
+            }
+          } catch (e) {
+            if (typeof showAdminToast === 'function') showAdminToast('Network error verifying payment', 'error');
+          }
+        }
+      });
+    } else {
+      if (confirm(`Verify Order ${orderId}?`)) {
+        fetch('/api/admin/payment/manual-verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': typeof getCsrfToken === 'function' ? getCsrfToken() : '' },
+          body: JSON.stringify({ order_id: orderId })
+        }).then(r => r.json()).then(d => {
+          if (d.success) loadManualUtrQueue();
+          else alert(d.error || 'Error');
+        });
+      }
+    }
+  }
+
+  function confirmRejectUtr(orderId) {
+    if (typeof openConfirmModal === 'function') {
+      openConfirmModal({
+        title: 'Reject Manual Payment',
+        message: `Reject Order ${orderId}? Access will be denied and user will be notified.`,
+        confirmText: 'Reject Payment',
+        danger: true,
+        requireReason: true,
+        onConfirm: async (reason) => {
+          try {
+            const res = await fetch('/api/admin/payment/manual-reject', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+              body: JSON.stringify({ order_id: orderId, reason })
+            });
+            const data = await res.json();
+            if (data.success) {
+              if (typeof showAdminToast === 'function') showAdminToast('Payment rejected.', 'success');
+              loadManualUtrQueue();
+            } else {
+              if (typeof showAdminToast === 'function') showAdminToast(data.error || 'Rejection failed', 'error');
+            }
+          } catch (e) {
+            if (typeof showAdminToast === 'function') showAdminToast('Network error rejecting payment', 'error');
+          }
+        }
+      });
+    }
   }
 
   // ── 1. Payout Requests Management ──

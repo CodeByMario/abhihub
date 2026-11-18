@@ -517,6 +517,13 @@ def process_event(user_id: str, event_type: str, entity_id: Optional[str] = None
             return {"success": True, "scored": False,
                     "reason": "self-action not scored"}
 
+        try:
+            from flask import session as _sess, has_request_context as _hrc, g as _g
+            if _hrc() and (_sess.get('view_as') or getattr(_g, 'is_view_as', False)):
+                return {"success": True, "scored": False, "reason": "view_as mode"}
+        except Exception:
+            pass
+
         pts = get_points()
         point_map = {
             "resource_viewed": pts.get("view", 0),

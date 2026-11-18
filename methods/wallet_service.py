@@ -264,6 +264,71 @@ def credit_creator_for_purchase(order_id, doc_id, amount, customer_id=None):
         return False, "Could not credit creator wallet"
 
 
+def debit_creator_for_refund(order_id: str, doc_id: str, amount: float):
+    """
+    Atomically and idempotently debits creator wallet and ledger for a refunded purchase.
+    Inserts a debit row with order_id 'REFUND-<order_id>' and adjusts wallet balance.
+    """
+    creator_id = get_document_creator(doc_id)
+    if not creator_id:
+        return False, "Creator not found"
+
+    refund_order_id = f"REFUND-{order_id}"
+    now = datetime.now(timezone.utc)
+
+    breakdown = calculate_fee_breakdown(amount, creator_id=creator_id)
+    creator_amt = breakdown['creator_amount']
+
+    try:
+        with _get_creator_lock(creator_id):
+            # Check idempotency
+            existing = supabase.table('wallet_ledger').select('id').eq('order_id', refund_order_id).execute()
+            if existing.data:
+                return True, "Already debited for refund"
+
+            # Check original credit status in wallet_ledger to determine if locked or available
+            orig_ledger = supabase.table('wallet_ledger').select('*').eq('order_id', str(order_id)).execute()
+            was_locked = True
+            if orig_ledger.data:
+                was_locked = (orig_ledger.data[0].get('status') == 'locked')
+
+            # Insert negative/debit ledger record
+            supabase.table('wallet_ledger').insert({
+                'creator_id': creator_id,
+                'amount': -abs(creator_amt),
+                'type': 'debit',
+                'status': 'available',
+                'doc_id': str(doc_id),
+                'order_id': refund_order_id,
+                'unlock_at': now.isoformat(),
+                'created_at': now.isoformat()
+            }).execute()
+
+            # Adjust creator wallet balance accordingly
+            wallet_res = supabase.table('creator_wallets').select('*').eq('user_id', creator_id).limit(1).execute()
+            if wallet_res.data:
+                w_data = wallet_res.data[0]
+                if was_locked:
+                    curr_pending = float(w_data.get('pending_balance', 0))
+                    new_pending = max(0.0, round(curr_pending - creator_amt, 2))
+                    supabase.table('creator_wallets').update({
+                        'pending_balance': new_pending,
+                        'updated_at': now.isoformat()
+                    }).eq('user_id', creator_id).execute()
+                else:
+                    curr_withdrawable = float(w_data.get('withdrawable_balance', 0))
+                    new_withdrawable = round(curr_withdrawable - creator_amt, 2)
+                    supabase.table('creator_wallets').update({
+                        'withdrawable_balance': new_withdrawable,
+                        'updated_at': now.isoformat()
+                    }).eq('user_id', creator_id).execute()
+
+            return True, "Creator wallet debited for refund"
+    except Exception as e:
+        logging.error("[WALLET] Refund debit failed: %s", e)
+        return False, f"Could not debit creator wallet: {str(e)}"
+
+
 def unlock_eligible_entries(creator_id=None):
     """
     Reconciles locked entries past 30 days and moves funds to withdrawable balance.

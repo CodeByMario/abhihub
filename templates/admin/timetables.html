@@ -1,0 +1,1061 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Timetables & Exam Schedules{% endblock %}
+
+{% block admin_content %}
+<style>
+/* Scoped Timetable & Calendar Styling */
+.tt-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.tt-kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+}
+.tt-kpi-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+.tt-kpi-val {
+    font-size: 1.85rem;
+    font-weight: 800;
+    margin: 0.35rem 0 0.2rem 0;
+    color: var(--text-primary);
+}
+.tt-kpi-sub {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.tt-tabs-row {
+    display: flex;
+    border-bottom: 1px solid var(--border-subtle);
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+}
+.tt-tab-btn {
+    padding: 0.65rem 1.15rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.tt-tab-btn:hover {
+    color: var(--text-primary);
+}
+.tt-tab-btn.active {
+    color: var(--accent-indigo);
+    border-bottom-color: var(--accent-indigo);
+}
+
+.tt-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+}
+.tt-filters {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* Calendar Component Styles */
+.calendar-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+.cal-nav-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+.cal-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.cal-month-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+.cal-nav-btn {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    padding: 0.4rem 0.85rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.8rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: var(--transition-smooth);
+}
+.cal-nav-btn:hover {
+    border-color: var(--accent-indigo);
+    color: var(--accent-indigo);
+}
+.cal-quick-pills {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+.cal-quick-pill {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: var(--radius-full);
+    background: var(--pill-bg);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+.cal-quick-pill:hover, .cal-quick-pill.active {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: var(--accent-indigo);
+    color: var(--text-primary);
+}
+
+.cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+}
+.cal-day-header {
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    padding: 0.5rem 0.25rem;
+}
+.cal-cell {
+    min-height: 105px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 0.45rem;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+.cal-cell:hover {
+    border-color: var(--border-accent);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.cal-cell.other-month {
+    opacity: 0.35;
+    background: rgba(15, 23, 42, 0.3);
+}
+.cal-cell.today {
+    border-color: var(--accent-indigo);
+    background: rgba(99, 102, 241, 0.06);
+}
+.cal-cell-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.35rem;
+}
+.cal-date-num {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.cal-badge-count {
+    font-size: 0.65rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: var(--radius-full);
+    background: rgba(99, 102, 241, 0.2);
+    color: var(--accent-indigo);
+    font-weight: 700;
+}
+.cal-events-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex-grow: 1;
+    overflow: hidden;
+}
+.cal-chip {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.35rem;
+    border-radius: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    border: 1px solid transparent;
+}
+.cal-chip.theory {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border-color: rgba(16, 185, 129, 0.35);
+}
+.cal-chip.practical {
+    background: rgba(168, 85, 247, 0.15);
+    color: #c084fc;
+    border-color: rgba(168, 85, 247, 0.35);
+}
+.cal-chip.project {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.35);
+}
+.cal-more-chip {
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    padding-left: 0.2rem;
+}
+
+/* Day Detail Modal Item */
+.cal-detail-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 0.85rem;
+    margin-bottom: 0.65rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+/* View switcher */
+.view-switch-btn {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    padding: 0.4rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.view-switch-btn.active {
+    background: var(--accent-indigo);
+    border-color: var(--accent-indigo);
+    color: #fff;
+}
+</style>
+
+<div class="page-header-row">
+    <div>
+        <h1 class="page-title"><i class="fas fa-calendar-alt" style="color:var(--accent-indigo);"></i> Timetables & Exam Schedules</h1>
+        <p class="page-desc">Institutional exam calendars, lecture schedules, bulk import, and canonical course mappings.</p>
+    </div>
+    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+        <a href="/admin/api/timetables/template" class="btn-action secondary">
+            <i class="fas fa-download"></i> CSV Template
+        </a>
+        <button type="button" class="btn-action primary" onclick="openAddExamModal()">
+            <i class="fas fa-plus"></i> Add Exam Schedule
+        </button>
+    </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="tt-kpi-grid">
+    <div class="tt-kpi-card">
+        <div class="tt-kpi-title">Total Active Schedules</div>
+        <div class="tt-kpi-val" id="statTotalExams">...</div>
+        <div class="tt-kpi-sub" style="color:var(--accent-indigo);">Winter 2026 Academic Term</div>
+    </div>
+    <div class="tt-kpi-card">
+        <div class="tt-kpi-title">Theory Examinations</div>
+        <div class="tt-kpi-val" style="color:var(--accent-emerald);" id="statTheoryExams">...</div>
+        <div class="tt-kpi-sub">End-Sem Written (ESE)</div>
+    </div>
+    <div class="tt-kpi-card">
+        <div class="tt-kpi-title">Practical & Labs</div>
+        <div class="tt-kpi-val" style="color:#c084fc;" id="statPracticalExams">...</div>
+        <div class="tt-kpi-sub">Lab / Viva / Projects / Seminars</div>
+    </div>
+    <div class="tt-kpi-card">
+        <div class="tt-kpi-title">Institution</div>
+        <div class="tt-kpi-val" style="font-size:1.25rem; color:var(--accent-amber); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">GHRCE Nagpur</div>
+        <div class="tt-kpi-sub">Autonomous Examination Cell</div>
+    </div>
+</div>
+
+<!-- Tab Navigation -->
+<div class="tt-tabs-row">
+    <button type="button" id="tabBtnExams" class="tt-tab-btn active" onclick="switchMainTab('exams')">
+        <i class="fas fa-calendar-days"></i> Examination Schedules & Calendar
+    </button>
+    <button type="button" id="tabBtnImport" class="tt-tab-btn" onclick="switchMainTab('import')">
+        <i class="fas fa-file-import"></i> Bulk CSV / XLSX Import
+    </button>
+    <button type="button" id="tabBtnAliases" class="tt-tab-btn" onclick="switchMainTab('aliases')">
+        <i class="fas fa-code-merge"></i> Course Aliases & Canonicalization
+    </button>
+</div>
+
+<!-- SECTION 1: Schedules (Calendar & Table View) -->
+<div id="tabContentExams">
+    <!-- Filter Toolbar -->
+    <div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
+        <div class="tt-toolbar">
+            <div class="tt-filters">
+                <select id="filterDepartment" class="filter-input" style="min-width:200px;" onchange="loadTimetables()">
+                    <option value="">All Branches / Departments</option>
+                    {% for d in departments %}
+                    <option value="{{ d.id }}">{{ d.abbreviation or d.name }} — {{ d.name }}</option>
+                    {% endfor %}
+                </select>
+                <select id="filterSemester" class="filter-input" onchange="loadTimetables()">
+                    <option value="">All Semesters</option>
+                    <option value="First">First / I (Year 1)</option>
+                    <option value="III">Sem III (Year 2)</option>
+                    <option value="V">Sem V (Year 3)</option>
+                    <option value="VII">Sem VII (Year 4)</option>
+                </select>
+                <select id="filterExamType" class="filter-input" onchange="loadTimetables()">
+                    <option value="">All Types (Theory + Practical)</option>
+                    <option value="THEORY">THEORY (Written)</option>
+                    <option value="PRACTICAL">PRACTICAL (Lab/Viva)</option>
+                    <option value="PROJECT">PROJECT</option>
+                </select>
+                <input type="text" id="searchTableInput" placeholder="Search course code, subject..." class="filter-input" style="width:210px;" onkeyup="handleFilterSearch()">
+            </div>
+
+            <div style="display:flex; align-items:center; gap:0.4rem;">
+                <button type="button" id="btnViewCalendar" class="view-switch-btn active" onclick="switchViewMode('calendar')">
+                    <i class="fas fa-calendar-alt"></i> Calendar
+                </button>
+                <button type="button" id="btnViewTable" class="view-switch-btn" onclick="switchViewMode('table')">
+                    <i class="fas fa-list"></i> Table
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CALENDAR VIEW -->
+    <div id="calendarViewContainer" class="calendar-card">
+        <div class="cal-nav-bar">
+            <div class="cal-title-wrap">
+                <button type="button" class="cal-nav-btn" onclick="navigateMonth(-1)"><i class="fas fa-chevron-left"></i> Prev</button>
+                <h3 class="cal-month-title" id="calMonthTitle">November 2026</h3>
+                <button type="button" class="cal-nav-btn" onclick="navigateMonth(1)">Next <i class="fas fa-chevron-right"></i></button>
+            </div>
+
+            <div class="cal-quick-pills">
+                <button type="button" class="cal-quick-pill" onclick="jumpToMonth(2026, 9)">Oct 2026</button>
+                <button type="button" class="cal-quick-pill" onclick="jumpToMonth(2026, 10)">Nov 2026</button>
+                <button type="button" class="cal-quick-pill" onclick="jumpToMonth(2026, 11)">Dec 2026</button>
+                <button type="button" class="cal-quick-pill" onclick="jumpToMonth(2027, 0)">Jan 2027</button>
+                <button type="button" class="cal-quick-pill" style="border-color:var(--accent-indigo); color:var(--text-primary);" onclick="jumpToActiveTerm()">Active Term</button>
+            </div>
+        </div>
+
+        <div class="cal-grid">
+            <div class="cal-day-header">Sun</div>
+            <div class="cal-day-header">Mon</div>
+            <div class="cal-day-header">Tue</div>
+            <div class="cal-day-header">Wed</div>
+            <div class="cal-day-header">Thu</div>
+            <div class="cal-day-header">Fri</div>
+            <div class="cal-day-header">Sat</div>
+        </div>
+        <div class="cal-grid" id="calDaysGrid" style="margin-top:4px;">
+            <!-- Rendered dynamically -->
+        </div>
+    </div>
+
+    <!-- TABLE VIEW -->
+    <div id="tableViewContainer" class="glass-panel" style="padding:1rem; display:none;">
+        <div style="overflow-x:auto;">
+            <table class="data-table" style="width:100%; border-collapse:collapse; font-size:0.8rem;">
+                <thead>
+                    <tr style="border-bottom:1px solid var(--border-subtle); text-align:left; color:var(--text-muted); font-size:0.75rem; text-transform:uppercase;">
+                        <th style="padding:0.75rem;">Course</th>
+                        <th style="padding:0.75rem;">Branch / Department</th>
+                        <th style="padding:0.75rem;">Sem & Sec</th>
+                        <th style="padding:0.75rem;">Exam Date & Time</th>
+                        <th style="padding:0.75rem;">Type</th>
+                        <th style="padding:0.75rem;">Notes & Flags</th>
+                        <th style="padding:0.75rem; text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="timetablesTableBody">
+                    <tr><td colspan="7" style="padding:2rem; text-align:center; color:var(--text-muted);">Loading schedules...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- SECTION 2: Bulk CSV Import -->
+<div id="tabContentImport" style="display:none;">
+    <div class="glass-panel" style="padding:1.5rem;">
+        <h3 style="font-size:1.1rem; font-weight:700; color:var(--text-primary); margin-top:0;">Bulk Timetable CSV Import</h3>
+        <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:1.25rem;">
+            Upload CSV/JSON timetable files to validate course codes and schedule dates before committing.
+        </p>
+
+        <div style="border:2px dashed var(--border-subtle); border-radius:var(--radius-md); padding:2rem; text-align:center; cursor:pointer;" onclick="document.getElementById('csvFileInput').click()">
+            <input type="file" id="csvFileInput" accept=".csv,.json" style="display:none;" onchange="handleFileSelected(event)">
+            <i class="fas fa-cloud-arrow-up" style="font-size:2.5rem; color:var(--text-muted); margin-bottom:0.75rem;"></i>
+            <div style="font-size:0.95rem; font-weight:600; color:var(--text-primary);">Click or drag CSV file to preview & validate</div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.4rem;">
+                Columns: programme, branch, semester, section, course_code, course_name, exam_date, time, exam_type
+            </div>
+        </div>
+
+        <div id="importPreviewContainer" style="margin-top:1.5rem; display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+                <h4 style="font-size:0.95rem; font-weight:700; color:var(--text-primary); margin:0;">Preview & Validation</h4>
+                <div id="previewStats" style="font-size:0.8rem; color:var(--text-secondary);"></div>
+            </div>
+            <div style="max-height:300px; overflow-y:auto; border:1px solid var(--border-subtle); border-radius:var(--radius-sm); margin-bottom:1rem;">
+                <table style="width:100%; border-collapse:collapse; font-size:0.75rem;">
+                    <thead>
+                        <tr style="background:var(--bg-surface); color:var(--text-muted); text-align:left;">
+                            <th style="padding:0.5rem;">Row</th>
+                            <th style="padding:0.5rem;">Branch</th>
+                            <th style="padding:0.5rem;">Course Code</th>
+                            <th style="padding:0.5rem;">Date</th>
+                            <th style="padding:0.5rem;">Type</th>
+                            <th style="padding:0.5rem;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="previewTableBody"></tbody>
+                </table>
+            </div>
+            <button type="button" class="btn-action primary" onclick="commitImport()">
+                <i class="fas fa-check"></i> Commit Validated Rows
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- SECTION 3: Course Aliases & Normalization -->
+<div id="tabContentAliases" style="display:none;">
+    <div class="glass-panel" style="padding:1.5rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+            <div>
+                <h3 style="font-size:1.1rem; font-weight:700; color:var(--text-primary); margin:0;">Course Code Normalization & Aliases</h3>
+                <p style="font-size:0.8rem; color:var(--text-secondary); margin:0.25rem 0 0 0;">Map variant or typo course codes (e.g. UCEP201 -> UNCEP201) to canonical subject records.</p>
+            </div>
+            <button type="button" class="btn-action primary" onclick="openMergeAliasModal()">
+                <i class="fas fa-plus"></i> Add Code Alias
+            </button>
+        </div>
+        <div style="background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:1rem; font-size:0.8rem; color:var(--text-secondary); line-height:1.5;">
+            <i class="fas fa-circle-check" style="color:var(--accent-emerald); margin-right:0.35rem;"></i>
+            <strong>Active Canonicalization Engine:</strong> When importing or generating recommendations, course codes automatically resolve through <code>subjects.subject_code</code> and <code>subject_aliases.alias_norm</code>.
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Day Detail Inspector -->
+<div class="modal-backdrop" id="dayDetailModal">
+    <div class="confirm-modal" style="max-width:560px;">
+        <div class="confirm-modal-header" style="justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:0.6rem;">
+                <div class="confirm-modal-icon" style="background:rgba(99,102,241,0.15); color:var(--accent-indigo);"><i class="fas fa-calendar-day"></i></div>
+                <div>
+                    <h3 class="confirm-modal-title" id="dayDetailTitle">Exams on Date</h3>
+                    <div style="font-size:0.75rem; color:var(--text-muted);" id="dayDetailSubtitle">0 scheduled examinations</div>
+                </div>
+            </div>
+            <button type="button" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:1.1rem;" onclick="closeDayDetailModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="confirm-modal-body" style="max-height:420px; overflow-y:auto; padding-top:0.5rem;" id="dayDetailBody">
+            <!-- Populated dynamically -->
+        </div>
+        <div style="margin-top:1rem; display:flex; justify-content:space-between; align-items:center;">
+            <button type="button" class="btn-action secondary" onclick="closeDayDetailModal()">Close</button>
+            <button type="button" class="btn-action primary" onclick="closeDayDetailModal(); openAddExamModal(selectedModalDate)">
+                <i class="fas fa-plus"></i> Add Exam on this Date
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add / Edit Exam Schedule -->
+<div class="modal-backdrop" id="examModal">
+    <div class="confirm-modal" style="max-width:540px;">
+        <div class="confirm-modal-header" style="justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:0.6rem;">
+                <div class="confirm-modal-icon" style="background:rgba(99,102,241,0.15); color:var(--accent-indigo);"><i class="fas fa-calendar-plus"></i></div>
+                <h3 class="confirm-modal-title" id="modalTitle">Add Examination Schedule</h3>
+            </div>
+            <button type="button" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:1.1rem;" onclick="closeExamModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="confirm-modal-body" style="padding-top:0.5rem;">
+            <form id="examForm" onsubmit="saveExamForm(event)">
+                <input type="hidden" id="editScheduleId">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem;">
+                    <div>
+                        <label style="display:block; font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.25rem;">Branch / Department *</label>
+                        <select id="modalDeptSelect" required class="filter-input" style="width:100%;">
+                            <option value="">Select Department</option>
+                            {% for d in departments %}
+                            <option value="{{ d.id }}">{{ d.name }} ({{ d.abbreviation or 'DEPT' }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.25rem;">Semester *</label>
+                        <input type="text" id="modalSemester" required placeholder="e.g. First, III, V, VII" class="filter-input" style="width:100%;">
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem;">
+                    <div>
+                        <label style="display:block; font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.25rem;">Course Code *</label>
+                        <input type="text" id="modalCourseCode" required placeholder="e.g. UNCSP201" class="filter-input" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.25rem;">Course Name *</label>
+                        <input type="text" id="modalCourseName" required placeholder="e.g. Data Structures & Algorithms" class="filter-input" style="width:100%;">
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem;">
+                    <div>
+                        <label style="display:block; font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.25rem;">Exam Date *</label>
+                        <input type="date" id="modalExamDate" required class="filter-input" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.25rem;">Exam Type *</label>
+                        <select id="modalExamType" class="filter-input" style="width:100%;">
+                            <option value="THEORY">THEORY (Written)</option>
+                            <option value="PRACTICAL">PRACTICAL (Lab/Viva)</option>
+                            <option value="PROJECT">PROJECT</option>
+                            <option value="INTERNSHIP">INTERNSHIP</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem;">
+                    <div>
+                        <label style="display:block; font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.25rem;">Start Time</label>
+                        <input type="time" id="modalStartTime" class="filter-input" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.25rem;">End Time</label>
+                        <input type="time" id="modalEndTime" class="filter-input" style="width:100%;">
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:1rem;">
+                    <div>
+                        <label style="display:block; font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.25rem;">Section / Group</label>
+                        <input type="text" id="modalSection" placeholder="e.g. A, B, GROUP 01-12" class="filter-input" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="display:block; font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.25rem;">Academic Term</label>
+                        <input type="text" id="modalTerm" value="Winter 2026" class="filter-input" style="width:100%;">
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1.25rem;">
+                    <button type="button" class="btn-action secondary" onclick="closeExamModal()">Cancel</button>
+                    <button type="submit" class="btn-action primary">Save Schedule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Course Alias Merge -->
+<div class="modal-backdrop" id="aliasModal">
+    <div class="confirm-modal" style="max-width:440px;">
+        <div class="confirm-modal-header" style="justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:0.6rem;">
+                <div class="confirm-modal-icon" style="background:rgba(99,102,241,0.15); color:var(--accent-indigo);"><i class="fas fa-code-merge"></i></div>
+                <h3 class="confirm-modal-title">Add Course Code Alias</h3>
+            </div>
+            <button type="button" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:1.1rem;" onclick="closeAliasModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="confirm-modal-body" style="padding-top:0.5rem;">
+            <form onsubmit="saveAliasForm(event)">
+                <div style="margin-bottom:0.85rem;">
+                    <label style="display:block; font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.25rem;">Canonical Course Code *</label>
+                    <input type="text" id="aliasCanonicalCode" required placeholder="e.g. UNBSL103" class="filter-input" style="width:100%;">
+                </div>
+                <div style="margin-bottom:0.85rem;">
+                    <label style="display:block; font-size:0.75rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.25rem;">Variant Alias Code *</label>
+                    <input type="text" id="aliasVariantCode" required placeholder="e.g. UBSL151" class="filter-input" style="width:100%;">
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1rem;">
+                    <button type="button" class="btn-action secondary" onclick="closeAliasModal()">Cancel</button>
+                    <button type="submit" class="btn-action primary">Save Alias Mapping</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentSchedules = [];
+let filteredSchedules = [];
+let currentCalYear = 2026;
+let currentCalMonth = 10; // 0-indexed: 10 = November 2026
+let currentViewMode = 'calendar';
+let selectedModalDate = '';
+
+const MONTH_NAMES = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+function switchMainTab(tab) {
+    ['exams', 'import', 'aliases'].forEach(t => {
+        const content = document.getElementById('tabContent' + t.charAt(0).toUpperCase() + t.slice(1));
+        const btn = document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
+        if (content) content.style.display = (t === tab) ? 'block' : 'none';
+        if (btn) {
+            if (t === tab) btn.classList.add('active');
+            else btn.classList.remove('active');
+        }
+    });
+}
+
+function switchViewMode(mode) {
+    currentViewMode = mode;
+    const calContainer = document.getElementById('calendarViewContainer');
+    const tableContainer = document.getElementById('tableViewContainer');
+    const calBtn = document.getElementById('btnViewCalendar');
+    const tableBtn = document.getElementById('btnViewTable');
+
+    if (mode === 'calendar') {
+        calContainer.style.display = 'block';
+        tableContainer.style.display = 'none';
+        calBtn.classList.add('active');
+        tableBtn.classList.remove('active');
+        renderCalendar();
+    } else {
+        calContainer.style.display = 'none';
+        tableContainer.style.display = 'block';
+        tableBtn.classList.add('active');
+        calBtn.classList.remove('active');
+        renderTable(filteredSchedules);
+    }
+}
+
+async function loadTimetables() {
+    const dept = document.getElementById('filterDepartment').value;
+    const sem = document.getElementById('filterSemester').value;
+    const type = document.getElementById('filterExamType').value;
+
+    const url = `/admin/api/timetables?department_id=${encodeURIComponent(dept)}&semester=${encodeURIComponent(sem)}&exam_type=${encodeURIComponent(type)}`;
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        currentSchedules = data.exams || [];
+        
+        // Update stats
+        const total = currentSchedules.length;
+        const theoryCount = currentSchedules.filter(s => s.exam_type === 'THEORY').length;
+        const practicalCount = currentSchedules.filter(s => s.exam_type !== 'THEORY').length;
+
+        document.getElementById('statTotalExams').textContent = total;
+        document.getElementById('statTheoryExams').textContent = theoryCount;
+        document.getElementById('statPracticalExams').textContent = practicalCount;
+
+        handleFilterSearch();
+    } catch(e) {
+        console.error("Failed loading timetables:", e);
+    }
+}
+
+function handleFilterSearch() {
+    const q = (document.getElementById('searchTableInput').value || '').toLowerCase().trim();
+    if (!q) {
+        filteredSchedules = [...currentSchedules];
+    } else {
+        filteredSchedules = currentSchedules.filter(s => {
+            const name = (s.subjects?.name || '').toLowerCase();
+            const code = (s.subjects?.subject_code || '').toLowerCase();
+            const dept = (s.departments?.name || s.departments?.abbreviation || '').toLowerCase();
+            return name.includes(q) || code.includes(q) || dept.includes(q);
+        });
+    }
+
+    if (currentViewMode === 'calendar') {
+        renderCalendar();
+    } else {
+        renderTable(filteredSchedules);
+    }
+}
+
+/* ================= CALENDAR ENGINE ================= */
+function navigateMonth(delta) {
+    currentCalMonth += delta;
+    if (currentCalMonth < 0) {
+        currentCalMonth = 11;
+        currentCalYear -= 1;
+    } else if (currentCalMonth > 11) {
+        currentCalMonth = 0;
+        currentCalYear += 1;
+    }
+    renderCalendar();
+}
+
+function jumpToMonth(year, month) {
+    currentCalYear = year;
+    currentCalMonth = month;
+    renderCalendar();
+}
+
+function jumpToActiveTerm() {
+    currentCalYear = 2026;
+    currentCalMonth = 10; // November 2026
+    renderCalendar();
+}
+
+function renderCalendar() {
+    document.getElementById('calMonthTitle').textContent = `${MONTH_NAMES[currentCalMonth]} ${currentCalYear}`;
+
+    // Highlight quick pills
+    document.querySelectorAll('.cal-quick-pill').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.textContent.includes(MONTH_NAMES[currentCalMonth].slice(0, 3)) && btn.textContent.includes(String(currentCalYear))) {
+            btn.classList.add('active');
+        }
+    });
+
+    const grid = document.getElementById('calDaysGrid');
+    grid.innerHTML = '';
+
+    const firstDayIndex = new Date(currentCalYear, currentCalMonth, 1).getDay();
+    const daysInMonth = new Date(currentCalYear, currentCalMonth + 1, 0).getDate();
+    const prevMonthDays = new Date(currentCalYear, currentCalMonth, 0).getDate();
+
+    // Map schedules by YYYY-MM-DD
+    const dateMap = {};
+    filteredSchedules.forEach(item => {
+        if (!item.exam_date) return;
+        const dStr = item.exam_date.slice(0, 10);
+        if (!dateMap[dStr]) dateMap[dStr] = [];
+        dateMap[dStr].push(item);
+    });
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    // Prev month padding
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+        const d = prevMonthDays - i;
+        const cell = document.createElement('div');
+        cell.className = 'cal-cell other-month';
+        cell.innerHTML = `<div class="cal-cell-header"><span class="cal-date-num">${d}</span></div>`;
+        grid.appendChild(cell);
+    }
+
+    // Current month days
+    for (let d = 1; d <= daysInMonth; d++) {
+        const monthNum = String(currentCalMonth + 1).padStart(2, '0');
+        const dayNum = String(d).padStart(2, '0');
+        const dateIso = `${currentCalYear}-${monthNum}-${dayNum}`;
+        const dayExams = dateMap[dateIso] || [];
+
+        const cell = document.createElement('div');
+        cell.className = 'cal-cell' + (dateIso === todayStr ? ' today' : '');
+        cell.onclick = () => openDayDetailModal(dateIso, dayExams);
+
+        let chipsHtml = '';
+        const maxChips = 3;
+        dayExams.slice(0, maxChips).forEach(ex => {
+            const typeCls = (ex.exam_type || 'THEORY').toLowerCase();
+            const subCode = ex.subjects?.subject_code || 'EXAM';
+            const icon = ex.exam_type === 'PRACTICAL' ? 'fa-flask' : (ex.exam_type === 'PROJECT' ? 'fa-diagram-project' : 'fa-book-open');
+            chipsHtml += `
+                <div class="cal-chip ${typeCls}" title="${ex.subjects?.name || ''} (${ex.semester})">
+                    <i class="fas ${icon}" style="font-size:0.6rem;"></i>
+                    <span>${subCode}</span>
+                </div>
+            `;
+        });
+
+        if (dayExams.length > maxChips) {
+            chipsHtml += `<div class="cal-more-chip">+${dayExams.length - maxChips} more exams</div>`;
+        }
+
+        cell.innerHTML = `
+            <div class="cal-cell-header">
+                <span class="cal-date-num">${d}</span>
+                ${dayExams.length > 0 ? `<span class="cal-badge-count">${dayExams.length}</span>` : ''}
+            </div>
+            <div class="cal-events-wrap">
+                ${chipsHtml}
+            </div>
+        `;
+        grid.appendChild(cell);
+    }
+
+    // Next month padding to fill row of 7
+    const totalRendered = firstDayIndex + daysInMonth;
+    const remaining = (7 - (totalRendered % 7)) % 7;
+    for (let i = 1; i <= remaining; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cal-cell other-month';
+        cell.innerHTML = `<div class="cal-cell-header"><span class="cal-date-num">${i}</span></div>`;
+        grid.appendChild(cell);
+    }
+}
+
+/* ================= DAY DETAIL INSPECTOR ================= */
+function openDayDetailModal(dateStr, exams) {
+    selectedModalDate = dateStr;
+    const modal = document.getElementById('dayDetailModal');
+    const title = document.getElementById('dayDetailTitle');
+    const subtitle = document.getElementById('dayDetailSubtitle');
+    const body = document.getElementById('dayDetailBody');
+
+    // Parse date for clean header
+    const [y, m, d] = dateStr.split('-');
+    const dateObj = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+    title.textContent = dateObj.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    subtitle.textContent = `${exams.length} examination${exams.length === 1 ? '' : 's'} scheduled`;
+
+    if (!exams || exams.length === 0) {
+        body.innerHTML = `
+            <div style="text-align:center; padding:2rem; color:var(--text-muted); font-size:0.85rem;">
+                <i class="fas fa-calendar-xmark" style="font-size:2rem; margin-bottom:0.5rem; display:block;"></i>
+                No exams scheduled for this date.
+            </div>
+        `;
+    } else {
+        body.innerHTML = exams.map(ex => {
+            const subName = ex.subjects?.name || 'Unknown Course';
+            const subCode = ex.subjects?.subject_code || 'N/A';
+            const dept = ex.departments ? (ex.departments.abbreviation || ex.departments.name) : '-';
+            const typeBadge = ex.exam_type === 'PRACTICAL'
+                ? '<span style="padding:0.15rem 0.5rem; border-radius:4px; font-size:0.7rem; background:rgba(168,85,247,0.2); color:#c084fc; font-weight:700;">PRACTICAL</span>'
+                : '<span style="padding:0.15rem 0.5rem; border-radius:4px; font-size:0.7rem; background:rgba(16,185,129,0.2); color:#34d399; font-weight:700;">THEORY</span>';
+
+            const timeStr = (ex.start_time || '') + (ex.end_time ? ' To ' + ex.end_time : '');
+            let reregBadge = '';
+            if (ex.is_reregistration || ex.offered_in_semester) {
+                reregBadge = `<span style="font-size:0.65rem; background:rgba(245,158,11,0.2); color:#fbbf24; padding:0.1rem 0.35rem; border-radius:3px;">Re-reg (${ex.offered_in_semester || ''})</span>`;
+            }
+
+            return `
+                <div class="cal-detail-item">
+                    <div style="flex-grow:1;">
+                        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
+                            <span style="font-weight:700; color:var(--text-primary); font-size:0.9rem;">${subName}</span>
+                            <span style="font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono);">${subCode}</span>
+                            ${typeBadge}
+                            ${reregBadge}
+                        </div>
+                        <div style="font-size:0.75rem; color:var(--text-secondary); display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:0.35rem;">
+                            <span><i class="fas fa-graduation-cap"></i> ${dept}</span>
+                            <span><i class="fas fa-layer-group"></i> Sem ${ex.semester} ${ex.section ? '(' + ex.section + ')' : ''}</span>
+                            <span><i class="fas fa-clock"></i> ${timeStr || 'Time TBA'}</span>
+                        </div>
+                    </div>
+                    <div>
+                        <button type="button" style="background:transparent; border:none; color:var(--accent-rose); cursor:pointer; font-size:0.85rem;" onclick="deleteExam('${ex.id}')" title="Delete Schedule">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    modal.classList.add('show');
+}
+
+function closeDayDetailModal() {
+    document.getElementById('dayDetailModal').classList.remove('show');
+}
+
+/* ================= TABLE VIEW ================= */
+function renderTable(list) {
+    const tbody = document.getElementById('timetablesTableBody');
+    if (!list || list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="padding:2.5rem; text-align:center; color:var(--text-muted);">No examination schedules found matching criteria.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = list.map(item => {
+        const subName = item.subjects ? item.subjects.name : 'Unknown Subject';
+        const subCode = item.subjects ? item.subjects.subject_code : '';
+        const dept = item.departments ? (item.departments.abbreviation || item.departments.name) : '-';
+        const typeBadge = item.exam_type === 'PRACTICAL' 
+            ? '<span style="padding:0.15rem 0.5rem; border-radius:4px; font-size:0.7rem; background:rgba(168,85,247,0.2); color:#c084fc; font-weight:700;">PRACTICAL</span>'
+            : '<span style="padding:0.15rem 0.5rem; border-radius:4px; font-size:0.7rem; background:rgba(16,185,129,0.2); color:#34d399; font-weight:700;">THEORY</span>';
+        
+        let flags = '-';
+        if (item.is_reregistration || item.offered_in_semester) {
+            flags = `<span style="font-size:0.7rem; background:rgba(245,158,11,0.2); color:#fbbf24; padding:0.15rem 0.4rem; border-radius:4px;">Re-reg (${item.offered_in_semester || ''})</span>`;
+        }
+
+        return `
+            <tr style="border-bottom:1px solid var(--border-subtle);">
+                <td style="padding:0.75rem;">
+                    <div style="font-weight:700; color:var(--text-primary);">${subName}</div>
+                    <div style="font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono);">${subCode}</div>
+                </td>
+                <td style="padding:0.75rem; color:var(--text-secondary);">${dept}</td>
+                <td style="padding:0.75rem; color:var(--text-secondary);">${item.semester} ${item.section ? `(${item.section})` : ''}</td>
+                <td style="padding:0.75rem;">
+                    <div style="color:var(--text-primary); font-weight:600;">${item.exam_date}</div>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">${item.start_time || ''} ${item.end_time ? 'To ' + item.end_time : ''}</div>
+                </td>
+                <td style="padding:0.75rem;">${typeBadge}</td>
+                <td style="padding:0.75rem;">${flags}</td>
+                <td style="padding:0.75rem; text-align:right;">
+                    <button style="background:transparent; border:none; color:var(--accent-rose); cursor:pointer; font-size:0.85rem;" onclick="deleteExam('${item.id}')" title="Delete Schedule">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+/* ================= MODAL CONTROLS ================= */
+function openAddExamModal(prefillDate) {
+    document.getElementById('editScheduleId').value = '';
+    document.getElementById('examForm').reset();
+    document.getElementById('modalTitle').textContent = 'Add Examination Schedule';
+    if (prefillDate) {
+        document.getElementById('modalExamDate').value = prefillDate;
+    }
+    document.getElementById('examModal').classList.add('show');
+}
+function closeExamModal() {
+    document.getElementById('examModal').classList.remove('show');
+}
+
+function openMergeAliasModal() {
+    document.getElementById('aliasModal').classList.add('show');
+}
+function closeAliasModal() {
+    document.getElementById('aliasModal').classList.remove('show');
+}
+
+async function saveExamForm(e) {
+    e.preventDefault();
+    const id = document.getElementById('editScheduleId').value;
+    const payload = {
+        department_id: document.getElementById('modalDeptSelect').value,
+        semester: document.getElementById('modalSemester').value,
+        course_code: document.getElementById('modalCourseCode').value,
+        course_name: document.getElementById('modalCourseName').value,
+        exam_date: document.getElementById('modalExamDate').value,
+        exam_type: document.getElementById('modalExamType').value,
+        start_time: document.getElementById('modalStartTime').value || null,
+        end_time: document.getElementById('modalEndTime').value || null,
+        section: document.getElementById('modalSection').value || null,
+        academic_term: document.getElementById('modalTerm').value || 'Winter 2026'
+    };
+
+    const method = id ? 'PUT' : 'POST';
+    const url = id ? `/admin/api/timetables/exam/${id}` : '/admin/api/timetables/exam';
+
+    try {
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+            closeExamModal();
+            loadTimetables();
+        } else {
+            alert(data.message || 'Error saving examination schedule');
+        }
+    } catch(err) {
+        alert('Network or server error');
+    }
+}
+
+async function saveAliasForm(e) {
+    e.preventDefault();
+    const canonical = document.getElementById('aliasCanonicalCode').value.trim();
+    const alias = document.getElementById('aliasVariantCode').value.trim();
+
+    try {
+        // Resolve canonical subject id first
+        const res = await fetch(`/admin/api/timetables/aliases/merge`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subject_code: canonical, alias: alias })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert('Alias linked successfully');
+            closeAliasModal();
+        } else {
+            alert(data.message || 'Error creating alias');
+        }
+    } catch(err) {
+        alert('Server error creating alias');
+    }
+}
+
+async function deleteExam(id) {
+    if (!confirm('Are you sure you want to remove this examination schedule?')) return;
+    try {
+        const res = await fetch(`/admin/api/timetables/exam/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+            closeDayDetailModal();
+            loadTimetables();
+        } else {
+            alert(data.message || 'Failed deleting schedule');
+        }
+    } catch(e) {
+        alert('Error connecting to server');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadTimetables();
+});
+</script>
+{% endblock %}

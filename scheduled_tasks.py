@@ -195,6 +195,82 @@ def setup_jobs(scheduler):
 
 
 
+    # Job 8: Auto-unblock expired user blocks every 15 minutes
+    def _run_auto_unblock():
+        try:
+            from services.admin_service import auto_unblock_expired_users
+            unblocked = auto_unblock_expired_users()
+            if unblocked > 0:
+                logging.info(f"[ADMIN_SCHEDULER] Auto-unblocked {unblocked} users with expired blocks.")
+        except Exception as e:
+            logging.error(f"[ADMIN_SCHEDULER] Auto-unblock error: {e}")
+
+    scheduler.add_job(
+        func=_run_auto_unblock,
+        trigger=IntervalTrigger(minutes=15),
+        id='auto_unblock_users',
+        name='Auto-unblock expired temporary user blocks',
+        replace_existing=True
+    )
+    logging.info("📅 Scheduled job: Auto-unblock expired user blocks (every 15 minutes)")
+
+    # Job 9: Auto-expire promotions past ends_at every 30 minutes
+    def _run_auto_expire_promotions():
+        try:
+            from services.admin_service import auto_expire_promotions
+            expired = auto_expire_promotions()
+            if expired > 0:
+                logging.info(f"[ADMIN_SCHEDULER] Auto-expired {expired} promotions.")
+        except Exception as e:
+            logging.error(f"[ADMIN_SCHEDULER] Auto-expire promotions error: {e}")
+
+    scheduler.add_job(
+        func=_run_auto_expire_promotions,
+        trigger=IntervalTrigger(minutes=30),
+        id='auto_expire_promotions',
+        name='Auto-expire completed promotions past ends_at',
+        replace_existing=True
+    )
+    logging.info("📅 Scheduled job: Auto-expire promotions (every 30 minutes)")
+
+    # Job 10: Purge user activity events older than 90 days (daily)
+    def _run_purge_activity_events():
+        try:
+            from services.admin_service import purge_old_user_activity_events
+            purged = purge_old_user_activity_events(days=90)
+            if purged > 0:
+                logging.info(f"[ADMIN_SCHEDULER] Purged {purged} user activity events older than 90 days.")
+        except Exception as e:
+            logging.error(f"[ADMIN_SCHEDULER] Purge activity events error: {e}")
+
+    scheduler.add_job(
+        func=_run_purge_activity_events,
+        trigger=IntervalTrigger(hours=24),
+        id='purge_user_activity_events_90d',
+        name='Purge user activity events older than 90 days',
+        replace_existing=True
+    )
+    logging.info("📅 Scheduled job: Purge old user activity events (daily)")
+
+    # Job 11: Exam countdown reminders at 14, 7, and 3 days (daily)
+    def _run_exam_countdown_reminders():
+        try:
+            from services.recommendation_service import dispatch_exam_countdown_reminders
+            res = dispatch_exam_countdown_reminders()
+            logging.info(f"[EXAM_SCHEDULER] Exam countdown scan complete: {res.get('notifications_sent', 0)} notifications sent.")
+        except Exception as e:
+            logging.error(f"[EXAM_SCHEDULER] Exam reminder error: {e}")
+
+    scheduler.add_job(
+        func=_run_exam_countdown_reminders,
+        trigger=IntervalTrigger(hours=24),
+        id='exam_countdown_reminders_daily',
+        name='Exam countdown reminders at 14, 7, and 3 days',
+        replace_existing=True
+    )
+    logging.info("📅 Scheduled job: Exam countdown reminders (daily)")
+
+
 def shutdown_scheduler():
     """
     Gracefully shut down the scheduler.

@@ -1,0 +1,1376 @@
+{% extends 'p_struct.html' %}
+
+{% block title %}Notes in Demand & Exam Forecast • AbhiHub{% endblock %}
+
+{% block content %}
+<style>
+  :root {
+    --nid-bg: #f5f5f7;
+    --nid-surface: #ffffff;
+    --nid-surface-sub: #fbfbfd;
+    --nid-surface-card: #ffffff;
+    --nid-text: #1d1d1f;
+    --nid-text-secondary: #6e6e73;
+    --nid-text-muted: #86868b;
+    --nid-border: rgba(0, 0, 0, 0.08);
+    --nid-border-hover: rgba(0, 0, 0, 0.16);
+    --nid-blue: #0071e3;
+    --nid-blue-hover: #0077ed;
+    --nid-blue-subtle: rgba(0, 113, 227, 0.08);
+    --nid-rose: #ef4444;
+    --nid-rose-subtle: rgba(239, 68, 68, 0.08);
+    --nid-amber: #f59e0b;
+    --nid-amber-subtle: rgba(245, 158, 11, 0.1);
+    --nid-emerald: #10b981;
+    --nid-emerald-subtle: rgba(16, 185, 129, 0.1);
+    --nid-radius-pill: 980px;
+    --nid-radius-card: 18px;
+    --nid-radius-modal: 24px;
+    --nid-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --nid-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.07);
+    --nid-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.12);
+  }
+
+  [data-theme="dark"] {
+    --nid-bg: #000000;
+    --nid-surface: #1c1c1e;
+    --nid-surface-sub: #2c2c2e;
+    --nid-surface-card: #18181b;
+    --nid-text: #f5f5f7;
+    --nid-text-secondary: #a1a1a6;
+    --nid-text-muted: #86868b;
+    --nid-border: rgba(255, 255, 255, 0.1);
+    --nid-border-hover: rgba(255, 255, 255, 0.22);
+    --nid-blue: #2997ff;
+    --nid-blue-hover: #40a9ff;
+    --nid-blue-subtle: rgba(41, 151, 255, 0.15);
+    --nid-rose-subtle: rgba(239, 68, 68, 0.2);
+    --nid-amber-subtle: rgba(245, 158, 11, 0.2);
+    --nid-emerald-subtle: rgba(16, 185, 129, 0.2);
+    --nid-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --nid-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --nid-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.7);
+  }
+
+  .nid-container {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--nid-text);
+  }
+
+  /* Hero section */
+  .nid-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 28px;
+  }
+  .nid-badge-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 12px;
+    border-radius: var(--nid-radius-pill);
+    background: var(--nid-blue-subtle);
+    color: var(--nid-blue);
+    border: 1px solid rgba(0, 113, 227, 0.18);
+    margin-bottom: 8px;
+  }
+  .nid-hero-title {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    margin: 0 0 6px;
+    color: var(--nid-text);
+  }
+  .nid-hero-sub {
+    font-size: 14px;
+    color: var(--nid-text-secondary);
+    max-width: 620px;
+    line-height: 1.5;
+    margin: 0;
+  }
+  .nid-hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .nid-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 18px;
+    border-radius: var(--nid-radius-pill);
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.16s ease;
+    border: none;
+  }
+  .nid-btn-primary {
+    background: var(--nid-blue);
+    color: #ffffff !important;
+  }
+  .nid-btn-primary:hover {
+    background: var(--nid-blue-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 113, 227, 0.25);
+  }
+  .nid-btn-secondary {
+    background: var(--nid-surface);
+    color: var(--nid-text) !important;
+    border: 1px solid var(--nid-border);
+  }
+  .nid-btn-secondary:hover {
+    border-color: var(--nid-border-hover);
+    background: var(--nid-surface-sub);
+    transform: translateY(-1px);
+  }
+
+  /* Stats Highlights */
+  .nid-stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+  .nid-stat-card {
+    background: var(--nid-surface);
+    border: 1px solid var(--nid-border);
+    border-radius: var(--nid-radius-card);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: var(--nid-shadow-sm);
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+  .nid-stat-card:hover {
+    border-color: var(--nid-border-hover);
+    transform: translateY(-2px);
+  }
+  .nid-stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .nid-stat-icon.fire {
+    background: var(--nid-rose-subtle);
+    color: var(--nid-rose);
+  }
+  .nid-stat-icon.sync {
+    background: var(--nid-blue-subtle);
+    color: var(--nid-blue);
+  }
+  .nid-stat-icon.coin {
+    background: var(--nid-amber-subtle);
+    color: var(--nid-amber);
+  }
+  .nid-stat-val {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--nid-text);
+    line-height: 1.2;
+  }
+  .nid-stat-lbl {
+    font-size: 12px;
+    color: var(--nid-text-secondary);
+  }
+
+  /* Filter Toolbar */
+  .nid-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+    background: var(--nid-surface);
+    padding: 12px 16px;
+    border-radius: var(--nid-radius-card);
+    border: 1px solid var(--nid-border);
+    box-shadow: var(--nid-shadow-sm);
+  }
+  .nid-search-box {
+    position: relative;
+    flex: 1;
+    min-width: 240px;
+  }
+  .nid-search-box i {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 13px;
+    color: var(--nid-text-muted);
+  }
+  .nid-search-input {
+    width: 100%;
+    padding: 8px 14px 8px 36px;
+    border-radius: var(--nid-radius-pill);
+    border: 1px solid var(--nid-border);
+    background: var(--nid-surface-sub);
+    color: var(--nid-text);
+    font-size: 13px;
+    outline: none;
+    box-sizing: border-box;
+    transition: all 0.15s ease;
+  }
+  .nid-search-input:focus {
+    border-color: var(--nid-blue);
+    background: var(--nid-surface);
+    box-shadow: 0 0 0 3px var(--nid-blue-subtle);
+  }
+  .nid-pills-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  .nid-pills-row::-webkit-scrollbar { display: none; }
+  .nid-filter-pill {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: var(--nid-radius-pill);
+    background: transparent;
+    border: 1px solid var(--nid-border);
+    color: var(--nid-text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+  }
+  .nid-filter-pill:hover {
+    border-color: var(--nid-border-hover);
+    color: var(--nid-text);
+  }
+  .nid-filter-pill.active {
+    background: var(--nid-text);
+    color: var(--nid-bg);
+    border-color: var(--nid-text);
+  }
+
+  /* Section Title */
+  .nid-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .nid-section-title {
+    font-size: 18px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+  }
+  .nid-section-meta {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--nid-text-muted);
+  }
+
+  /* Grid of Demand Cards */
+  .nid-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+  .nid-demand-card {
+    background: var(--nid-surface);
+    border: 1px solid var(--nid-border);
+    border-radius: var(--nid-radius-card);
+    padding: 20px;
+    box-shadow: var(--nid-shadow-sm);
+    display: flex;
+    flex-col: column;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .nid-demand-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--nid-border-hover);
+    box-shadow: var(--nid-shadow-md);
+  }
+  .nid-demand-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: transparent;
+  }
+  .nid-demand-card.is-high::before {
+    background: linear-gradient(90deg, #ef4444, #f59e0b);
+  }
+  .nid-demand-card.is-medium::before {
+    background: linear-gradient(90deg, #f59e0b, #10b981);
+  }
+
+  /* Card Head */
+  .nid-card-badges {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .nid-tag-urgency {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: var(--nid-radius-pill);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .nid-tag-urgency.high {
+    background: var(--nid-rose-subtle);
+    color: var(--nid-rose);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+  }
+  .nid-tag-urgency.medium {
+    background: var(--nid-amber-subtle);
+    color: var(--nid-amber);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+  }
+  .nid-tag-countdown {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: var(--nid-radius-pill);
+    background: var(--nid-blue-subtle);
+    color: var(--nid-blue);
+  }
+  .nid-tag-countdown.imminent {
+    background: #ef4444;
+    color: #ffffff;
+    animation: nidPulse 2s infinite ease-in-out;
+  }
+  @keyframes nidPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.85; }
+  }
+
+  .nid-card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--nid-text);
+    margin: 0 0 4px;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .nid-card-meta {
+    font-size: 12px;
+    color: var(--nid-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .nid-code-pill {
+    background: var(--nid-surface-sub);
+    padding: 2px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--nid-border);
+    font-family: monospace;
+    font-weight: 600;
+    font-size: 11px;
+    color: var(--nid-text);
+  }
+
+  /* Supply vs Gap meter */
+  .nid-gap-box {
+    background: var(--nid-surface-sub);
+    border: 1px solid var(--nid-border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+  }
+  .nid-gap-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .nid-gap-left {
+    color: var(--nid-text);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .nid-gap-right {
+    color: var(--nid-rose);
+    font-weight: 700;
+  }
+  .nid-progress-track {
+    height: 6px;
+    border-radius: 980px;
+    background: var(--nid-border);
+    overflow: hidden;
+  }
+  .nid-progress-fill {
+    height: 100%;
+    border-radius: 980px;
+    background: linear-gradient(90deg, #0071e3, #10b981);
+    transition: width 0.3s ease;
+  }
+
+  .nid-reason-text {
+    font-size: 12px;
+    color: var(--nid-text-secondary);
+    line-height: 1.4;
+    margin: 0 0 16px;
+  }
+
+  /* Card Action Foot */
+  .nid-card-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 14px;
+    border-top: 1px solid var(--nid-border);
+    margin-top: auto;
+  }
+  .nid-bounty-badge {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--nid-emerald);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .nid-card-btn {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 7px 14px;
+    border-radius: var(--nid-radius-pill);
+    background: var(--nid-blue-subtle);
+    color: var(--nid-blue);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+  }
+  .nid-card-btn:hover {
+    background: var(--nid-blue);
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(0, 113, 227, 0.25);
+  }
+
+  /* Pagination Bar */
+  .nid-pagination-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin: -24px 0 48px;
+    padding: 14px 20px;
+    background: var(--nid-surface);
+    border: 1px solid var(--nid-border);
+    border-radius: var(--nid-radius-card);
+    box-shadow: var(--nid-shadow-sm);
+  }
+  .nid-pagination-info {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--nid-text-secondary);
+  }
+  .nid-pagination-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .nid-page-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: var(--nid-radius-pill);
+    background: var(--nid-surface-sub);
+    border: 1px solid var(--nid-border);
+    color: var(--nid-text);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .nid-page-btn:hover:not(:disabled) {
+    background: var(--nid-surface);
+    border-color: var(--nid-border-hover);
+    transform: translateY(-1px);
+  }
+  .nid-page-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .nid-page-numbers {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .nid-page-num {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 6px;
+    border-radius: var(--nid-radius-pill);
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--nid-text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .nid-page-num:hover {
+    color: var(--nid-text);
+    background: var(--nid-surface-sub);
+  }
+  .nid-page-num.active {
+    background: var(--nid-blue);
+    color: #ffffff;
+    border-color: var(--nid-blue);
+    font-weight: 700;
+  }
+
+  /* Student Requests Section */
+  .nid-requests-section {
+    background: var(--nid-surface);
+    border: 1px solid var(--nid-border);
+    border-radius: var(--nid-radius-card);
+    padding: 24px;
+    box-shadow: var(--nid-shadow-sm);
+  }
+  .nid-req-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--nid-border);
+  }
+  .nid-segmented {
+    display: inline-flex;
+    background: var(--nid-surface-sub);
+    border: 1px solid var(--nid-border);
+    border-radius: var(--nid-radius-pill);
+    padding: 3px;
+    gap: 3px;
+  }
+  .nid-seg-btn {
+    border: none;
+    background: transparent;
+    padding: 6px 14px;
+    border-radius: var(--nid-radius-pill);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--nid-text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .nid-seg-btn:hover {
+    color: var(--nid-text);
+  }
+  .nid-seg-btn.active {
+    background: var(--nid-surface);
+    color: var(--nid-text);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+
+  .nid-request-item {
+    background: var(--nid-surface-sub);
+    border: 1px solid var(--nid-border);
+    border-radius: 14px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 10px;
+    transition: all 0.15s ease;
+  }
+  .nid-request-item:hover {
+    border-color: var(--nid-border-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--nid-shadow-sm);
+  }
+  .nid-req-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .nid-req-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .nid-req-type {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: var(--nid-surface);
+    border: 1px solid var(--nid-border);
+    color: var(--nid-text);
+  }
+  .nid-req-subject {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--nid-text);
+  }
+  .nid-req-details {
+    font-size: 12px;
+    color: var(--nid-text-secondary);
+    line-height: 1.4;
+    margin: 0 0 6px;
+  }
+  .nid-req-user {
+    font-size: 11px;
+    color: var(--nid-text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .nid-req-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .nid-upvote-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: var(--nid-radius-pill);
+    background: var(--nid-surface);
+    border: 1px solid var(--nid-border);
+    color: var(--nid-text);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .nid-upvote-btn:hover {
+    border-color: var(--nid-blue);
+    color: var(--nid-blue);
+    background: var(--nid-blue-subtle);
+  }
+  .nid-upvote-btn.has-voted {
+    background: var(--nid-blue);
+    color: #ffffff;
+    border-color: var(--nid-blue);
+  }
+
+  /* Empty State */
+  .nid-empty-state {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--nid-text-secondary);
+  }
+  .nid-empty-icon {
+    font-size: 38px;
+    color: var(--nid-text-muted);
+    margin-bottom: 12px;
+  }
+  .nid-empty-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--nid-text);
+    margin: 0 0 6px;
+  }
+  .nid-empty-sub {
+    font-size: 13px;
+    color: var(--nid-text-secondary);
+    max-width: 400px;
+    margin: 0 auto 18px;
+  }
+
+  /* Modal Backdrop & Dialog */
+  .nid-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .nid-modal-backdrop.is-open {
+    display: flex;
+  }
+  .nid-modal-card {
+    background: var(--nid-surface);
+    border: 1px solid var(--nid-border);
+    border-radius: var(--nid-radius-modal);
+    max-width: 480px;
+    width: 100%;
+    padding: 28px;
+    box-shadow: var(--nid-shadow-lg);
+    position: relative;
+    box-sizing: border-box;
+    animation: nidModalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes nidModalIn {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .nid-modal-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: var(--nid-surface-sub);
+    border: 1px solid var(--nid-border);
+    border-radius: var(--nid-radius-pill);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--nid-text-secondary);
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s ease;
+  }
+  .nid-modal-close:hover {
+    background: var(--nid-surface);
+    color: var(--nid-text);
+  }
+  .nid-form-group {
+    margin-bottom: 16px;
+  }
+  .nid-form-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--nid-text);
+    margin-bottom: 6px;
+  }
+  .nid-form-control {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--nid-border);
+    background: var(--nid-surface-sub);
+    color: var(--nid-text);
+    font-size: 13px;
+    box-sizing: border-box;
+    outline: none;
+    transition: all 0.15s ease;
+  }
+  .nid-form-control:focus {
+    border-color: var(--nid-blue);
+    background: var(--nid-surface);
+    box-shadow: 0 0 0 3px var(--nid-blue-subtle);
+  }
+</style>
+
+<div class="nid-container">
+  <!-- Hero Section -->
+  <div class="nid-hero">
+    <div>
+      <div class="nid-badge-chip">
+        <i class="fas fa-bolt"></i> Timetable-Driven Intelligence
+      </div>
+      <h1 class="nid-hero-title">Notes in Demand & Forecast</h1>
+      <p class="nid-hero-sub">
+        Real-time study material demand based on upcoming examinations at G. H. Raisoni College of Engineering. Help your peers and earn credits.
+      </p>
+    </div>
+    <div class="nid-hero-actions">
+      <button type="button" class="nid-btn nid-btn-secondary" onclick="openRequestModal()">
+        <i class="fas fa-plus"></i> Request Notes
+      </button>
+      <a href="/upload" class="nid-btn nid-btn-primary">
+        <i class="fas fa-cloud-arrow-up"></i> Upload & Earn
+      </a>
+    </div>
+  </div>
+
+  <!-- Key Metrics Row -->
+  <div class="nid-stats-row">
+    <div class="nid-stat-card">
+      <div class="nid-stat-icon fire"><i class="fas fa-fire"></i></div>
+      <div>
+        <div class="nid-stat-val" id="statCourseCount">...</div>
+        <div class="nid-stat-lbl">Active Courses with Exam Demand</div>
+      </div>
+    </div>
+    <div class="nid-stat-card">
+      <div class="nid-stat-icon sync"><i class="fas fa-calendar-check"></i></div>
+      <div>
+        <div class="nid-stat-val">Winter 2026</div>
+        <div class="nid-stat-lbl">GHRCE Autonomous ESE Programme</div>
+      </div>
+    </div>
+    <div class="nid-stat-card">
+      <div class="nid-stat-icon coin"><i class="fas fa-coins"></i></div>
+      <div>
+        <div class="nid-stat-val">+10 Credits</div>
+        <div class="nid-stat-lbl">Per Approved PYQ or Verified Note</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter & Search Toolbar -->
+  <div class="nid-toolbar">
+    <div class="nid-search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" id="nidSearchInput" class="nid-search-input" placeholder="Search by course name or code (e.g. UNCSL201)..." oninput="applyFilters()">
+    </div>
+    <div class="nid-pills-row" id="nidBranchFilters">
+      <button type="button" class="nid-filter-pill active" onclick="setBranchFilter('ALL')">All Branches</button>
+      <button type="button" class="nid-filter-pill" onclick="setBranchFilter('COMPUTERSC')">CSE / AI</button>
+      <button type="button" class="nid-filter-pill" onclick="setBranchFilter('IT')">IT</button>
+      <button type="button" class="nid-filter-pill" onclick="setBranchFilter('EE')">EE / EN</button>
+      <button type="button" class="nid-filter-pill" onclick="setBranchFilter('ETC')">ETC</button>
+      <button type="button" class="nid-filter-pill" onclick="setBranchFilter('MECH')">MECH</button>
+      <button type="button" class="nid-filter-pill" onclick="setBranchFilter('CIVIL')">CIVIL</button>
+      <button type="button" class="nid-filter-pill" onclick="setBranchFilter('FIRST')">First Year</button>
+    </div>
+  </div>
+
+  <!-- Demand Forecast Cards -->
+  <div class="nid-section-header">
+    <h2 class="nid-section-title">
+      <i class="fas fa-chart-line text-blue-500" style="color: var(--nid-blue);"></i> Impending Exam Material Gaps
+    </h2>
+    <span class="nid-section-meta" id="forecastCountBadge">Showing 0 courses</span>
+  </div>
+
+  <div id="demandForecastGrid" class="nid-cards-grid">
+    <div class="nid-empty-state" style="grid-column: 1 / -1;">
+      <i class="fas fa-spinner fa-spin nid-empty-icon"></i>
+      <div class="nid-empty-title">Loading Demand Intelligence...</div>
+      <div class="nid-empty-sub">Analyzing Winter 2026 timetables against existing archive supply.</div>
+    </div>
+  </div>
+
+  <!-- Demand Forecast Pagination Controls -->
+  <div class="nid-pagination-bar" id="nidPaginationBar" style="display: none;">
+    <div class="nid-pagination-info" id="nidPaginationInfo">Showing 1-9 of 0 courses</div>
+    <div class="nid-pagination-actions">
+      <button type="button" class="nid-page-btn" id="nidPrevBtn" onclick="changePage(-1)" disabled>
+        <i class="fas fa-chevron-left"></i> Previous
+      </button>
+      <div class="nid-page-numbers" id="nidPageNumbers"></div>
+      <button type="button" class="nid-page-btn" id="nidNextBtn" onclick="changePage(1)">
+        Next <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Student Material Requests Section -->
+  <div class="nid-requests-section">
+    <div class="nid-req-header">
+      <div>
+        <h2 class="nid-section-title">
+          <i class="fas fa-comments" style="color: var(--nid-blue);"></i> Student Study Material Requests
+        </h2>
+        <span class="nid-section-meta">Crowdsourced requests from peers facing upcoming exams</span>
+      </div>
+      <div class="nid-segmented">
+        <button type="button" id="segBtnOpen" class="nid-seg-btn active" onclick="switchRequestTab('OPEN')">
+          Open Requests (<span id="openCount">0</span>)
+        </button>
+        <button type="button" id="segBtnFulfilled" class="nid-seg-btn" onclick="switchRequestTab('FULFILLED')">
+          Fulfilled
+        </button>
+      </div>
+    </div>
+
+    <div id="requestsList">
+      <div class="nid-empty-state">
+        <i class="fas fa-spinner fa-spin nid-empty-icon"></i>
+        <div class="nid-empty-title">Loading requests...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: New Material Request -->
+<div id="requestModal" class="nid-modal-backdrop" onclick="handleBackdropClick(event)">
+  <div class="nid-modal-card" onclick="event.stopPropagation()">
+    <button type="button" class="nid-modal-close" onclick="closeRequestModal()">
+      <i class="fas fa-times"></i>
+    </button>
+    <div class="nid-badge-chip">
+      <i class="fas fa-hand-holding-hand"></i> Peer Request
+    </div>
+    <h3 style="font-size: 20px; font-weight: 800; margin: 0 0 6px;">Request Study Material</h3>
+    <p style="font-size: 13px; color: var(--nid-text-secondary); margin: 0 0 20px;">
+      Can't find notes or question papers for your subject? Post a request to notify peers in your batch.
+    </p>
+
+    <form id="newRequestForm" onsubmit="submitMaterialRequest(event)">
+      <div class="nid-form-group">
+        <label class="nid-form-label">Course / Subject Name *</label>
+        <input type="text" id="reqSubjectInput" required placeholder="e.g. Soft Computing or UNAIP301" class="nid-form-control">
+      </div>
+      <div class="nid-form-group">
+        <label class="nid-form-label">Resource Type Needed</label>
+        <select id="reqExamTypeInput" class="nid-form-control">
+          <option value="THEORY">Theory (Lecture Notes & Solved PYQs)</option>
+          <option value="PRACTICAL">Practical (Lab Manuals & Viva Voce)</option>
+          <option value="PROJECT">Project / Internship Report</option>
+        </select>
+      </div>
+      <div class="nid-form-group">
+        <label class="nid-form-label">Specific Topics or Units</label>
+        <textarea id="reqDetailsInput" rows="3" placeholder="e.g. Unit 3 Fuzzy Inference, CAE 2 Solved Paper with diagrams" class="nid-form-control"></textarea>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+        <button type="button" class="nid-btn nid-btn-secondary" onclick="closeRequestModal()">Cancel</button>
+        <button type="submit" class="nid-btn nid-btn-primary" id="submitReqBtn">Post Request</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  const CACHE_KEY_FORECAST = 'abhihub_forecast_cache_v1';
+  const CACHE_KEY_REQ = 'abhihub_requests_cache_v1';
+  const CACHE_TTL_MS = 5 * 60 * 1000; // 5 min cache
+
+  let allForecast = [];
+  let allRequests = [];
+  let currentRequestTab = 'OPEN';
+  let selectedBranch = 'ALL';
+
+  // Pagination state
+  let currentPage = 1;
+  const pageSize = 9;
+  let currentFilteredList = [];
+
+  async function loadDemandData(forceRefresh = false) {
+    // 1. Check client session cache first
+    if (!forceRefresh) {
+      try {
+        const cachedF = sessionStorage.getItem(CACHE_KEY_FORECAST);
+        const cachedR = sessionStorage.getItem(CACHE_KEY_REQ);
+        if (cachedF && cachedR) {
+          const fObj = JSON.parse(cachedF);
+          const rObj = JSON.parse(cachedR);
+          if (Date.now() - fObj.ts < CACHE_TTL_MS && Date.now() - rObj.ts < CACHE_TTL_MS) {
+            allForecast = fObj.data;
+            allRequests = rObj.data;
+            document.getElementById('statCourseCount').innerText = allForecast.length || '0';
+            applyFilters();
+            renderRequests();
+            return;
+          }
+        }
+      } catch(e) {
+        console.warn("[Cache] Read error:", e);
+      }
+    }
+
+    try {
+      const [fRes, rRes] = await Promise.all([
+        fetch('/api/notes-in-demand/forecast'),
+        fetch('/api/notes-in-demand/requests')
+      ]);
+      const forecastData = await fRes.json();
+      const requestsData = await rRes.json();
+
+      allForecast = forecastData.forecast || [];
+      allRequests = requestsData.requests || [];
+
+      // Save to client cache
+      try {
+        sessionStorage.setItem(CACHE_KEY_FORECAST, JSON.stringify({ ts: Date.now(), data: allForecast }));
+        sessionStorage.setItem(CACHE_KEY_REQ, JSON.stringify({ ts: Date.now(), data: allRequests }));
+      } catch(e) {}
+
+      document.getElementById('statCourseCount').innerText = allForecast.length || '0';
+      applyFilters();
+      renderRequests();
+    } catch(e) {
+      console.error("[NotesInDemand] Load failed:", e);
+      document.getElementById('demandForecastGrid').innerHTML = `
+        <div class="nid-empty-state" style="grid-column: 1 / -1;">
+          <i class="fas fa-triangle-exclamation nid-empty-icon" style="color: #ef4444;"></i>
+          <div class="nid-empty-title">Failed to load demand intelligence</div>
+          <div class="nid-empty-sub">Please refresh the page or try again in a few moments.</div>
+        </div>
+      `;
+    }
+  }
+
+  function setBranchFilter(branch) {
+    selectedBranch = branch;
+    const pills = document.querySelectorAll('.nid-filter-pill');
+    pills.forEach(p => {
+      if (p.textContent.toUpperCase().includes(branch) || (branch === 'ALL' && p.textContent.includes('All'))) {
+        p.classList.add('active');
+      } else {
+        p.classList.remove('active');
+      }
+    });
+    applyFilters(true);
+  }
+
+  function applyFilters(resetPage = true) {
+    if (resetPage) currentPage = 1;
+    const query = (document.getElementById('nidSearchInput').value || '').trim().toLowerCase();
+    
+    currentFilteredList = allForecast.filter(item => {
+      // Branch filter
+      if (selectedBranch !== 'ALL') {
+        const b = (item.branch || '').toUpperCase();
+        const sem = (item.semester || '').toUpperCase();
+        if (selectedBranch === 'FIRST' && (sem === 'I' || sem === 'II' || sem === 'FIRST')) {
+          // match
+        } else if (selectedBranch === 'COMPUTERSC' && (b.includes('COMPUTER') || b.includes('AI') || b.includes('CSE'))) {
+          // match
+        } else if (!b.includes(selectedBranch)) {
+          return false;
+        }
+      }
+      // Query filter
+      if (query) {
+        const name = (item.course_name || '').toLowerCase();
+        const code = (item.course_code || '').toLowerCase();
+        const branch = (item.branch || '').toLowerCase();
+        return name.includes(query) || code.includes(query) || branch.includes(query);
+      }
+      return true;
+    });
+
+    document.getElementById('forecastCountBadge').innerText = `Showing ${currentFilteredList.length} of ${allForecast.length} courses`;
+    renderForecastPage();
+  }
+
+  function renderForecastPage() {
+    const total = currentFilteredList.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+
+    const startIdx = (currentPage - 1) * pageSize;
+    const endIdx = Math.min(startIdx + pageSize, total);
+    const pageItems = currentFilteredList.slice(startIdx, endIdx);
+
+    renderForecast(pageItems);
+
+    // Update pagination controls
+    const bar = document.getElementById('nidPaginationBar');
+    if (total <= pageSize) {
+      bar.style.display = 'none';
+    } else {
+      bar.style.display = 'flex';
+      document.getElementById('nidPaginationInfo').innerText = `Showing ${startIdx + 1}-${endIdx} of ${total} courses`;
+      document.getElementById('nidPrevBtn').disabled = (currentPage === 1);
+      document.getElementById('nidNextBtn').disabled = (currentPage === totalPages);
+
+      // Render page number buttons
+      renderPageNumbers(totalPages);
+    }
+  }
+
+  function renderPageNumbers(totalPages) {
+    const container = document.getElementById('nidPageNumbers');
+    let html = '';
+    const maxVisible = 5;
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    if (endPage - startPage < maxVisible - 1) {
+      startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    if (startPage > 1) {
+      html += `<button type="button" class="nid-page-num" onclick="goToPage(1)">1</button>`;
+      if (startPage > 2) html += `<span style="color: var(--nid-text-muted); padding: 0 4px;">…</span>`;
+    }
+
+    for (let p = startPage; p <= endPage; p++) {
+      html += `<button type="button" class="nid-page-num ${p === currentPage ? 'active' : ''}" onclick="goToPage(${p})">${p}</button>`;
+    }
+
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) html += `<span style="color: var(--nid-text-muted); padding: 0 4px;">…</span>`;
+      html += `<button type="button" class="nid-page-num" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+    }
+    container.innerHTML = html;
+  }
+
+  function goToPage(p) {
+    currentPage = p;
+    renderForecastPage();
+    document.getElementById('demandForecastGrid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function changePage(delta) {
+    goToPage(currentPage + delta);
+  }
+
+  function renderForecast(items) {
+    const grid = document.getElementById('demandForecastGrid');
+    if (!items || items.length === 0) {
+      grid.innerHTML = `
+        <div class="nid-empty-state" style="grid-column: 1 / -1;">
+          <i class="fas fa-circle-check nid-empty-icon" style="color: #10b981;"></i>
+          <div class="nid-empty-title">No matching courses found</div>
+          <div class="nid-empty-sub">Try adjusting your search query or department filter.</div>
+        </div>
+      `;
+      return;
+    }
+
+    grid.innerHTML = items.map(item => {
+      const isHigh = item.demand_level === 'High';
+      const isImminent = item.days_until_exam <= 2;
+      
+      let countdownLabel = `In ${item.days_until_exam} days`;
+      if (item.days_until_exam === 0) countdownLabel = 'Today';
+      else if (item.days_until_exam === 1) countdownLabel = 'Tomorrow';
+
+      const uploadUrl = `/upload?subject_id=${encodeURIComponent(item.subject_id || '')}&subject_name=${encodeURIComponent(item.course_name)}&category=${item.exam_type === 'PRACTICAL' ? 'practical_manual' : 'question_paper'}&title=${encodeURIComponent(item.course_name + ' - Exam Material')}`;
+
+      // Progress calculation: target 3 files for complete coverage
+      const targetSupply = 3;
+      const progressPercent = Math.min(100, Math.round((item.existing_files / targetSupply) * 100));
+
+      return `
+        <div class="nid-demand-card ${isHigh ? 'is-high' : 'is-medium'}">
+          <div>
+            <div class="nid-card-badges">
+              <span class="nid-tag-urgency ${isHigh ? 'high' : 'medium'}">
+                <i class="fas ${isHigh ? 'fa-fire' : 'fa-bolt'}"></i> ${item.demand_level} Demand
+              </span>
+              <span class="nid-tag-countdown ${isImminent ? 'imminent' : ''}">
+                <i class="fas fa-clock"></i> ${countdownLabel}
+              </span>
+            </div>
+
+            <h3 class="nid-card-title" title="${item.course_name}">${item.course_name}</h3>
+            <div class="nid-card-meta">
+              <span>${item.branch}</span>
+              <span>•</span>
+              <span>Sem ${item.semester}</span>
+              ${item.course_code ? `<span>•</span><span class="nid-code-pill">${item.course_code}</span>` : ''}
+              <span>•</span>
+              <span style="font-weight: 700; color: ${item.exam_type === 'PRACTICAL' ? 'var(--nid-amber)' : 'var(--nid-blue)'};">${item.exam_type}</span>
+            </div>
+
+            <div class="nid-gap-box">
+              <div class="nid-gap-top">
+                <span class="nid-gap-left">
+                  <i class="fas fa-file-lines" style="color: var(--nid-text-muted);"></i>
+                  ${item.existing_files} of ${targetSupply} files available
+                </span>
+                <span class="nid-gap-right">
+                  ${item.existing_files === 0 ? '0% Supplied' : progressPercent + '%'}
+                </span>
+              </div>
+              <div class="nid-progress-track">
+                <div class="nid-progress-fill" style="width: ${progressPercent}%;"></div>
+              </div>
+            </div>
+
+            <p class="nid-reason-text">
+              <i class="fas fa-users" style="color: var(--nid-blue); margin-right: 4px;"></i>
+              ~${item.student_count} students preparing. ${item.existing_files === 0 ? 'Urgent material vacuum — first uploader gains maximum view multiplier!' : 'More verified PYQs and notes needed.'}
+            </p>
+          </div>
+
+          <div class="nid-card-foot">
+            <span class="nid-bounty-badge">
+              <i class="fas fa-coins"></i> +10 Credits Bounty
+            </span>
+            <a href="${uploadUrl}" class="nid-card-btn">
+              <i class="fas fa-cloud-arrow-up"></i> Upload for Exam
+            </a>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function switchRequestTab(tab) {
+    currentRequestTab = tab;
+    document.getElementById('segBtnOpen').classList.toggle('active', tab === 'OPEN');
+    document.getElementById('segBtnFulfilled').classList.toggle('active', tab === 'FULFILLED');
+    renderRequests();
+  }
+
+  function renderRequests() {
+    const list = document.getElementById('requestsList');
+    const filtered = allRequests.filter(r => r.status === currentRequestTab);
+    const openCount = allRequests.filter(r => r.status === 'OPEN').length;
+    document.getElementById('openCount').innerText = openCount;
+
+    if (!filtered || filtered.length === 0) {
+      list.innerHTML = `
+        <div class="nid-empty-state">
+          <i class="fas fa-inbox nid-empty-icon"></i>
+          <div class="nid-empty-title">No ${currentRequestTab.toLowerCase()} requests right now</div>
+          <div class="nid-empty-sub">
+            ${currentRequestTab === 'OPEN' 
+              ? 'Have an upcoming exam and need specific lecture notes? Be the first to ask.' 
+              : 'All fulfilled requests will appear here once study material has been verified.'}
+          </div>
+          ${currentRequestTab === 'OPEN' ? `
+            <button type="button" class="nid-btn nid-btn-primary" onclick="openRequestModal()">
+              <i class="fas fa-plus"></i> Post a Request
+            </button>
+          ` : ''}
+        </div>
+      `;
+      return;
+    }
+
+    list.innerHTML = filtered.map(req => {
+      const requesterName = (req.profiles && req.profiles.full_name) ? req.profiles.full_name : 'Student Peer';
+      const uploadUrl = `/upload?subject_name=${encodeURIComponent(req.subject)}&request_id=${req.id}&category=${req.exam_type === 'PRACTICAL' ? 'practical_manual' : 'question_paper'}&title=${encodeURIComponent(req.subject + ' - Requested Material')}`;
+
+      return `
+        <div class="nid-request-item">
+          <div class="nid-req-info">
+            <div class="nid-req-top">
+              <span class="nid-req-type">${req.exam_type || 'THEORY'}</span>
+              <span class="nid-req-subject">${req.subject}</span>
+            </div>
+            <p class="nid-req-details">${req.details || 'Looking for comprehensive lecture notes, CAE papers, or solved PYQs.'}</p>
+            <div class="nid-req-user">
+              <i class="fas fa-user-circle"></i> Requested by ${requesterName}
+            </div>
+          </div>
+          <div class="nid-req-actions">
+            <button type="button" class="nid-upvote-btn" onclick="voteRequest('${req.id}', this)" title="Upvote this request">
+              <i class="fas fa-arrow-up"></i>
+              <span>${req.upvotes_count || 1}</span>
+            </button>
+            ${req.status === 'OPEN' ? `
+              <a href="${uploadUrl}" class="nid-btn nid-btn-primary" style="font-size: 12px; padding: 7px 14px;">
+                <i class="fas fa-cloud-arrow-up"></i> Fulfill
+              </a>
+            ` : `
+              <span style="font-size: 11px; font-weight: 700; color: var(--nid-emerald); background: var(--nid-emerald-subtle); padding: 5px 10px; border-radius: var(--nid-radius-pill);">
+                <i class="fas fa-circle-check"></i> Fulfilled
+              </span>
+            `}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function voteRequest(id, btnEl) {
+    try {
+      const res = await fetch(`/api/notes-in-demand/requests/${id}/vote`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        const item = allRequests.find(r => r.id === id);
+        if (item) {
+          item.upvotes_count = data.upvotes_count;
+        }
+        btnEl.querySelector('span').innerText = data.upvotes_count;
+        if (data.action === 'voted') {
+          btnEl.classList.add('has-voted');
+        } else {
+          btnEl.classList.remove('has-voted');
+        }
+        try { sessionStorage.removeItem(CACHE_KEY_REQ); } catch(e) {}
+      }
+    } catch(err) {
+      console.error("[Vote] Failed:", err);
+    }
+  }
+
+  function openRequestModal() {
+    document.getElementById('requestModal').classList.add('is-open');
+    document.getElementById('reqSubjectInput').focus();
+  }
+  function closeRequestModal() {
+    document.getElementById('requestModal').classList.remove('is-open');
+  }
+  function handleBackdropClick(e) {
+    if (e.target.id === 'requestModal') closeRequestModal();
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeRequestModal();
+  });
+
+  async function submitMaterialRequest(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitReqBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+    const payload = {
+      subject: document.getElementById('reqSubjectInput').value.trim(),
+      exam_type: document.getElementById('reqExamTypeInput').value,
+      details: document.getElementById('reqDetailsInput').value.trim()
+    };
+
+    try {
+      const res = await fetch('/api/notes-in-demand/requests', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('newRequestForm').reset();
+        closeRequestModal();
+        try { sessionStorage.removeItem(CACHE_KEY_REQ); } catch(e) {}
+        loadDemandData(true);
+      } else {
+        alert(data.message || 'Could not submit request. Please try again.');
+      }
+    } catch(err) {
+      console.error("[Request] Submit error:", err);
+      alert('Network error while posting request.');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = 'Post Request';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => loadDemandData(false));
+</script>
+{% endblock %}

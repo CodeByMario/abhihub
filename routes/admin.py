@@ -87,8 +87,107 @@ def _trigger_indexnow_helper(urls: list):
 @auth_required
 @admin_required
 def admin_control_panel():
-    """Unified Admin Control Hub - Overview, Moderation, Students, Sentiment, Broadcast."""
-    return render_template('admin_notification_panel.html')
+    """Unified Admin Control Hub - Dashboard KPIs, attention queues, and conversion charts."""
+    return render_template('admin/dashboard.html')
+
+
+@admin_bp.route('/admin/promotions')
+@auth_required
+@admin_required
+def admin_promotions_page():
+    """Promotions and featured content slots management."""
+    return render_template('admin/promotions.html')
+
+
+@admin_bp.route('/admin/search')
+@admin_bp.route('/admin/insights')
+@auth_required
+@admin_required
+def admin_insights_page():
+    """Search queries, zero-result searches, and trending content insights."""
+    return render_template('admin/insights.html')
+
+
+@admin_bp.route('/admin/reviews')
+@auth_required
+@admin_required
+def admin_reviews_page():
+    """Moderate ratings, comments, and reviews across all documents."""
+    return render_template('admin/reviews.html')
+
+
+@admin_bp.route('/admin/reports')
+@auth_required
+@admin_required
+def admin_reports_page():
+    """Triage content issue reports, DMCA, viewer failure logs, and user support tickets."""
+    return render_template('admin/reports.html')
+
+
+@admin_bp.route('/admin/settings')
+@auth_required
+@admin_required
+def admin_settings_page():
+    """Platform configuration, commission rates, and maintenance toggles."""
+    return render_template('admin/settings.html')
+
+
+@admin_bp.route('/admin/security')
+@admin_bp.route('/admin/audit')
+@auth_required
+@admin_required
+def admin_security_page():
+    """Immutable audit trail, security events, and active administrator sessions."""
+    return render_template('admin/security.html')
+
+
+@admin_bp.route('/admin/users')
+@auth_required
+@admin_required
+def admin_users_page():
+    """User Management List with filters and server-side pagination."""
+    return render_template('admin/users.html')
+
+
+@admin_bp.route('/admin/users/<user_id>')
+@auth_required
+@admin_required
+def admin_user_detail_page(user_id):
+    """Detailed User view with moderation actions, ledger, notes, and activity timeline."""
+    return render_template('admin/user_detail.html', user_id=user_id)
+
+
+@admin_bp.route('/admin/files')
+@auth_required
+@admin_required
+def admin_files_page():
+    """All Files & Moderation Queue with inline preview and batch moderation."""
+    return render_template('admin/files.html')
+
+
+@admin_bp.route('/admin/files/<doc_id>')
+@auth_required
+@admin_required
+def admin_file_detail_page(doc_id):
+    """File detail view with metadata, stats, reports, and controls."""
+    return render_template('admin/file_detail.html', doc_id=doc_id)
+
+
+@admin_bp.route('/admin/files/duplicates')
+@admin_bp.route('/admin/duplicates')
+@auth_required
+@admin_required
+def admin_duplicates_page():
+    """Duplicate Explorer to detect and resolve identical file hashes and titles."""
+    return render_template('admin/duplicates.html')
+
+
+@admin_bp.route('/admin/taxonomy')
+@auth_required
+@admin_required
+def admin_taxonomy_page():
+    """Academic taxonomy manager: colleges, departments, subjects."""
+    return render_template('admin/taxonomy.html')
 
 
 @admin_bp.route('/admin/notification-panel')
@@ -225,7 +324,15 @@ def admin_file_reports_page():
 @admin_required
 def admin_payments_dashboard():
     """Admin payments & payouts management dashboard."""
-    return render_template('admin_payments.html')
+    return render_template('admin/payments.html')
+
+
+@admin_bp.route('/admin/payouts')
+@auth_required
+@admin_required
+def admin_payouts_dashboard():
+    """Admin payouts, KYC verification, and creator wallets management."""
+    return render_template('admin/payouts.html')
 
 
 # ─── Payment & Payout Admin Endpoints ────────────────────────────────────────
@@ -340,6 +447,179 @@ def admin_set_payment_transaction():
         return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
 
+@admin_bp.route('/api/admin/payment/manual-pending', methods=['GET'])
+@admin_bp.route('/api/admin/payments/manual-pending', methods=['GET'])
+@auth_required
+@admin_required
+def admin_manual_pending_payments():
+    """Fetch paginated manual payments with status 'submitted' awaiting verification."""
+    from services.admin_payment_service import list_pending_manual_payments
+    page = request.args.get('page', 1, type=int)
+    limit = request.args.get('limit', 12, type=int)
+    search = request.args.get('search')
+    res = list_pending_manual_payments(page=page, limit=limit, search=search)
+    return jsonify(res)
+
+
+@admin_bp.route('/api/admin/payment/manual-verify', methods=['POST'])
+@admin_bp.route('/api/admin/payments/manual-verify', methods=['POST'])
+@auth_required
+@admin_required
+def admin_manual_verify_payment():
+    """Verify a submitted manual payment, fulfill access, and credit creator atomically."""
+    from services.admin_payment_service import verify_manual_payment
+    data = request.get_json(silent=True) or {}
+    identifier = str(data.get('order_id') or data.get('id') or '').strip()
+    notes = data.get('notes')
+    if not identifier:
+        return jsonify({'success': False, 'error': 'order_id or id is required'}), 400
+
+    admin_user = session.get('user', {})
+    client_ip = request.headers.get('X-Forwarded-For', request.remote_addr or '').split(',')[0].strip()
+    ok, msg, tx = verify_manual_payment(identifier, admin_user, notes=notes, client_ip=client_ip)
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 400
+    return jsonify({'success': True, 'message': msg, 'transaction': tx})
+
+
+@admin_bp.route('/api/admin/payment/manual-reject', methods=['POST'])
+@admin_bp.route('/api/admin/payments/manual-reject', methods=['POST'])
+@auth_required
+@admin_required
+def admin_manual_reject_payment():
+    """Reject a submitted manual payment with mandatory reason."""
+    from services.admin_payment_service import reject_manual_payment
+    data = request.get_json(silent=True) or {}
+    identifier = str(data.get('order_id') or data.get('id') or '').strip()
+    reason = str(data.get('reason', '')).strip()
+    if not identifier:
+        return jsonify({'success': False, 'error': 'order_id or id is required'}), 400
+    if not reason:
+        return jsonify({'success': False, 'error': 'Rejection reason is required'}), 400
+
+    admin_user = session.get('user', {})
+    client_ip = request.headers.get('X-Forwarded-For', request.remote_addr or '').split(',')[0].strip()
+    ok, msg = reject_manual_payment(identifier, admin_user, reason=reason, client_ip=client_ip)
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 400
+    return jsonify({'success': True, 'message': msg})
+
+
+@admin_bp.route('/api/admin/payments/orders', methods=['GET'])
+@auth_required
+@admin_required
+def admin_get_orders_list():
+    """Fetch paginated platform orders with filters for gateway, status, and dates."""
+    from services.admin_payment_service import list_all_orders
+    page = max(1, request.args.get('page', 1, type=int))
+    limit = min(max(1, request.args.get('limit', 12, type=int)), 100)
+    status = request.args.get('status')
+    gateway = request.args.get('gateway')
+    search = request.args.get('search')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    res = list_all_orders(
+        page=page,
+        limit=limit,
+        status=status,
+        gateway=gateway,
+        search=search,
+        start_date=start_date,
+        end_date=end_date
+    )
+    return jsonify(res)
+
+
+@admin_bp.route('/api/admin/payments/<order_id>/refund', methods=['POST'])
+@admin_bp.route('/api/admin/payments/refund', methods=['POST'])
+@auth_required
+@admin_required
+def admin_refund_payment(order_id=None):
+    """
+    Process full or partial refund for a completed transaction:
+    Atomically revokes buyer access, debits creator wallet, and logs audit record.
+    """
+    from services.admin_payment_service import process_refund
+    data = request.get_json(silent=True) or {}
+    identifier = str(order_id or data.get('order_id') or data.get('id') or '').strip()
+    reason = str(data.get('reason', '')).strip()
+    amount = data.get('amount')
+    try:
+        amount = float(amount) if amount is not None else None
+    except (ValueError, TypeError):
+        amount = None
+
+    if not identifier:
+        return jsonify({'success': False, 'error': 'Order ID is required'}), 400
+    if not reason:
+        return jsonify({'success': False, 'error': 'Refund justification reason is required'}), 400
+
+    admin_user = session.get('user', {})
+    client_ip = request.headers.get('X-Forwarded-For', request.remote_addr or '').split(',')[0].strip()
+    ok, msg, tx = process_refund(identifier, admin_user, amount=amount, reason=reason, client_ip=client_ip)
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 400
+    return jsonify({'success': True, 'message': msg, 'transaction': tx})
+
+
+@admin_bp.route('/api/admin/payouts/bulk-approve', methods=['POST'])
+@auth_required
+@admin_required
+def admin_bulk_approve_payouts():
+    """Bulk approve pending creator payout requests."""
+    data = request.get_json(silent=True) or {}
+    payout_ids = data.get('payout_ids', [])
+    if not isinstance(payout_ids, list) or not payout_ids:
+        return jsonify({'success': False, 'error': 'A list of payout_ids is required'}), 400
+
+    from methods.wallet_service import process_payout_request
+    admin_user = session.get('user', {})
+    approved_count = 0
+    errors = []
+
+    for pid in payout_ids:
+        ok, msg = process_payout_request(str(pid), 'completed', admin_notes="Bulk approved by admin")
+        if ok:
+            approved_count += 1
+            log_admin_action('payout_bulk_approve', target=str(pid), details={'status': 'completed'})
+        else:
+            errors.append({'id': str(pid), 'error': msg})
+
+    return jsonify({
+        'success': True,
+        'approved_count': approved_count,
+        'total_requested': len(payout_ids),
+        'errors': errors
+    })
+
+
+@admin_bp.route('/api/admin/wallets/<user_id>', methods=['GET'])
+@auth_required
+@admin_required
+def admin_get_wallet_ledger(user_id):
+    """Fetch creator wallet summary and full immutable transaction ledger."""
+    client = init_supabase_admin() or init_supabase()
+    if not client:
+        return jsonify({'success': False, 'error': 'Database unavailable'}), 500
+
+    from methods.wallet_service import get_creator_wallet
+    w_res = get_creator_wallet(user_id)
+    wallet = w_res.get('wallet', {}) if w_res.get('success') else {}
+
+    try:
+        ledger_res = client.table('wallet_ledger').select('*').eq('creator_id', user_id).order('created_at', desc=True).limit(100).execute()
+        ledger = ledger_res.data or []
+    except Exception as e:
+        ledger = []
+
+    return jsonify({
+        'success': True,
+        'wallet': wallet,
+        'ledger': ledger
+    })
+
+
 @admin_bp.route('/api/admin/payouts', methods=['GET'])
 @auth_required
 @admin_required
@@ -402,7 +682,9 @@ def admin_kyc_list():
         elif status_filter == 'rejected':
             q = q.not_.is_('rejection_reason', 'null')
         res = q.order('submitted_at', desc=True).limit(100).execute()
-        return jsonify({'success': True, 'data': res.data or []})
+        from services.kyc_crypto_service import prepare_kyc_for_display
+        safe_data = [prepare_kyc_for_display(item) for item in (res.data or [])]
+        return jsonify({'success': True, 'data': safe_data})
     except Exception as e:
         return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
@@ -461,6 +743,61 @@ def admin_kyc_verify(kyc_id):
     except Exception as e:
         logging.error(f"[admin_kyc_verify] Failed to update KYC status: {e}", exc_info=True)
         return jsonify({'success': False, 'error': f'Failed to update KYC: {str(e)}'}), 500
+
+
+@admin_bp.route('/api/admin/kyc/<kyc_id>/reveal', methods=['POST'])
+@auth_required
+@admin_required
+def admin_kyc_reveal(kyc_id):
+    """
+    Superadmin action to decrypt and reveal sensitive financial details (PAN, Bank, UPI).
+    Enforces superadmin role rank and generates an immutable audit log entry.
+    """
+    admin_user = session.get('user', {})
+    from services.admin_service import has_min_role, record_audit_log
+    if not has_min_role(admin_user, 'superadmin'):
+        return jsonify({'success': False, 'error': 'Permission Denied: Superadmin role required to reveal sensitive KYC data.'}), 403
+
+    client = init_supabase_admin() or init_supabase()
+    if not client:
+        return jsonify({'success': False, 'error': 'Database unavailable'}), 500
+
+    data = request.get_json(silent=True) or {}
+    reason = str(data.get('reason', 'Verification audit')).strip()
+
+    res = client.table('user_kyc_details').select('*').eq('id', kyc_id).limit(1).execute()
+    if not res.data:
+        return jsonify({'success': False, 'error': 'KYC record not found'}), 404
+
+    kyc_rec = res.data[0]
+    from services.kyc_crypto_service import decrypt_kyc_value
+    unmasked_pan = decrypt_kyc_value(kyc_rec.get('pan_number'))
+    unmasked_account = decrypt_kyc_value(kyc_rec.get('account_number'))
+    unmasked_upi = decrypt_kyc_value(kyc_rec.get('upi_id'))
+
+    admin_id = admin_user.get('uid') or admin_user.get('id')
+    admin_email = admin_user.get('email', 'unknown_admin')
+    client_ip = request.headers.get('X-Forwarded-For', request.remote_addr or '').split(',')[0].strip()
+
+    record_audit_log(
+        admin_id=admin_id,
+        admin_email=admin_email,
+        action="kyc_reveal_credentials",
+        target_type="kyc",
+        target_id=kyc_id,
+        reason=reason,
+        ip_address=client_ip
+    )
+
+    return jsonify({
+        'success': True,
+        'pan_number': unmasked_pan,
+        'account_number': unmasked_account,
+        'upi_id': unmasked_upi,
+        'ifsc_code': kyc_rec.get('ifsc_code'),
+        'bank_name': kyc_rec.get('bank_name'),
+        'account_holder_name': kyc_rec.get('account_holder_name')
+    })
 
 
 @admin_bp.route('/api/admin/audit/export', methods=['GET'])
@@ -709,8 +1046,16 @@ def get_admin_broadcast_stats():
 @auth_required
 @admin_required
 def get_system_health():
-    """Live system health dashboard: DB, storage, cache, CPU, memory, active users."""
+    """Live system health dashboard: DB, storage, cache, CPU, memory, active users with 15s cache."""
     try:
+        from cache_manager import get_cache
+        cache = get_cache()
+        cache_key = "admin:system:health:v1"
+        if cache and hasattr(cache, 'l1'):
+            cached = cache.l1.get(cache_key)
+            if cached and cached[0]:
+                return jsonify({'success': True, 'health': cached[0]})
+
         client = init_supabase()
         db_ok = client is not None
         db_latency = None
@@ -727,7 +1072,7 @@ def get_system_health():
             mem_pct = round(usage.percent, 1)
             swap = psutil.swap_memory()
             swap_pct = round(swap.percent, 1)
-            cpu_pct = round(psutil.cpu_percent(interval=0.5), 1)
+            cpu_pct = round(psutil.cpu_percent(interval=None), 1)
             disk = psutil.disk_usage('/')
             disk_pct = round(disk.percent, 1)
         except Exception:
@@ -745,21 +1090,25 @@ def get_system_health():
         except Exception:
             cache_size = 'N/A'
         from push_notifications import load_subscriptions
+        health_data = {
+            'database': 'connected' if db_ok else 'disconnected',
+            'db_latency_ms': db_latency,
+            'cpu_percent': cpu_pct,
+            'memory_percent': mem_pct,
+            'swap_percent': swap_pct,
+            'disk_percent': disk_pct,
+            'active_chat_users': active_chat,
+            'active_http_users': active_http,
+            'cache_entries': cache_size,
+            'supabase_url': bool(os.getenv('SUPABASE_URL')),
+            'pusubscriptions': len(load_subscriptions()) if db_ok else 0,
+        }
+        if cache and hasattr(cache, 'l1'):
+            cache.l1.set(cache_key, health_data, ttl=15)
+
         return jsonify({
             'success': True,
-            'health': {
-                'database': 'connected' if db_ok else 'disconnected',
-                'db_latency_ms': db_latency,
-                'cpu_percent': cpu_pct,
-                'memory_percent': mem_pct,
-                'swap_percent': swap_pct,
-                'disk_percent': disk_pct,
-                'active_chat_users': active_chat,
-                'active_http_users': active_http,
-                'cache_entries': cache_size,
-                'supabase_url': bool(os.getenv('SUPABASE_URL')),
-                'pusubscriptions': len(load_subscriptions()) if db_ok else 0,
-            }
+            'health': health_data
         })
     except Exception as e:
         logging.error("[admin system-health] internal error")
@@ -947,7 +1296,7 @@ def admin_get_users():
         degree = request.args.get('category', '').strip()
         sort_by = request.args.get('sort', 'recent').strip()
         page = max(1, request.args.get('page', 1, type=int))
-        limit = min(max(1, request.args.get('limit', 50, type=int)), 100)
+        limit = min(max(1, request.args.get('limit', 12, type=int)), 100)
 
         result = list_users(
             search=search,
@@ -1253,8 +1602,8 @@ def admin_get_user_stats(user_id):
         views_res = client.table('document_views').select('accessed_at, documents(title)').eq('user_id', user_id).order('accessed_at', desc=True).limit(20).execute()
         viewed_files = views_res.data or []
         
-        # Fetch user's view credits, referral balance, access_level, and rank_title
-        prof_res = client.table('profiles').select('paper_quota_remaining, referral_credits, access_level, rank_title, abhihub_score, reputation_score').eq('id', user_id).limit(1).execute()
+        # Fetch full user profile details
+        prof_res = client.table('profiles').select('id, full_name, email, role, degree, created_at, token_version, is_blocked, blocked_reason, blocked_until, is_banned, banned_reason, paper_quota_remaining, referral_credits, access_level, rank_title, abhihub_score, reputation_score').eq('id', user_id).limit(1).execute()
         prof_data = prof_res.data[0] if prof_res.data else {}
         paper_quota = prof_data.get('paper_quota_remaining')
         if paper_quota is None:
@@ -1266,6 +1615,7 @@ def admin_get_user_stats(user_id):
         from methods.wallet_service import get_creator_wallet
         w_data = get_creator_wallet(user_id)
         wallet_info = w_data.get('wallet', {}) if w_data.get('success') else {}
+        wallet_balance = float(wallet_info.get('balance', 0.0) or 0.0)
 
         # Fetch user's KYC application details (project non-sensitive status columns only)
         kyc_res = client.table('user_kyc_details').select('id, user_id, full_name, is_verified, submitted_at, verified_at, rejection_reason').eq('user_id', user_id).limit(1).execute()
@@ -1273,6 +1623,21 @@ def admin_get_user_stats(user_id):
 
         return jsonify({
             'success': True,
+            'id': user_id,
+            'name': prof_data.get('full_name') or 'Anonymous',
+            'full_name': prof_data.get('full_name') or 'Anonymous',
+            'email': prof_data.get('email') or '',
+            'role': prof_data.get('role') or 'student',
+            'college': prof_data.get('degree') or 'General',
+            'created_at': prof_data.get('created_at') or '',
+            'token_version': prof_data.get('token_version', 1),
+            'paper_quota': paper_quota,
+            'wallet_balance': wallet_balance,
+            'is_blocked': bool(prof_data.get('is_blocked', False)),
+            'is_banned': bool(prof_data.get('is_banned', False)),
+            'blocked_until': prof_data.get('blocked_until'),
+            'block_reason': prof_data.get('blocked_reason') or prof_data.get('block_reason'),
+            'uploaded_files': uploaded_files,
             'stats': {
                 'last_visit': last_visit,
                 'uploaded_files': uploaded_files,
@@ -1286,7 +1651,8 @@ def admin_get_user_stats(user_id):
             }
         })
     except Exception as e:
-        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
+        logging.error(f"[admin_get_user_stats] Error: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': f'Failed loading user stats: {str(e)}'}), 500
 
 
 @admin_bp.route('/api/admin/update-user-credits', methods=['POST'])
@@ -1410,6 +1776,13 @@ def get_admin_stats():
         except Exception:
             pass
 
+        pending_utr_count = 0
+        try:
+            utr_res = client.table('credit_transactions').select('id', count='exact').eq('status', 'submitted').execute()
+            pending_utr_count = getattr(utr_res, 'count', None) or len(utr_res.data or [])
+        except Exception:
+            pass
+
         # High-Priority Admin Special Notifications (High / Critical ONLY)
         special_notifications = []
         try:
@@ -1449,6 +1822,17 @@ def get_admin_stats():
                 'action_label': 'Review Payouts'
             })
 
+        if pending_utr_count > 0:
+            special_notifications.append({
+                'id': 'manual_utr_pending',
+                'priority': 'critical',
+                'icon': 'fa-shield-check',
+                'title': f'{pending_utr_count} Manual Payment(s) Awaiting Verification',
+                'description': 'Students submitted UTR receipts that require verification before unlock.',
+                'link': '/admin/payments',
+                'action_label': 'Verify Payments'
+            })
+
         if pending_docs > 0:
             special_notifications.append({
                 'id': 'moderation_queue',
@@ -1482,7 +1866,8 @@ def get_admin_stats():
                 'total_messages': messages_count,
                 'pending_payouts_count': pending_payouts_count,
                 'pending_payouts_amount': pending_payouts_amount,
-                'pending_reports_count': pending_reports_count
+                'pending_reports_count': pending_reports_count,
+                'pending_utr_count': pending_utr_count
             },
             'special_notifications': special_notifications
         })
@@ -2009,7 +2394,7 @@ def approve_document():
                     'document_approved',
                     f"Material Approved: {doc_title[:30]}",
                     notif_msg,
-                    url=f"/view/{doc_id}"
+                    url=f"/resources/{doc_id}"
                 )
             except Exception:
                 pass
@@ -2563,7 +2948,7 @@ def admin_get_files():
         search = request.args.get('q', '').strip()
         status = request.args.get('status', '').strip()
         page = max(1, request.args.get('page', 1, type=int))
-        limit = min(max(1, request.args.get('limit', 50, type=int)), 100)
+        limit = min(max(1, request.args.get('limit', 12, type=int)), 100)
 
         result = list_files(search=search, status=status, page=page, limit=limit)
         return jsonify(result)
@@ -2633,7 +3018,7 @@ def admin_get_audit_logs():
     admin_id = request.args.get('admin_id')
     target_type = request.args.get('target_type')
     page = max(1, request.args.get('page', 1, type=int))
-    limit = min(max(1, request.args.get('limit', 50, type=int)), 100)
+    limit = min(max(1, request.args.get('limit', 12, type=int)), 100)
 
     from services.admin_service import get_audit_logs
     res = get_audit_logs(action=action, admin_id=admin_id, target_type=target_type, page=page, limit=limit)
@@ -2686,3 +3071,569 @@ def admin_update_setting():
     if not ok:
         return jsonify({'success': False, 'error': msg}), 400
     return jsonify({'success': True, 'message': msg})
+
+# ── Phase 2: User Action APIs & Duplicate Explorer ────────────────────────────
+
+@admin_bp.route('/api/admin/users/<user_id>/force-logout', methods=['POST'])
+@auth_required
+@admin_required
+def admin_force_logout(user_id):
+    if not user_id or not validate_uuid(user_id):
+        return jsonify({'success': False, 'error': 'Valid user UUID required'}), 400
+    admin_user = session.get('user', {})
+    from services.admin_service import force_logout_user
+    ok, msg = force_logout_user(admin_user, user_id)
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 403
+    return jsonify({'success': True, 'message': msg})
+
+
+@admin_bp.route('/api/admin/users/<user_id>/warn', methods=['POST'])
+@auth_required
+@admin_required
+def admin_warn_user(user_id):
+    if not user_id or not validate_uuid(user_id):
+        return jsonify({'success': False, 'error': 'Valid user UUID required'}), 400
+    data = request.get_json(silent=True) or {}
+    reason = str(data.get('reason', '')).strip()
+    if not reason:
+        return jsonify({'success': False, 'error': 'Warning reason is required'}), 400
+    admin_user = session.get('user', {})
+    from services.admin_service import warn_user
+    ok, msg = warn_user(admin_user, user_id, reason)
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 400
+    return jsonify({'success': True, 'message': msg})
+
+
+@admin_bp.route('/api/admin/users/<user_id>/notes', methods=['GET', 'POST'])
+@auth_required
+@admin_required
+def admin_user_notes(user_id):
+    if not user_id or not validate_uuid(user_id):
+        return jsonify({'success': False, 'error': 'Valid user UUID required'}), 400
+    from services.admin_service import get_admin_notes, add_admin_note
+    admin_user = session.get('user', {})
+    if request.method == 'POST':
+        data = request.get_json(silent=True) or {}
+        note = str(data.get('note', '')).strip()
+        if not note:
+            return jsonify({'success': False, 'error': 'Note text is required'}), 400
+        ok, msg = add_admin_note(admin_user, user_id, note)
+        return jsonify({'success': ok, 'message': msg})
+    notes = get_admin_notes(user_id)
+    return jsonify({'success': True, 'notes': notes})
+
+
+@admin_bp.route('/api/admin/users/<user_id>/wallet-adjust', methods=['POST'])
+@auth_required
+@admin_required
+def admin_user_wallet_adjust(user_id):
+    if not user_id or not validate_uuid(user_id):
+        return jsonify({'success': False, 'error': 'Valid user UUID required'}), 400
+    data = request.get_json(silent=True) or {}
+    amount = data.get('amount')
+    reason = str(data.get('reason', '')).strip()
+    admin_user = session.get('user', {})
+    from services.admin_service import adjust_user_wallet
+    ok, msg = adjust_user_wallet(admin_user, user_id, amount, reason)
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 400
+    return jsonify({'success': True, 'message': msg})
+
+
+@admin_bp.route('/api/admin/files/duplicates', methods=['GET'])
+@auth_required
+@admin_required
+def admin_get_duplicate_files():
+    from services.admin_service import find_duplicate_files
+    groups = find_duplicate_files()
+    return jsonify({'success': True, 'groups': groups, 'total_groups': len(groups)})
+
+
+@admin_bp.route('/api/admin/files/duplicates/resolve', methods=['POST'])
+@auth_required
+@admin_required
+def admin_resolve_duplicate_files():
+    data = request.get_json(silent=True) or {}
+    keep_doc_id = str(data.get('keep_doc_id', '')).strip()
+    remove_doc_ids = data.get('remove_doc_ids', [])
+    reason = str(data.get('reason', 'Admin duplicate resolution')).strip()
+    admin_user = session.get('user', {})
+    from services.admin_service import resolve_duplicate_group
+    ok, msg = resolve_duplicate_group(admin_user, keep_doc_id, remove_doc_ids, reason)
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 400
+    return jsonify({'success': True, 'message': msg})
+
+
+@admin_bp.route('/api/admin/taxonomy', methods=['GET', 'POST'])
+@auth_required
+@admin_required
+def admin_get_or_save_taxonomy():
+    """Retrieve or mutate academic taxonomy items."""
+    if request.method == 'GET':
+        from services.admin_service import get_taxonomy_overview
+        return jsonify({'success': True, 'taxonomy': get_taxonomy_overview()})
+
+    data = request.get_json(silent=True) or {}
+    item_type = str(data.get('type', '')).strip().lower()
+    item_id = data.get('id')
+    name = str(data.get('name', '')).strip()
+    code = str(data.get('code', '')).strip()
+    city = str(data.get('city', '')).strip()
+
+    admin_user = session.get('user', {})
+    from services.admin_service import save_taxonomy_item
+    ok, msg = save_taxonomy_item(admin_user, item_type, item_id, name, code, city)
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 400
+    return jsonify({'success': True, 'message': msg})
+
+
+@admin_bp.route('/api/admin/taxonomy/<item_type>/<item_id>', methods=['DELETE'])
+@auth_required
+@admin_required
+def admin_delete_taxonomy(item_type, item_id):
+    """Delete a taxonomy node if no documents are linked."""
+    reason = request.args.get('reason', '')
+    admin_user = session.get('user', {})
+    from services.admin_service import delete_taxonomy_item
+    ok, msg = delete_taxonomy_item(admin_user, item_type, item_id, reason=reason)
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 400
+    return jsonify({'success': True, 'message': msg})
+
+
+@admin_bp.route('/api/admin/taxonomy/colleges/<college_id>/departments', methods=['GET', 'POST'])
+@auth_required
+@admin_required
+def admin_college_departments(college_id):
+    """List or link departments for a college."""
+    from services.admin_service import get_college_departments, link_college_department
+    if request.method == 'GET':
+        depts = get_college_departments(college_id)
+        return jsonify({'success': True, 'departments': depts})
+
+    admin_user = session.get('user', {})
+    data = request.get_json(silent=True) or {}
+    department_id = str(data.get('department_id', '')).strip()
+    if not department_id:
+        return jsonify({'success': False, 'error': 'Department ID is required'}), 400
+
+    ok, msg = link_college_department(admin_user, college_id, department_id)
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 400
+    return jsonify({'success': True, 'message': msg})
+
+
+@admin_bp.route('/api/admin/taxonomy/colleges/<college_id>/departments/<department_id>', methods=['DELETE'])
+@auth_required
+@admin_required
+def admin_unlink_college_department(college_id, department_id):
+    """Unlink a department from a college."""
+    from services.admin_service import unlink_college_department
+    admin_user = session.get('user', {})
+    ok, msg = unlink_college_department(admin_user, college_id, department_id)
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 400
+    return jsonify({'success': True, 'message': msg})
+
+
+# ─── Phase 4 API Endpoints: Dashboard, Promotions, Insights ──────────────────
+
+@admin_bp.route('/api/admin/dashboard/metrics', methods=['GET'])
+@auth_required
+@admin_required
+def admin_dashboard_metrics():
+    """Fetch high-level KPI cards, attention counts, and conversion funnel charts."""
+    days = max(1, request.args.get('days', 30, type=int))
+    refresh = request.args.get('refresh', '').lower() in {'true', '1', 'yes'}
+    from services.admin_service import get_admin_dashboard_metrics
+    data = get_admin_dashboard_metrics(days=days, bypass_cache=refresh)
+    return jsonify(data)
+
+
+@admin_bp.route('/api/admin/promotions', methods=['GET'])
+@auth_required
+@admin_required
+def admin_get_promotions():
+    """Fetch paginated promotions with slot and status filters."""
+    slot = request.args.get('slot')
+    status = request.args.get('status')
+    page = max(1, request.args.get('page', 1, type=int))
+    limit = min(max(1, request.args.get('limit', 12, type=int)), 100)
+    from services.admin_service import list_promotions
+    return jsonify(list_promotions(slot=slot, status=status, page=page, limit=limit))
+
+
+@admin_bp.route('/api/admin/promotions', methods=['POST'])
+@auth_required
+@admin_required
+def admin_create_promotion():
+    """Promote a document to a designated slot."""
+    data = request.get_json(silent=True) or {}
+    document_id = str(data.get('document_id', '')).strip()
+    slot = str(data.get('slot', 'recommended')).strip().lower()
+    priority = data.get('priority', 0)
+    starts_at = data.get('starts_at')
+    ends_at = data.get('ends_at')
+    promo_type = str(data.get('type', 'admin')).strip().lower()
+    amount_paid = data.get('amount_paid', 0.0)
+
+    if not document_id:
+        return jsonify({'success': False, 'error': 'document_id is required'}), 400
+
+    admin_user = session.get('user', {})
+    from services.admin_service import create_promotion
+    ok, msg, created = create_promotion(
+        admin_user,
+        document_id=document_id,
+        slot=slot,
+        priority=priority,
+        starts_at=starts_at,
+        ends_at=ends_at,
+        promo_type=promo_type,
+        amount_paid=amount_paid
+    )
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 400
+    return jsonify({'success': True, 'message': msg, 'promotion': created})
+
+
+@admin_bp.route('/api/admin/promotions/<promo_id>/status', methods=['POST'])
+@auth_required
+@admin_required
+def admin_update_promotion_status(promo_id):
+    """Change status of a promotion (e.g. paused, expired, active, deleted)."""
+    data = request.get_json(silent=True) or {}
+    status = str(data.get('status', '')).strip().lower()
+    if not status:
+        return jsonify({'success': False, 'error': 'Status is required'}), 400
+
+    admin_user = session.get('user', {})
+    from services.admin_service import update_promotion_status
+    ok, msg = update_promotion_status(admin_user, promo_id, status)
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 400
+    return jsonify({'success': True, 'message': msg})
+
+
+@admin_bp.route('/api/admin/insights', methods=['GET'])
+@auth_required
+@admin_required
+def admin_get_insights():
+    """Fetch top search queries, zero-result terms, and trending documents."""
+    days = max(1, request.args.get('days', 30, type=int))
+    from services.admin_service import get_search_and_trending_insights
+    return jsonify(get_search_and_trending_insights(days=days))
+
+
+# ─── Phase 5 API Endpoints: Reviews, Support & Security Audit ────────────────
+
+@admin_bp.route('/api/admin/reviews', methods=['GET'])
+@auth_required
+@admin_required
+def admin_get_reviews():
+    """Fetch paginated document reviews with rating, status, and search filters."""
+    status = request.args.get('status')
+    rating = request.args.get('rating', type=int)
+    search = request.args.get('search')
+    page = max(1, request.args.get('page', 1, type=int))
+    limit = min(max(1, request.args.get('limit', 12, type=int)), 100)
+    from services.admin_service import list_reviews
+    return jsonify(list_reviews(status=status, rating=rating, search=search, page=page, limit=limit))
+
+
+@admin_bp.route('/api/admin/reviews/<review_id>/status', methods=['POST'])
+@auth_required
+@admin_required
+def admin_set_review_status(review_id):
+    """Update review status (approved, hidden, rejected) or flag as fake."""
+    data = request.get_json(silent=True) or {}
+    status = str(data.get('status', 'approved')).strip().lower()
+    flagged_fake = data.get('flagged_as_fake')
+    admin_user = session.get('user', {})
+    from services.admin_service import update_review_status
+    ok, msg = update_review_status(admin_user, review_id, status, flagged_fake=flagged_fake)
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 400
+    return jsonify({'success': True, 'message': msg})
+
+
+@admin_bp.route('/api/admin/reviews/<review_id>', methods=['DELETE'])
+@auth_required
+@admin_required
+def admin_remove_review(review_id):
+    """Delete review permanently."""
+    reason = request.args.get('reason', '')
+    admin_user = session.get('user', {})
+    from services.admin_service import delete_review
+    ok, msg = delete_review(admin_user, review_id, reason=reason)
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 400
+    return jsonify({'success': True, 'message': msg})
+
+
+@admin_bp.route('/api/admin/support/tickets', methods=['GET'])
+@auth_required
+@admin_required
+def admin_get_support_tickets():
+    """Fetch paginated user support tickets."""
+    status = request.args.get('status')
+    priority = request.args.get('priority')
+    page = max(1, request.args.get('page', 1, type=int))
+    limit = min(max(1, request.args.get('limit', 12, type=int)), 100)
+    from services.admin_service import list_support_tickets
+    return jsonify(list_support_tickets(status=status, priority=priority, page=page, limit=limit))
+
+
+@admin_bp.route('/api/admin/support/tickets/<ticket_id>/status', methods=['POST'])
+@auth_required
+@admin_required
+def admin_set_ticket_status(ticket_id):
+    """Update ticket status and record admin resolution notes."""
+    data = request.get_json(silent=True) or {}
+    status = str(data.get('status', 'resolved')).strip().lower()
+    notes = str(data.get('resolution_notes', '')).strip()
+    admin_user = session.get('user', {})
+    from services.admin_service import update_ticket_status
+    ok, msg = update_ticket_status(admin_user, ticket_id, status, resolution_notes=notes)
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 400
+    return jsonify({'success': True, 'message': msg})
+
+
+@admin_bp.route('/api/admin/security/audit-logs', methods=['GET'])
+@auth_required
+@admin_required
+def admin_security_audit_logs_api():
+    """Fetch immutable administrative audit logs with filter search."""
+    search = request.args.get('search')
+    action = request.args.get('action')
+    page = max(1, request.args.get('page', 1, type=int))
+    limit = min(max(1, request.args.get('limit', 12, type=int)), 100)
+    from services.admin_service import list_audit_logs
+    return jsonify(list_audit_logs(search=search, action=action, page=page, limit=limit))
+
+
+# ─── User Experience & Diagnostic Endpoints ───────────────────────────────────
+
+@admin_bp.route('/api/admin/users/<user_id>/experience', methods=['GET'])
+@auth_required
+@admin_required
+def admin_get_user_experience(user_id):
+    """Retrieve full Experience Snapshot for a specific user."""
+    from services.admin_service import get_user_experience_snapshot
+    res = get_user_experience_snapshot(user_id)
+    if not res.get('success'):
+        return jsonify(res), 404
+    return jsonify(res)
+
+
+@admin_bp.route('/api/admin/users/<user_id>/diagnose-access/<document_id>', methods=['GET'])
+@auth_required
+@admin_required
+def admin_diagnose_document_access(user_id, document_id):
+    """Itemized pass/fail diagnostic on why user can or cannot access note X."""
+    from services.admin_service import diagnose_document_access
+    res = diagnose_document_access(user_id, document_id)
+    return jsonify(res)
+
+
+# ─── Level 2 & 3: View-As and Activity Timeline Endpoints ─────────────────────
+
+@admin_bp.route('/api/admin/users/<user_id>/view-as/start', methods=['POST'])
+@auth_required
+@admin_required
+def admin_start_view_as(user_id):
+    """Start read-only View-As impersonation session for troubleshooting."""
+    data = request.get_json(silent=True) or {}
+    reason = str(data.get('reason', '')).strip()
+    admin_user = session.get('user', {})
+
+    from services.admin_service import start_view_as_session
+    ok, msg, view_as_data, sanitized_user = start_view_as_session(
+        admin_user=admin_user,
+        target_user_id=user_id,
+        reason=reason,
+        ip=request.remote_addr,
+        ua=request.headers.get('User-Agent')
+    )
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 403
+
+    # Swap active session to target user while preserving admin identity
+    session['admin_user_orig'] = session.get('user')
+    session['view_as'] = view_as_data
+    session['user'] = sanitized_user
+    session.modified = True
+
+    return jsonify({
+        'success': True,
+        'message': msg,
+        'view_as': view_as_data
+    })
+
+
+@admin_bp.route('/api/admin/view-as/stop', methods=['POST'])
+def admin_stop_view_as():
+    """Conclude active View-As impersonation session and restore admin identity."""
+    view_as = session.get('view_as')
+    if not view_as:
+        return jsonify({'success': True, 'message': 'No active View-As session.'})
+
+    target_id = view_as.get('user_id')
+    pages_visited = view_as.get('pages_visited', [])
+    admin_orig = session.pop('admin_user_orig', None)
+
+    # Restore admin identity
+    if admin_orig:
+        session['user'] = admin_orig
+    session.pop('view_as', None)
+    session.modified = True
+
+    from services.admin_service import stop_view_as_session
+    stop_view_as_session(
+        admin_user=admin_orig or session.get('user', {}),
+        target_user_id=target_id,
+        pages_visited=pages_visited,
+        ip=request.remote_addr,
+        ua=request.headers.get('User-Agent')
+    )
+
+    return jsonify({
+        'success': True,
+        'message': 'View-As session concluded.',
+        'target_id': target_id
+    })
+
+
+@admin_bp.route('/api/admin/users/<user_id>/activity-timeline', methods=['GET'])
+@auth_required
+@admin_required
+def admin_get_user_activity_timeline_api(user_id):
+    """Retrieve paginated activity events and device distribution for user."""
+    event_type = request.args.get('event_type')
+    page = max(1, request.args.get('page', 1, type=int))
+    limit = min(max(1, request.args.get('limit', 12, type=int)), 100)
+    from services.admin_service import get_user_activity_timeline
+    return jsonify(get_user_activity_timeline(user_id, event_type=event_type, page=page, limit=limit))
+
+
+# ─── Academic Timetables Management ──────────────────────────────────────────
+
+@admin_bp.route('/admin/timetables')
+@auth_required
+@admin_required
+def admin_timetables_page():
+    """Timetable & Examination Schedule Administration."""
+    from methods.supabase_helper import init_supabase, init_supabase_admin
+    client = init_supabase_admin() or init_supabase()
+    depts = []
+    if client:
+        try:
+            depts = client.table('departments').select('id, name, abbreviation').order('name').execute().data or []
+        except Exception:
+            depts = []
+    return render_template('admin/timetables.html', departments=depts)
+
+
+@admin_bp.route('/admin/api/timetables', methods=['GET'])
+@auth_required
+@admin_required
+def admin_get_timetables_api():
+    """Fetch timetable schedules with filters."""
+    from services.timetable_service import get_timetables
+    filters = {
+        'college_id': request.args.get('college_id'),
+        'department_id': request.args.get('department_id'),
+        'semester': request.args.get('semester'),
+        'academic_term': request.args.get('academic_term'),
+        'exam_type': request.args.get('exam_type')
+    }
+    return jsonify(get_timetables(filters))
+
+
+@admin_bp.route('/admin/api/timetables/exam', methods=['POST'])
+@auth_required
+@admin_required
+def admin_create_exam_schedule_api():
+    """Create a new examination schedule."""
+    from services.timetable_service import save_exam_schedule
+    data = request.get_json() or {}
+    admin_user = session.get('user', {})
+    res = save_exam_schedule(data, admin_user)
+    return jsonify(res), (200 if res.get('success') else 400)
+
+
+@admin_bp.route('/admin/api/timetables/exam/<schedule_id>', methods=['PUT', 'DELETE'])
+@auth_required
+@admin_required
+def admin_manage_exam_schedule_api(schedule_id):
+    """Update or archive an examination schedule."""
+    from services.timetable_service import save_exam_schedule, delete_exam_schedule
+    admin_user = session.get('user', {})
+    if request.method == 'DELETE':
+        res = delete_exam_schedule(schedule_id, admin_user)
+        return jsonify(res), (200 if res.get('success') else 400)
+    data = request.get_json() or {}
+    res = save_exam_schedule(data, admin_user, schedule_id=schedule_id)
+    return jsonify(res), (200 if res.get('success') else 400)
+
+
+@admin_bp.route('/admin/api/timetables/bulk-import', methods=['POST'])
+@auth_required
+@admin_required
+def admin_bulk_import_timetables_api():
+    """Validate & Preview CSV/JSON upload of timetables."""
+    from services.timetable_service import parse_and_preview_import
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'No file uploaded'}), 400
+    file = request.files['file']
+    college_id = request.form.get('college_id') or "87928d20-edb3-4185-94e3-b0678470e850"
+    res = parse_and_preview_import(file.stream, college_id=college_id)
+    return jsonify(res), (200 if res.get('success') else 400)
+
+
+@admin_bp.route('/admin/api/timetables/aliases/merge', methods=['POST'])
+@auth_required
+@admin_required
+def admin_merge_aliases_api():
+    """Merge course code variant into canonical course."""
+    from services.timetable_service import merge_course_aliases
+    data = request.get_json() or {}
+    sub_id = data.get('subject_id')
+    alias = data.get('alias')
+    if not sub_id and data.get('subject_code'):
+        from methods.supabase_helper import init_supabase
+        c = init_supabase()
+        if c:
+            s_res = c.table('subjects').select('id').eq('subject_code', data['subject_code'].strip().upper()).limit(1).execute()
+            if s_res.data:
+                sub_id = s_res.data[0]['id']
+    admin_user = session.get('user', {})
+    if not sub_id or not alias:
+        return jsonify({'success': False, 'message': 'Missing subject_id or alias'}), 400
+    res = merge_course_aliases(sub_id, alias, admin_user)
+    return jsonify(res), (200 if res.get('success') else 400)
+
+
+@admin_bp.route('/admin/api/timetables/template', methods=['GET'])
+@auth_required
+@admin_required
+def admin_download_timetable_template():
+    """Return CSV template for timetable bulk imports."""
+    from flask import Response
+    csv_content = (
+        "programme,branch,semester,section,course_code,course_name,exam_date,time,exam_type,academic_term\n"
+        "B.Tech,Computer Science & Engineering,III,A,UNCSP201,Data Structures and Algorithms,2026-11-20,10:00 AM To 01:00 PM,THEORY,Winter 2026\n"
+        "B.Tech,Information Technology,V,B,UNCSP304,Operating System,2026-11-26,10:00 AM Onwards,PRACTICAL,Winter 2026\n"
+    )
+    return Response(
+        csv_content,
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment;filename=timetable_template.csv"}
+    )
+
+

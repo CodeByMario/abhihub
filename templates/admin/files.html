@@ -1,0 +1,455 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Files & Moderation Queue{% endblock %}
+
+{% block admin_content %}
+<div class="page-header-row">
+    <div>
+        <h1 class="page-title"><i class="fas fa-file-lines" style="color:var(--accent-sky);"></i> Files & Notes Repository</h1>
+        <p class="page-desc">Review pending student submissions, moderate content, detect duplicates, and manage listings.</p>
+    </div>
+    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+        <a href="/admin/files/duplicates" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);">
+            <i class="fas fa-clone" style="color:var(--accent-amber);"></i> Duplicate Explorer
+        </a>
+        <a href="/admin/taxonomy" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);">
+            <i class="fas fa-sitemap" style="color:var(--accent-emerald);"></i> Academic Taxonomy
+        </a>
+        <button type="button" class="btn-action danger" id="btnBulkDeleteFiles" style="display:none;" onclick="bulkDeleteFiles()">
+            <i class="fas fa-trash"></i> Bulk Delete (<span id="selectedFilesCount">0</span>)
+        </button>
+    </div>
+</div>
+
+<!-- Tabs Bar -->
+<div style="display:flex; gap:0.5rem; margin-bottom:1.5rem; background:var(--bg-surface); padding:0.35rem; border-radius:var(--radius-md); border:1px solid var(--border-subtle); width:fit-content;">
+    <button type="button" class="btn-action primary" id="tabBtnPending" onclick="switchFilesTab('pending')">
+        <i class="fas fa-clipboard-check"></i> Moderation Queue (<span id="pendingQueueBadge">0</span>)
+    </button>
+    <button type="button" class="btn-action" id="tabBtnAll" style="background:transparent; color:var(--text-secondary);" onclick="switchFilesTab('all')">
+        <i class="fas fa-folder"></i> All Platform Files
+    </button>
+</div>
+
+<!-- Panel 1: Moderation Queue -->
+<div id="panelPendingFiles">
+    <div class="table-responsive">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Document</th>
+                    <th>Uploader</th>
+                    <th>College / Category</th>
+                    <th>Type / Price</th>
+                    <th>Uploaded</th>
+                    <th>Quick Review</th>
+                </tr>
+            </thead>
+            <tbody id="pendingFilesTbody">
+                <tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Loading pending submissions...</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1rem;" id="pendingPaginationRow">
+        <div style="font-size:0.82rem; color:var(--text-secondary);" id="pendingPaginationSummary"></div>
+        <div style="display:flex; gap:0.4rem;" id="pendingPaginationBtns"></div>
+    </div>
+</div>
+
+<!-- Panel 2: All Files -->
+<div id="panelAllFiles" style="display:none;">
+    <div class="filter-bar">
+        <input type="text" id="allFilesSearch" class="filter-input" placeholder="Search title, subject, uploader..." style="flex:1; min-width:220px;" onkeyup="if(event.key==='Enter') loadAllFiles(1)">
+        <select id="allFilesStatus" class="filter-select" onchange="loadAllFiles(1)">
+            <option value="">All Statuses</option>
+            <option value="approved">Approved</option>
+            <option value="pending">Pending</option>
+            <option value="rejected">Rejected</option>
+            <option value="quarantined">Quarantined</option>
+            <option value="deleted">Deleted</option>
+        </select>
+        <select id="allFilesPricing" class="filter-select" onchange="loadAllFiles(1)">
+            <option value="">All Pricing</option>
+            <option value="free">Free</option>
+            <option value="paid">Paid</option>
+        </select>
+        <button type="button" class="btn-action primary" onclick="loadAllFiles(1)"><i class="fas fa-filter"></i> Apply</button>
+    </div>
+
+    <div class="table-responsive">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th style="width:36px;"><input type="checkbox" onchange="toggleSelectAllFiles(this)"></th>
+                    <th>Document</th>
+                    <th>Status</th>
+                    <th>Price</th>
+                    <th>Views</th>
+                    <th>Uploaded</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="allFilesTbody">
+                <tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-muted);">Loading files...</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1rem;" id="allFilesPaginationRow">
+        <div style="font-size:0.82rem; color:var(--text-secondary);" id="allFilesPaginationSummary"></div>
+        <div style="display:flex; gap:0.4rem;" id="allFilesPaginationBtns"></div>
+    </div>
+</div>
+
+<!-- Inline PDF Preview Modal -->
+<div class="modal-backdrop" id="docPreviewModal">
+    <div class="confirm-modal" style="max-width:850px; width:95%; height:85vh; display:flex; flex-direction:column;">
+        <div class="confirm-modal-header" style="justify-content:space-between;">
+            <h3 class="confirm-modal-title" id="previewModalTitle"><i class="fas fa-file-pdf text-rose-500"></i> Document Preview</h3>
+            <button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-secondary);" onclick="closePreviewModal()"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div style="flex:1; background:#000; border-radius:var(--radius-sm); overflow:hidden; position:relative;" id="previewModalBody">
+            <iframe id="pdfPreviewIframe" style="width:100%; height:100%; border:none;" src="about:blank"></iframe>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1rem;" id="previewModalFooter">
+            <button type="button" class="btn-action" style="background:var(--border-subtle);" onclick="closePreviewModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentTab = 'pending';
+let selectedFileIds = new Set();
+
+function switchFilesTab(tab) {
+    currentTab = tab;
+    const btnPending = document.getElementById('tabBtnPending');
+    const btnAll = document.getElementById('tabBtnAll');
+    const panelPending = document.getElementById('panelPendingFiles');
+    const panelAll = document.getElementById('panelAllFiles');
+
+    if (tab === 'pending') {
+        btnPending.className = 'btn-action primary';
+        btnAll.className = 'btn-action';
+        btnAll.style.background = 'transparent';
+        btnAll.style.color = 'var(--text-secondary)';
+        panelPending.style.display = 'block';
+        panelAll.style.display = 'none';
+        loadPendingFiles();
+    } else {
+        btnAll.className = 'btn-action primary';
+        btnPending.className = 'btn-action';
+        btnPending.style.background = 'transparent';
+        btnPending.style.color = 'var(--text-secondary)';
+        panelAll.style.display = 'block';
+        panelPending.style.display = 'none';
+        loadAllFiles(1);
+    }
+}
+
+let pendingDocsCache = [];
+let currentPendingPage = 1;
+let currentAllFilesPage = 1;
+
+async function loadPendingFiles(page = 1) {
+    currentPendingPage = page;
+    const tbody = document.getElementById('pendingFilesTbody');
+    const summary = document.getElementById('pendingPaginationSummary');
+    const btns = document.getElementById('pendingPaginationBtns');
+
+    if (page === 1 || !pendingDocsCache.length) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Checking moderation queue...</td></tr>`;
+        try {
+            const res = await fetch('/api/admin/pending-documents');
+            const data = await res.json();
+            pendingDocsCache = data.documents || data.pending_documents || [];
+            document.getElementById('pendingQueueBadge').textContent = pendingDocsCache.length;
+        } catch (e) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--accent-rose);">Error loading pending files: ${e.message}</td></tr>`;
+            return;
+        }
+    }
+
+    const total = pendingDocsCache.length;
+    if (!total) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:3rem; color:var(--text-muted);"><i class="fas fa-check-circle" style="color:var(--accent-emerald); font-size:2rem; display:block; margin-bottom:0.5rem;"></i> Moderation queue is clear! All documents reviewed.</td></tr>`;
+        if (summary) summary.textContent = '';
+        if (btns) btns.innerHTML = '';
+        return;
+    }
+
+    const totalPages = Math.ceil(total / 12);
+    const sliceStart = (page - 1) * 12;
+    const sliceEnd = Math.min(sliceStart + 12, total);
+    const pageDocs = pendingDocsCache.slice(sliceStart, sliceEnd);
+
+    if (summary) summary.textContent = `Showing ${sliceStart + 1}-${sliceEnd} of ${total}`;
+    if (btns) {
+        let bHtml = '';
+        if (page > 1) {
+            bHtml += `<button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="loadPendingFiles(${page - 1})"><i class="fas fa-chevron-left"></i> Prev</button>`;
+        }
+        bHtml += `<span style="font-size:0.82rem; color:var(--text-secondary); padding:0.4rem 0.6rem;">Page ${page} of ${totalPages}</span>`;
+        if (page < totalPages) {
+            bHtml += `<button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="loadPendingFiles(${page + 1})">Next <i class="fas fa-chevron-right"></i></button>`;
+        }
+        btns.innerHTML = bHtml;
+    }
+
+    tbody.innerHTML = pageDocs.map(d => {
+        const isPaid = d.is_paid || (parseFloat(d.price || 0) > 0);
+        return `
+            <tr>
+                <td>
+                    <strong style="color:var(--text-primary); display:block;">${d.title || 'Untitled'}</strong>
+                    <span style="font-size:0.75rem; color:var(--text-secondary); font-family:var(--font-mono);">ID: ${d.id.slice(0,8)}...</span>
+                </td>
+                <td>
+                    <div>${(d.profiles && d.profiles.full_name) || d.uploader_name || 'Student'}</div>
+                    <span style="font-size:0.75rem; color:var(--text-secondary); font-family:var(--font-mono);">${(d.profiles && d.profiles.email) || ''}</span>
+                </td>
+                <td>
+                    <div>${d.college || d.college_id || 'General'}</div>
+                    <span style="font-size:0.75rem; color:var(--text-muted);">${d.document_category || d.category || 'Notes'}</span>
+                </td>
+                <td>
+                    ${isPaid ? `<span class="role-badge" style="background:rgba(245,158,11,0.2); color:#fbbf24;">₹${parseFloat(d.price).toFixed(2)}</span>` : '<span class="role-badge" style="background:rgba(16,185,129,0.15); color:#34d399;">Free</span>'}
+                </td>
+                <td><span style="font-size:0.78rem; font-family:var(--font-mono);">${(d.created_at || '').slice(0, 10)}</span></td>
+                <td>
+                    <div style="display:flex; gap:0.35rem;">
+                        <button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="openPdfPreview('${d.id}', '${d.title}')" title="Preview PDF">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" class="btn-action success" onclick="quickApproveDoc('${d.id}')" title="Approve File">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button type="button" class="btn-action danger" onclick="quickRejectDoc('${d.id}')" title="Reject File">
+                            <i class="fas fa-xmark"></i>
+                        </button>
+                        <button type="button" class="btn-action" style="background:rgba(245,158,11,0.2); color:#fbbf24;" onclick="quickQuarantineDoc('${d.id}')" title="Quarantine">
+                            <i class="fas fa-shield"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function loadAllFiles(page = 1) {
+    currentAllFilesPage = page;
+    const tbody = document.getElementById('allFilesTbody');
+    const summary = document.getElementById('allFilesPaginationSummary');
+    const btns = document.getElementById('allFilesPaginationBtns');
+
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Loading files...</td></tr>`;
+    const q = document.getElementById('allFilesSearch')?.value.trim() || '';
+    const status = document.getElementById('allFilesStatus')?.value || '';
+
+    try {
+        const params = new URLSearchParams({ page, limit: 12 });
+        if (q) params.set('search', q);
+        if (status) params.set('status', status);
+
+        const res = await fetch(`/api/admin/files?${params}`);
+        const data = await res.json();
+        const files = data.files || [];
+        const total = data.total || files.length;
+        const totalPages = Math.ceil(total / 12);
+
+        if (summary) summary.textContent = total > 0 ? `Showing ${(page - 1) * 12 + 1}-${Math.min(page * 12, total)} of ${total}` : 'Showing 0 of 0';
+        if (btns) {
+            if (totalPages <= 1) {
+                btns.innerHTML = '';
+            } else {
+                let bHtml = '';
+                if (page > 1) {
+                    bHtml += `<button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="loadAllFiles(${page - 1})"><i class="fas fa-chevron-left"></i> Prev</button>`;
+                }
+                bHtml += `<span style="font-size:0.82rem; color:var(--text-secondary); padding:0.4rem 0.6rem;">Page ${page} of ${totalPages}</span>`;
+                if (page < totalPages) {
+                    bHtml += `<button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="loadAllFiles(${page + 1})">Next <i class="fas fa-chevron-right"></i></button>`;
+                }
+                btns.innerHTML = bHtml;
+            }
+        }
+
+        if (!files.length) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-muted);">No documents found.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = files.map(f => `
+            <tr>
+                <td><input type="checkbox" class="file-cb" value="${f.id}" onchange="toggleFileSelection('${f.id}', this)"></td>
+                <td>
+                    <a href="/admin/files/${f.id}" style="color:var(--text-primary); text-decoration:none; font-weight:600;">${f.title || 'Untitled'}</a>
+                    <div style="font-size:0.75rem; color:var(--text-secondary);">${f.college_id || 'General'} · ${f.subject || 'Notes'}</div>
+                </td>
+                <td><span class="role-badge" style="background:rgba(99,102,241,0.15);">${f.status || 'approved'}</span></td>
+                <td><strong>${f.is_paid ? '₹' + f.price : 'Free'}</strong></td>
+                <td>${f.view_count || 0}</td>
+                <td><span style="font-family:var(--font-mono); font-size:0.78rem;">${(f.created_at || '').slice(0, 10)}</span></td>
+                <td>
+                    <div style="display:flex; gap:0.35rem;">
+                        <a href="/admin/files/${f.id}" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);"><i class="fas fa-pen"></i></a>
+                        <button type="button" class="btn-action danger" onclick="quickDeleteFile('${f.id}')"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--accent-rose); padding:2rem;">Failed loading files: ${e.message}</td></tr>`;
+    }
+}
+
+function quickApproveDoc(docId) {
+    fetch('/api/admin/approve-document', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+        body: JSON.stringify({ document_id: docId })
+    }).then(r => r.json()).then(d => {
+        if (d.success) {
+            showAdminToast('Document approved and published!', 'success');
+            loadPendingFiles();
+        } else {
+            showAdminToast(d.error || 'Approval failed', 'error');
+        }
+    });
+}
+
+function quickRejectDoc(docId) {
+    const reason = prompt("Enter rejection reason (or leave blank for standard template):", "Document does not meet quality or formatting standards");
+    if (reason === null) return;
+    fetch('/api/admin/reject-document', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+        body: JSON.stringify({ document_id: docId, reason })
+    }).then(r => r.json()).then(d => {
+        if (d.success) {
+            showAdminToast('Document rejected.', 'success');
+            loadPendingFiles();
+        } else {
+            showAdminToast(d.error || 'Rejection failed', 'error');
+        }
+    });
+}
+
+function quickQuarantineDoc(docId) {
+    openConfirmModal({
+        title: 'Quarantine Document',
+        message: 'Quarantine this document to block public access while under copyright or safety investigation?',
+        confirmText: 'Quarantine',
+        danger: true,
+        requireReason: true,
+        onConfirm: async (reason) => {
+            const res = await fetch(`/api/admin/files/${docId}/quarantine`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                body: JSON.stringify({ reason })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showAdminToast('File quarantined.', 'success');
+                loadPendingFiles();
+            } else {
+                showAdminToast(data.error || 'Quarantine failed', 'error');
+            }
+        }
+    });
+}
+
+function quickDeleteFile(docId) {
+    openConfirmModal({
+        title: 'Delete Document',
+        message: 'Soft-delete this document from public search and category listings?',
+        confirmText: 'Delete File',
+        danger: true,
+        requireReason: true,
+        onConfirm: async (reason) => {
+            const res = await fetch(`/api/admin/files/${docId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                body: JSON.stringify({ reason })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showAdminToast('File deleted.', 'success');
+                loadAllFiles(1);
+            } else {
+                showAdminToast(data.error || 'Delete failed', 'error');
+            }
+        }
+    });
+}
+
+function openPdfPreview(docId, title) {
+    document.getElementById('previewModalTitle').textContent = `Preview: ${title}`;
+    const iframe = document.getElementById('pdfPreviewIframe');
+    iframe.src = `/resources/${docId}?preview=true`;
+    document.getElementById('docPreviewModal').classList.add('show');
+}
+
+function closePreviewModal() {
+    const iframe = document.getElementById('pdfPreviewIframe');
+    iframe.src = 'about:blank';
+    document.getElementById('docPreviewModal').classList.remove('show');
+}
+
+function toggleFileSelection(fileId, cb) {
+    if (cb.checked) selectedFileIds.add(fileId);
+    else selectedFileIds.delete(fileId);
+    updateFileBulkBtn();
+}
+
+function toggleSelectAllFiles(cb) {
+    document.querySelectorAll('.file-cb').forEach(b => {
+        b.checked = cb.checked;
+        if (cb.checked) selectedFileIds.add(b.value);
+        else selectedFileIds.delete(b.value);
+    });
+    updateFileBulkBtn();
+}
+
+function updateFileBulkBtn() {
+    const btn = document.getElementById('btnBulkDeleteFiles');
+    const cnt = document.getElementById('selectedFilesCount');
+    if (selectedFileIds.size > 0) {
+        btn.style.display = 'inline-flex';
+        cnt.textContent = selectedFileIds.size;
+    } else {
+        btn.style.display = 'none';
+    }
+}
+
+function bulkDeleteFiles() {
+    openConfirmModal({
+        title: `Bulk Delete (${selectedFileIds.size} Files)`,
+        message: 'Delete selected files from platform listings?',
+        confirmText: 'Delete Files',
+        danger: true,
+        requireReason: true,
+        onConfirm: async (reason) => {
+            const res = await fetch('/api/admin/files/bulk-delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                body: JSON.stringify({ doc_ids: Array.from(selectedFileIds), reason })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showAdminToast('Selected files deleted.', 'success');
+                selectedFileIds.clear();
+                updateFileBulkBtn();
+                loadAllFiles(1);
+            } else {
+                showAdminToast(data.error || 'Bulk delete failed', 'error');
+            }
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadPendingFiles();
+});
+</script>
+{% endblock %}

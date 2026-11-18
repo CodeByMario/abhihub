@@ -1,0 +1,361 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Payments & Refunds Management{% endblock %}
+
+{% block admin_content %}
+<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+    <div>
+        <h1 style="font-size:1.6rem; font-weight:800; color:var(--text-primary); margin:0 0 0.25rem 0;">Payments & Refunds</h1>
+        <p style="color:var(--text-secondary); font-size:0.88rem; margin:0;">Track transactions, review manual UTR receipts, and process customer refunds.</p>
+    </div>
+    <div style="display:flex; gap:0.5rem;">
+        <button class="btn-action" onclick="loadOrders(); loadPendingManual();" style="background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-subtle);"><i class="fas fa-sync-alt"></i> Refresh</button>
+    </div>
+</div>
+
+<!-- Tabs Bar -->
+<div style="display:flex; gap:0.5rem; margin-bottom:1.25rem; border-bottom:1px solid var(--border-subtle); padding-bottom:0.5rem;">
+    <button class="btn-action primary" id="tabBtnOrders" onclick="switchTab('orders')"><i class="fas fa-receipt"></i> All Orders</button>
+    <button class="btn-action" id="tabBtnManual" onclick="switchTab('manual')" style="background:transparent; color:var(--text-secondary);"><i class="fas fa-qrcode"></i> Manual UTR Queue <span id="manualBadge" class="role-badge" style="background:rgba(239,68,68,0.2); color:#f87171; display:none;">0</span></button>
+</div>
+
+<!-- TAB 1: ALL ORDERS -->
+<div id="tabOrders">
+    <div class="filter-card">
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:0.75rem;">
+            <div>
+                <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Search</label>
+                <input type="text" id="orderSearch" class="form-control" placeholder="Order ID or User ID..." onkeydown="if(event.key==='Enter') loadOrders(1);">
+            </div>
+            <div>
+                <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Status</label>
+                <select id="orderStatusFilter" class="form-control" onchange="loadOrders(1);">
+                    <option value="">All Statuses</option>
+                    <option value="completed">Completed</option>
+                    <option value="submitted">Submitted (Manual)</option>
+                    <option value="refunded">Refunded</option>
+                    <option value="failed">Failed</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+            </div>
+            <div>
+                <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Gateway</label>
+                <select id="orderGatewayFilter" class="form-control" onchange="loadOrders(1);">
+                    <option value="">All Gateways</option>
+                    <option value="razorpay">Razorpay</option>
+                    <option value="phonepe">PhonePe</option>
+                    <option value="manual_upi">Manual UPI</option>
+                </select>
+            </div>
+            <div style="display:flex; align-items:flex-end;">
+                <button class="btn-action primary" onclick="loadOrders(1);" style="width:100%;"><i class="fas fa-filter"></i> Apply Filters</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="data-card">
+        <div class="table-responsive" style="border:none;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>User ID</th>
+                        <th>Amount</th>
+                        <th>Gateway</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="ordersTableBody">
+                    <tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-muted);">Loading orders...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1rem; padding-top:0.75rem; border-top:1px solid var(--border-subtle);">
+            <div style="font-size:0.8rem; color:var(--text-muted);" id="ordersCount">Showing 0 orders</div>
+            <div style="display:flex; gap:0.5rem;" id="ordersPagination"></div>
+        </div>
+    </div>
+</div>
+
+<!-- TAB 2: MANUAL UTR VERIFICATION QUEUE -->
+<div id="tabManual" style="display:none;">
+    <div class="data-card">
+        <div style="margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <h3 style="margin:0 0 0.25rem 0; font-size:1.1rem; color:var(--text-primary); font-weight:700;">Manual UTR Verification Queue</h3>
+                <p style="margin:0; font-size:0.82rem; color:var(--text-secondary);">Direct UPI QR code payments submitted by users requiring admin confirmation.</p>
+            </div>
+        </div>
+        <div class="table-responsive" style="border:none;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Submitted UTR</th>
+                        <th>User ID</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th style="text-align:right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="manualTableBody">
+                    <tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">Loading pending manual payments...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.25rem;">
+            <div style="font-size:0.82rem; color:var(--text-secondary);" id="manualPaginationSummary"></div>
+            <div style="display:flex; gap:0.5rem;" id="manualPagination"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentOrdersPage = 1;
+
+function switchTab(tab) {
+    const tabOrders = document.getElementById('tabOrders');
+    const tabManual = document.getElementById('tabManual');
+    const btnOrders = document.getElementById('tabBtnOrders');
+    const btnManual = document.getElementById('tabBtnManual');
+
+    if (tab === 'orders') {
+        tabOrders.style.display = 'block';
+        tabManual.style.display = 'none';
+        btnOrders.className = 'btn-action primary';
+        btnManual.className = 'btn-action';
+        btnManual.style.background = 'transparent';
+        btnManual.style.color = 'var(--text-secondary)';
+    } else {
+        tabOrders.style.display = 'none';
+        tabManual.style.display = 'block';
+        btnManual.className = 'btn-action primary';
+        btnOrders.className = 'btn-action';
+        btnOrders.style.background = 'transparent';
+        btnOrders.style.color = 'var(--text-secondary)';
+    }
+}
+
+async function loadOrders(page = 1) {
+    currentOrdersPage = page;
+    const search = document.getElementById('orderSearch').value.trim();
+    const status = document.getElementById('orderStatusFilter').value;
+    const gateway = document.getElementById('orderGatewayFilter').value;
+
+    const params = new URLSearchParams({ page, limit: 12 });
+    if (search) params.append('search', search);
+    if (status) params.append('status', status);
+    if (gateway) params.append('gateway', gateway);
+
+    const tbody = document.getElementById('ordersTableBody');
+    try {
+        const res = await fetch(`/api/admin/payments/orders?${params.toString()}`);
+        const data = await res.json();
+        const orders = data.orders || [];
+
+        if (!orders.length) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:2.5rem; color:var(--text-muted);">No orders found matching criteria.</td></tr>`;
+            document.getElementById('ordersCount').textContent = 'Showing 0 orders';
+            document.getElementById('ordersPagination').innerHTML = '';
+            return;
+        }
+
+        tbody.innerHTML = orders.map(o => {
+            const isCompleted = o.status === 'completed';
+            const isRefunded = o.status === 'refunded';
+            let badgeClass = 'student';
+            if (isCompleted) badgeClass = 'admin';
+            else if (isRefunded) badgeClass = 'moderator';
+            else if (o.status === 'failed' || o.status === 'rejected') badgeClass = 'superadmin';
+
+            return `
+                <tr>
+                    <td><strong style="font-family:var(--font-mono); font-size:0.82rem; color:var(--text-primary);">${o.order_id || '—'}</strong></td>
+                    <td><a href="/admin/users/${o.user_id}" style="color:var(--accent-indigo); text-decoration:none; font-family:var(--font-mono); font-size:0.75rem;">${(o.user_id || '').slice(0, 13)}...</a></td>
+                    <td><strong style="color:var(--text-primary);">₹${parseFloat(o.amount || 0).toFixed(2)}</strong></td>
+                    <td><span style="font-size:0.8rem; color:var(--text-secondary); text-transform:uppercase;">${o.gateway || 'UPI'}</span></td>
+                    <td><span class="role-badge ${badgeClass}">${o.status}</span></td>
+                    <td><span style="font-family:var(--font-mono); font-size:0.78rem;">${(o.created_at || '').slice(0, 16).replace('T', ' ')}</span></td>
+                    <td style="text-align:right;">
+                        ${isCompleted ? `
+                            <button class="btn-action danger" onclick="openRefundModal('${o.order_id}', ${o.amount})" style="font-size:0.75rem; padding:0.25rem 0.55rem;"><i class="fas fa-undo"></i> Refund</button>
+                        ` : ''}
+                        ${isRefunded ? `<span style="font-size:0.75rem; color:var(--accent-amber);"><i class="fas fa-check-circle"></i> Refunded</span>` : ''}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        const total = data.total || orders.length;
+        document.getElementById('ordersCount').textContent = `Showing ${(page - 1) * 12 + 1}-${Math.min(page * 12, total)} of ${total} orders`;
+        renderPagination(total, 12, page);
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--accent-rose);">Error loading orders: ${e.message}</td></tr>`;
+    }
+}
+
+function renderPagination(total, limit, page) {
+    const totalPages = Math.ceil(total / limit);
+    const container = document.getElementById('ordersPagination');
+    if (totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+    }
+    container.innerHTML = `
+        <button class="btn-action" style="background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-subtle);" ${page <= 1 ? 'disabled' : ''} onclick="loadOrders(${page - 1})">Prev</button>
+        <span style="font-size:0.82rem; color:var(--text-secondary); display:flex; align-items:center;">${page} / ${totalPages}</span>
+        <button class="btn-action" style="background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-subtle);" ${page >= totalPages ? 'disabled' : ''} onclick="loadOrders(${page + 1})">Next</button>
+    `;
+}
+
+let currentManualPage = 1;
+async function loadPendingManual(page = 1) {
+    currentManualPage = page;
+    const tbody = document.getElementById('manualTableBody');
+    const summary = document.getElementById('manualPaginationSummary');
+    const container = document.getElementById('manualPagination');
+    try {
+        const res = await fetch(`/api/admin/payments/manual-pending?page=${page}&limit=12`);
+        const data = await res.json();
+        const payments = data.payments || [];
+        const total = data.total || payments.length;
+        const totalPages = Math.ceil(total / 12);
+
+        const badge = document.getElementById('manualBadge');
+        if (total > 0) {
+            badge.textContent = total;
+            badge.style.display = 'inline-block';
+        } else {
+            badge.style.display = 'none';
+        }
+
+        if (summary) summary.textContent = total > 0 ? `Showing ${(page - 1) * 12 + 1}-${Math.min(page * 12, total)} of ${total}` : '';
+        if (container) {
+            if (totalPages <= 1) {
+                container.innerHTML = '';
+            } else {
+                container.innerHTML = `
+                    <button class="btn-action" style="background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-subtle);" ${page <= 1 ? 'disabled' : ''} onclick="loadPendingManual(${page - 1})">Prev</button>
+                    <span style="font-size:0.82rem; color:var(--text-secondary); display:flex; align-items:center;">${page} / ${totalPages}</span>
+                    <button class="btn-action" style="background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-subtle);" ${page >= totalPages ? 'disabled' : ''} onclick="loadPendingManual(${page + 1})">Next</button>
+                `;
+            }
+        }
+
+        if (!payments.length) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:2.5rem; color:var(--text-muted);">No pending manual payments awaiting review.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = payments.map(p => `
+            <tr>
+                <td><strong style="font-family:var(--font-mono); font-size:0.82rem; color:var(--text-primary);">${p.order_id}</strong></td>
+                <td><span style="font-family:var(--font-mono); font-weight:700; color:var(--accent-emerald);">${p.utr || '—'}</span></td>
+                <td><a href="/admin/users/${p.user_id}" style="color:var(--accent-indigo); text-decoration:none; font-family:var(--font-mono); font-size:0.75rem;">${(p.user_id || '').slice(0, 13)}...</a></td>
+                <td><strong style="color:var(--text-primary);">₹${parseFloat(p.amount || 0).toFixed(2)}</strong></td>
+                <td><span style="font-family:var(--font-mono); font-size:0.78rem;">${(p.created_at || '').slice(0, 16).replace('T', ' ')}</span></td>
+                <td style="text-align:right; display:flex; justify-content:flex-end; gap:0.4rem;">
+                    <button class="btn-action success" onclick="verifyManualPayment('${p.order_id}')" style="font-size:0.75rem; padding:0.25rem 0.55rem;"><i class="fas fa-check"></i> Verify</button>
+                    <button class="btn-action danger" onclick="rejectManualPayment('${p.order_id}')" style="font-size:0.75rem; padding:0.25rem 0.55rem;"><i class="fas fa-times"></i> Reject</button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--accent-rose);">Error loading manual payments: ${e.message}</td></tr>`;
+    }
+}
+
+function verifyManualPayment(orderId) {
+    openConfirmModal({
+        title: `Verify Manual Payment: ${orderId}`,
+        message: 'Confirm that payment has been credited to the platform bank account. This will unlock the file and credit the creator.',
+        confirmText: 'Verify & Unlock',
+        danger: false,
+        requireReason: false,
+        onConfirm: async () => {
+            try {
+                const res = await fetch('/api/admin/payment/manual-verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                    body: JSON.stringify({ order_id: orderId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAdminToast('Payment verified and content unlocked!', 'success');
+                    loadPendingManual();
+                    loadOrders(currentOrdersPage);
+                } else {
+                    showAdminToast(data.error || 'Verification failed', 'error');
+                }
+            } catch (e) {
+                showAdminToast('Network error during verification', 'error');
+            }
+        }
+    });
+}
+
+function rejectManualPayment(orderId) {
+    openConfirmModal({
+        title: `Reject Manual Payment: ${orderId}`,
+        message: 'Provide the specific reason for rejecting this manual payment receipt (e.g., UTR not found in bank statement):',
+        confirmText: 'Reject Payment',
+        danger: true,
+        requireReason: true,
+        onConfirm: async (reason) => {
+            try {
+                const res = await fetch('/api/admin/payment/manual-reject', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                    body: JSON.stringify({ order_id: orderId, reason })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAdminToast('Payment rejected.', 'success');
+                    loadPendingManual();
+                    loadOrders(currentOrdersPage);
+                } else {
+                    showAdminToast(data.error || 'Rejection failed', 'error');
+                }
+            } catch (e) {
+                showAdminToast('Network error during rejection', 'error');
+            }
+        }
+    });
+}
+
+function openRefundModal(orderId, amount) {
+    openConfirmModal({
+        title: `Process Refund for ${orderId}`,
+        message: `Confirm refund of ₹${parseFloat(amount).toFixed(2)}. This will revoke buyer access, debit the creator wallet ledger, and log an audit record.`,
+        confirmText: 'Process Full Refund',
+        danger: true,
+        requireReason: true,
+        onConfirm: async (reason) => {
+            try {
+                const res = await fetch(`/api/admin/payments/${orderId}/refund`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                    body: JSON.stringify({ reason })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAdminToast('Refund processed successfully!', 'success');
+                    loadOrders(currentOrdersPage);
+                } else {
+                    showAdminToast(data.error || 'Refund failed', 'error');
+                }
+            } catch (e) {
+                showAdminToast('Network error processing refund', 'error');
+            }
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadOrders(1);
+    loadPendingManual();
+});
+</script>
+{% endblock %}

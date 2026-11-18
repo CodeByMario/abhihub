@@ -1373,6 +1373,166 @@
 
   <div class="apple-container">
 
+    <!-- 1a. Post-Exam Today/Past 7 Days Completion & Feedback Prompt -->
+    {% if completed_exams_today and completed_exams_today|length > 0 %}
+    <section class="apple-section" id="section-completed-exam-prompt" style="margin-bottom: 1.5rem; margin-top: 1rem;">
+      {% for cex in completed_exams_today %}
+      <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(99, 102, 241, 0.08) 100%); border: 1.5px solid rgba(16, 185, 129, 0.35); border-radius: 1.25rem; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.06);">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
+          <div>
+            <div style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.2rem 0.65rem; border-radius: 999px; font-size: 0.72rem; font-weight: 800; background: #10b981; color: #fff; text-transform: uppercase; letter-spacing: 0.04em;">
+              <i class="fas fa-circle-check"></i> {{ cex.countdown_label }}
+            </div>
+            <h2 style="font-size: 1.35rem; font-weight: 800; margin: 0.4rem 0 0.2rem 0; color: var(--apple-text, #111);">
+              How was your {{ cex.subjects.name if cex.subjects else 'exam' }} paper?
+            </h2>
+            <p style="font-size: 0.82rem; color: var(--apple-text-secondary, #666); margin: 0;">
+              Share the question paper with your juniors! It takes only <strong>2 to 3 minutes</strong> to snap and upload, and you'll earn <strong>10 Credits</strong>!
+            </p>
+            <!-- Quick Paper Difficulty Reaction -->
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.85rem; align-items: center; flex-wrap: wrap;" id="feedback-group-{{ cex.id }}">
+              <span style="font-size: 0.75rem; font-weight: 700; color: var(--apple-text-secondary, #666);">Paper was:</span>
+              <button type="button" class="apple-qs-btn secondary" style="font-size: 0.78rem; padding: 0.35rem 0.75rem;" onclick="submitExamFeedback('{{ cex.id }}', 'easy', this)">
+                😊 Easy
+              </button>
+              <button type="button" class="apple-qs-btn secondary" style="font-size: 0.78rem; padding: 0.35rem 0.75rem;" onclick="submitExamFeedback('{{ cex.id }}', 'moderate', this)">
+                😐 Moderate
+              </button>
+              <button type="button" class="apple-qs-btn secondary" style="font-size: 0.78rem; padding: 0.35rem 0.75rem;" onclick="submitExamFeedback('{{ cex.id }}', 'tough', this)">
+                😰 Tough
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <a href="{{ cex.post_exam_prompt.upload_prefill_url if cex.post_exam_prompt else '/upload' }}" class="apple-qs-btn primary" style="padding: 0.85rem 1.35rem; font-size: 0.88rem; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; background: #10b981; border-color: #10b981; box-shadow: 0 8px 16px rgba(16,185,129,0.25);">
+              <i class="fas fa-file-arrow-up"></i> Quick Upload Paper (Takes 2-3 min) &rarr;
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </section>
+    {% endif %}
+
+    <!-- 1b. Personalized Exam Countdown & Subject Prep Spotlight -->
+    {% if upcoming_exams and upcoming_exams|length > 0 %}
+    <section class="apple-section" id="section-exam-spotlight" style="margin-bottom: 2.5rem; margin-top: 1rem;">
+      <div style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(236, 72, 153, 0.03) 50%, var(--apple-surface, #fff) 100%); border: 1.5px solid rgba(99, 102, 241, 0.25); border-radius: 1.25rem; padding: 1.5rem; box-shadow: 0 4px 20px rgba(99, 102, 241, 0.06);">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1.25rem;">
+          <div>
+            <div style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.2rem 0.65rem; border-radius: 999px; font-size: 0.72rem; font-weight: 800; background: #4f46e5; color: #fff; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.04em;">
+              <i class="fas fa-bolt"></i> Exam Timetable Sync Active
+            </div>
+            <h2 style="font-size: 1.35rem; font-weight: 800; margin: 0 0 0.25rem 0; color: var(--apple-text, #111);">
+              Upcoming Exams &amp; Subject Prep Vault
+            </h2>
+            <p style="font-size: 0.82rem; color: var(--apple-text-secondary, #666); margin: 0;">
+              Personalized for {{ user_data.get('branch_name') or 'Engineering' }} • Sem {{ user_data.get('semester') or 'Active' }} {{ '(' ~ user_data.get('section') ~ ')' if user_data.get('section') else '' }} • {{ user_data.get('college_abbreviation') or 'GHRCE' }}
+            </p>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <a href="/notes-in-demand" class="apple-qs-btn secondary" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; text-decoration: none;">
+              <i class="fas fa-chart-line"></i> Notes in Demand
+            </a>
+            <button type="button" class="apple-qs-btn secondary" style="font-size: 0.75rem; padding: 0.4rem 0.8rem;" onclick="openQuickSemModal()">
+              <i class="fas fa-sliders-h"></i> Change Sem
+            </button>
+          </div>
+        </div>
+
+        <!-- Subject Exam Selector Tabs -->
+        <div style="display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.5rem; margin-bottom: 1rem; scrollbar-width: none;">
+          {% for ex in upcoming_exams %}
+          <button type="button" 
+                  class="exam-subject-chip" 
+                  onclick="selectExamSubject(this, 'exam-panel-{{ loop.index0 }}')"
+                  style="flex-shrink: 0; padding: 0.5rem 0.85rem; border-radius: 0.75rem; font-size: 0.78rem; font-weight: 700; border: 1px solid var(--apple-border, rgba(0,0,0,0.1)); background: {% if loop.first %}var(--apple-text, #111){% else %}var(--apple-surface, #fff){% endif %}; color: {% if loop.first %}var(--apple-bg, #fff){% else %}var(--apple-text, #111){% endif %}; cursor: pointer; transition: all 0.2s ease;">
+            <span>{{ ex.subjects.name if ex.subjects else 'Course' }}</span>
+            {% if ex.is_today %}
+            <span style="font-size: 0.68rem; font-weight: 800; background: #ef4444; color: #fff; padding: 0.1rem 0.45rem; border-radius: 999px; margin-left: 0.35rem;">🚨 EXAM TODAY</span>
+            {% elif ex.status == 'TOMORROW' %}
+            <span style="font-size: 0.68rem; font-weight: 800; background: #f59e0b; color: #fff; padding: 0.1rem 0.45rem; border-radius: 999px; margin-left: 0.35rem;">TOMORROW</span>
+            {% else %}
+            <span style="font-size: 0.7rem; opacity: 0.8; margin-left: 0.35rem; color: {% if loop.first %}#fbbf24{% else %}#d97706{% endif %};">({{ ex.countdown_label }})</span>
+            {% endif %}
+          </button>
+          {% endfor %}
+        </div>
+
+        <!-- Subject Exam Details & Recommended Files -->
+        {% for ex in upcoming_exams %}
+        <div id="exam-panel-{{ loop.index0 }}" class="exam-panel-content" style="{% if not loop.first %}display:none;{% endif %}">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.03); border-radius: 0.75rem; padding: 0.75rem 1rem; margin-bottom: 0.75rem; font-size: 0.8rem;">
+            <div>
+              <strong style="color: var(--apple-text, #111);">{{ ex.subjects.name if ex.subjects else 'Subject' }}</strong>
+              <span style="color: var(--apple-text-secondary, #666); margin-left: 0.5rem;">Code: <strong>{{ ex.subjects.subject_code if ex.subjects else '' }}</strong> • {{ ex.exam_type }} Exam</span>
+            </div>
+            <div style="font-weight: 700; color: #4f46e5;">
+              <i class="far fa-calendar-check"></i> {{ ex.exam_date }} {{ ex.start_time or '' }}
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem; font-size: 0.75rem; color: var(--apple-text-secondary, #666);">
+            <span><i class="fas fa-layer-group" style="color:#4f46e5;"></i> <strong>Exam Vault:</strong> Previous Year Papers (PYQs) first, then Notes (recent first)</span>
+            <a href="/upload?subject_id={{ ex.subject_id }}&subject_name={{ ex.subjects.name if ex.subjects else '' }}&category=papers" style="color:#4f46e5; text-decoration:none; font-weight:600;">
+              + Upload Paper/Notes for this Exam &rarr;
+            </a>
+          </div>
+
+          <!-- Recommended files for this subject (Paginated) -->
+          {% set panel_idx = loop.index0 %}
+          <div class="apple-cards-grid exam-cards-grid-{{ panel_idx }}">
+            {% if ex.top_files and ex.top_files|length > 0 %}
+              {% for file in ex.top_files %}
+                <div class="exam-file-item-{{ panel_idx }}" style="{% if loop.index > 4 %}display:none;{% endif %}">
+                  {{ render_apple_card(file, default_college_abbr) }}
+                </div>
+              {% endfor %}
+            {% else %}
+              <div style="grid-column: 1 / -1; padding: 1.75rem; text-align: center; background: var(--apple-surface, #fff); border-radius: 0.75rem; border: 1px dashed var(--apple-border, rgba(0,0,0,0.15)); font-size: 0.82rem; color: var(--apple-text-secondary, #666);">
+                <p style="margin: 0 0 0.5rem 0;">No prep files uploaded yet for <strong>{{ ex.subjects.name if ex.subjects else 'this subject' }}</strong>.</p>
+                <a href="/upload?subject_id={{ ex.subject_id }}&subject_name={{ ex.subjects.name if ex.subjects else '' }}&category=papers&title={{ ex.subjects.name if ex.subjects else '' }}+-+Winter+2026+ESE+Question+Paper" class="apple-qs-btn primary" style="font-size: 0.75rem; display: inline-flex; text-decoration: none;">
+                  <i class="fas fa-upload mr-1"></i> Upload First Question Paper &amp; Earn 10 Credits
+                </a>
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Pagination Controls -->
+          {% if ex.top_files and ex.top_files|length > 4 %}
+          <div style="display: flex; justify-content: center; align-items: center; gap: 0.75rem; margin-top: 1.25rem;">
+            <button type="button" class="apple-qs-btn secondary" style="font-size: 0.75rem; padding: 0.35rem 0.75rem;" onclick="paginateExamCards({{ panel_idx }}, -1)">
+              &larr; Prev
+            </button>
+            <span id="exam-page-ind-{{ panel_idx }}" style="font-size: 0.78rem; font-weight: 700; color: var(--apple-text-secondary, #666);">
+              Page 1 of {{ ((ex.top_files|length - 1) // 4) + 1 }}
+            </span>
+            <button type="button" class="apple-qs-btn secondary" style="font-size: 0.75rem; padding: 0.35rem 0.75rem;" onclick="paginateExamCards({{ panel_idx }}, 1)">
+              Next &rarr;
+            </button>
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% elif not user_data.get('semester') %}
+    <!-- 1c. Prompt user to choose Semester & Branch for 1-click Timetable personalization -->
+    <section class="apple-section" style="margin-bottom: 2rem; margin-top: 1rem;">
+      <div style="background: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, var(--apple-surface, #fff) 100%); border: 1.5px dashed #6366f1; border-radius: 1.25rem; padding: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;">
+        <div>
+          <span style="font-size: 0.72rem; font-weight: 800; background: #6366f1; color: #fff; padding: 0.15rem 0.5rem; border-radius: 999px; text-transform: uppercase;">1-Click Personalization</span>
+          <h3 style="font-size: 1.15rem; font-weight: 700; margin: 0.35rem 0 0.2rem 0;">Get Your Personalized Exam Countdown &amp; Notes</h3>
+          <p style="font-size: 0.8rem; color: var(--apple-text-secondary, #666); margin: 0;">Select your semester to automatically synchronize upcoming exam dates and tailored question papers.</p>
+        </div>
+        <button type="button" class="apple-qs-btn primary" onclick="openQuickSemModal()" style="white-space: nowrap;">
+          <i class="fas fa-calendar-check mr-1"></i> Set My Semester &amp; Branch &rarr;
+        </button>
+      </div>
+    </section>
+    {% endif %}
+
     <!-- 2. Continue Reading (Recently Viewed Files) -->
     <section class="apple-section tab-section" id="section-recents">
       <div class="apple-section-header">
@@ -1678,6 +1838,69 @@
     </section>
     {% endif %}
 
+    <!-- 4b. Exam Countdown & Timetable Recommendations -->
+    {% if upcoming_exams and upcoming_exams|length > 0 %}
+    <section class="apple-section mb-8" id="section-exam-countdown" style="margin-bottom: 2.5rem;">
+      <div class="apple-section-header">
+        <div>
+          <div style="display:inline-flex; align-items:center; gap:0.4rem; padding:0.2rem 0.6rem; border-radius:999px; font-size:0.75rem; font-weight:700; background:rgba(245, 158, 11, 0.12); color:#d97706; margin-bottom:0.35rem;">
+            <i class="fas fa-clock"></i> Timetable Countdown
+          </div>
+          <h2>Upcoming Examination Countdown</h2>
+          <p>Prioritized study materials for your scheduled Winter 2026 exams.</p>
+        </div>
+        <a href="/notes-in-demand" class="apple-section-link">
+          <span>Notes in Demand & Forecast →</span>
+        </a>
+      </div>
+
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:1rem; margin-top:1rem;">
+        {% for ex in upcoming_exams[:3] %}
+        <div style="background:var(--apple-surface, #fff); border:1px solid var(--apple-border, rgba(0,0,0,0.08)); border-radius:1rem; padding:1.25rem; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+              <span style="font-size:0.65rem; font-weight:800; padding:0.15rem 0.5rem; border-radius:0.375rem; background:rgba(99, 102, 241, 0.12); color:#4f46e5; text-transform:uppercase;">
+                {{ ex.exam_type }}
+              </span>
+              <span style="font-size:0.75rem; font-weight:800; color:#d97706;">
+                {{ ex.countdown_label }}
+              </span>
+            </div>
+            <h3 style="font-size:0.95rem; font-weight:700; margin:0 0 0.25rem 0; color:var(--apple-text, #111);">
+              {{ ex.subjects.name if ex.subjects else 'Course' }}
+            </h3>
+            <div style="font-size:0.75rem; color:var(--apple-text-secondary, #666); margin-bottom:0.75rem;">
+              {{ ex.subjects.subject_code if ex.subjects else '' }} • {{ ex.exam_date }} {{ ex.start_time or '' }}
+            </div>
+
+            {% if ex.top_files and ex.top_files|length > 0 %}
+            <div style="margin-bottom:0.75rem;">
+              <div style="font-size:0.65rem; font-weight:700; text-transform:uppercase; color:var(--apple-text-muted, #999); margin-bottom:0.35rem;">Top Prep Material</div>
+              {% for tf in ex.top_files[:2] %}
+              <a href="/document/{{ tf.id }}" style="display:flex; justify-content:space-between; align-items:center; padding:0.4rem 0.6rem; border-radius:0.5rem; background:rgba(0,0,0,0.03); text-decoration:none; color:inherit; font-size:0.75rem; margin-bottom:0.3rem;">
+                <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:0.5rem; font-weight:600;">{{ tf.subject or tf.subject_name or (ex.subjects.name if ex.subjects else 'Subject') }}{% if tf.subject_code or (ex.subjects and ex.subjects.subject_code) %} ({{ tf.subject_code or ex.subjects.subject_code }}){% endif %}</span>
+                <span style="color:#4f46e5; font-weight:700; font-size:0.7rem;">Open →</span>
+              </a>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div style="padding:0.6rem; border-radius:0.5rem; background:rgba(0,0,0,0.02); font-size:0.75rem; color:var(--apple-text-secondary, #666); margin-bottom:0.75rem;">
+              No prep files uploaded yet. <a href="/upload?subject_id={{ ex.subject_id }}" style="color:#4f46e5; font-weight:600;">Upload & earn</a>.
+            </div>
+            {% endif %}
+          </div>
+          <div style="padding-top:0.6rem; border-top:1px solid var(--apple-border, rgba(0,0,0,0.06)); display:flex; justify-content:space-between; align-items:center; font-size:0.75rem;">
+            <span style="color:var(--apple-text-secondary, #888);">Sem {{ ex.semester }}</span>
+            <a href="/search?q={{ ex.subjects.subject_code if ex.subjects else ex.subjects.name }}" style="color:#4f46e5; font-weight:600; text-decoration:none;">
+              All {{ ex.subjects.subject_code if ex.subjects else '' }} Files →
+            </a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
     <!-- 5. Curated Recommendations for User's Exact Semester -->
     <section class="apple-section tab-section" id="section-recommended">
       <div class="apple-section-header">
@@ -1892,6 +2115,111 @@
       uploadsSec.style.display = '';
       recommendedSec.style.display = 'none';
       if (creatorsSec) creatorsSec.style.display = 'none';
+    }
+  }
+
+  function selectExamSubject(btn, panelId) {
+    document.querySelectorAll('.exam-subject-chip').forEach(b => {
+      b.style.background = 'var(--apple-surface, #fff)';
+      b.style.color = 'var(--apple-text, #111)';
+    });
+    btn.style.background = 'var(--apple-text, #111)';
+    btn.style.color = 'var(--apple-bg, #fff)';
+
+    document.querySelectorAll('.exam-panel-content').forEach(p => p.style.display = 'none');
+    const target = document.getElementById(panelId);
+    if (target) target.style.display = 'block';
+  }
+
+  async function submitExamFeedback(scheduleId, reaction, btn) {
+    const parent = btn.parentElement;
+    if (parent) {
+      parent.innerHTML = `<span style="font-size:0.75rem; color:#10b981; font-weight:700;"><i class="fas fa-check-circle"></i> Thanks! Feedback recorded (${reaction}).</span>`;
+    }
+    try {
+      await fetch('/api/exam-feedback', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({schedule_id: scheduleId, feedback: reaction})
+      });
+    } catch(e) {}
+  }
+
+  const examPageStates = {};
+  function paginateExamCards(panelIdx, delta) {
+    const items = document.querySelectorAll(`.exam-file-item-${panelIdx}`);
+    if (!items.length) return;
+    const pageSize = 4;
+    const totalPages = Math.ceil(items.length / pageSize);
+    if (!examPageStates[panelIdx]) examPageStates[panelIdx] = 1;
+    let newPage = examPageStates[panelIdx] + delta;
+    if (newPage < 1) newPage = 1;
+    if (newPage > totalPages) newPage = totalPages;
+    examPageStates[panelIdx] = newPage;
+
+    items.forEach((item, idx) => {
+      const p = Math.floor(idx / pageSize) + 1;
+      item.style.display = (p === newPage) ? '' : 'none';
+    });
+    const ind = document.getElementById(`exam-page-ind-${panelIdx}`);
+    if (ind) ind.textContent = `Page ${newPage} of ${totalPages}`;
+  }
+
+  function openQuickSemModal() {
+    let m = document.getElementById('quickSemModal');
+    if (!m) {
+      const modalHtml = `
+        <div id="quickSemModal" style="position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:9999; display:flex; align-items:center; justify-content:center; padding:1rem;">
+          <div style="background:var(--apple-surface, #fff); border-radius:1.25rem; max-width:400px; width:100%; padding:1.5rem; box-shadow:0 20px 40px rgba(0,0,0,0.2); border:1px solid var(--apple-border, rgba(0,0,0,0.1));">
+            <h3 style="margin:0 0 0.5rem 0; font-size:1.15rem; font-weight:700; color:var(--apple-text, #111);">Personalize Exam Schedule</h3>
+            <p style="font-size:0.8rem; color:var(--apple-text-secondary, #666); margin-bottom:1.25rem;">Select your semester and branch to view your live exam countdown and subject notes.</p>
+            
+            <div style="margin-bottom:1rem;">
+              <label style="display:block; font-size:0.75rem; font-weight:700; margin-bottom:0.35rem; color:var(--apple-text, #111);">Semester</label>
+              <select id="quickSemSelect" style="width:100%; padding:0.6rem; border-radius:0.75rem; border:1px solid var(--apple-border, #ddd); background:var(--apple-surface, #fff); color:var(--apple-text, #111); font-size:0.85rem;">
+                <option value="First">First Semester (I)</option>
+                <option value="III" selected>Semester III</option>
+                <option value="V">Semester V</option>
+                <option value="VII">Semester VII</option>
+              </select>
+            </div>
+
+            <div style="margin-bottom:1.25rem;">
+              <label style="display:block; font-size:0.75rem; font-weight:700; margin-bottom:0.35rem; color:var(--apple-text, #111);">Section (Optional)</label>
+              <input type="text" id="quickSectionInput" placeholder="e.g. A, B, C" style="width:100%; padding:0.6rem; border-radius:0.75rem; border:1px solid var(--apple-border, #ddd); background:var(--apple-surface, #fff); color:var(--apple-text, #111); font-size:0.85rem; box-sizing:border-box;">
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+              <button type="button" class="apple-qs-btn secondary" onclick="document.getElementById('quickSemModal').style.display='none'">Cancel</button>
+              <button type="button" class="apple-qs-btn primary" onclick="saveQuickSem()">Save &amp; Sync Timetable</button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+      m = document.getElementById('quickSemModal');
+    }
+    m.style.display = 'flex';
+  }
+
+  async function saveQuickSem() {
+    const sem = document.getElementById('quickSemSelect').value;
+    const sec = document.getElementById('quickSectionInput').value.trim();
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ semester: sem, section: sec })
+      });
+      const data = await res.json();
+      if (data.success) {
+        window.location.reload();
+      } else {
+        alert(data.message || 'Error updating semester');
+      }
+    } catch(e) {
+      console.error(e);
+      window.location.reload();
     }
   }
 </script>

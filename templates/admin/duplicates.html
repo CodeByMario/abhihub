@@ -1,0 +1,170 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Duplicate Files Explorer{% endblock %}
+
+{% block admin_content %}
+<div class="page-header-row">
+    <div>
+        <a href="/admin/files" style="color:var(--text-secondary); text-decoration:none; font-size:0.85rem; display:inline-flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem;">
+            <i class="fas fa-arrow-left"></i> Back to Files
+        </a>
+        <h1 class="page-title"><i class="fas fa-clone" style="color:var(--accent-amber);"></i> Duplicate Files Explorer</h1>
+        <p class="page-desc">Automated detection of duplicate uploads based on cryptographic file hashes and title similarity.</p>
+    </div>
+    <button type="button" class="btn-action primary" onclick="loadDuplicates()">
+        <i class="fas fa-arrows-rotate"></i> Scan for Duplicates
+    </button>
+</div>
+
+<div id="duplicateClustersContainer" style="display:flex; flex-direction:column; gap:1.5rem;">
+    <div style="text-align:center; padding:3rem; color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Scanning catalog for duplicate files...</div>
+</div>
+<div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.25rem;">
+    <div style="font-size:0.82rem; color:var(--text-secondary);" id="duplicatesPaginationSummary"></div>
+    <div style="display:flex; gap:0.4rem;" id="duplicatesPaginationBtns"></div>
+</div>
+
+<script>
+let duplicateGroupsCache = [];
+let currentDuplicatesPage = 1;
+
+function renderDuplicateClusters(page = 1) {
+    currentDuplicatesPage = page;
+    const container = document.getElementById('duplicateClustersContainer');
+    const summary = document.getElementById('duplicatesPaginationSummary');
+    const btns = document.getElementById('duplicatesPaginationBtns');
+    const total = duplicateGroupsCache.length;
+
+    if (!total) {
+        container.innerHTML = `
+            <div class="glass-panel" style="text-align:center; padding:3rem;">
+                <i class="fas fa-circle-check" style="color:var(--accent-emerald); font-size:2.5rem; margin-bottom:1rem; display:block;"></i>
+                <h3 style="font-size:1.2rem; font-weight:700;">Clean Repository</h3>
+                <p style="color:var(--text-secondary); font-size:0.9rem; margin-top:0.35rem;">No identical file hashes or high-confidence title duplicate clusters detected.</p>
+            </div>
+        `;
+        if (summary) summary.textContent = '';
+        if (btns) btns.innerHTML = '';
+        return;
+    }
+
+    const totalPages = Math.ceil(total / 12);
+    const start = (page - 1) * 12;
+    const slice = duplicateGroupsCache.slice(start, start + 12);
+
+    if (summary) summary.textContent = `Showing cluster ${start + 1}-${Math.min(start + 12, total)} of ${total}`;
+    if (btns) {
+        btns.innerHTML = totalPages <= 1 ? '' : `
+            <button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" ${page <= 1 ? 'disabled' : ''} onclick="renderDuplicateClusters(${page - 1})"><i class="fas fa-chevron-left"></i> Prev</button>
+            <span style="font-size:0.82rem; color:var(--text-secondary); padding:0.4rem 0.6rem;">Page ${page} of ${totalPages}</span>
+            <button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" ${page >= totalPages ? 'disabled' : ''} onclick="renderDuplicateClusters(${page + 1})">Next <i class="fas fa-chevron-right"></i></button>
+        `;
+    }
+
+    container.innerHTML = slice.map((g, idx) => `
+        <div class="glass-panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--border-subtle); padding-bottom:0.75rem;">
+                <div>
+                    <span class="role-badge" style="background:rgba(245,158,11,0.2); color:#fbbf24; margin-right:0.5rem;">${g.type}</span>
+                    <strong>Match:</strong> <span style="font-family:var(--font-mono);">${g.match_key}</span>
+                    <span style="color:var(--text-secondary); font-size:0.8rem; margin-left:0.5rem;">(${g.count} files)</span>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th style="width:120px;">Primary File</th>
+                            <th>Title</th>
+                            <th>Uploaded At</th>
+                            <th>Status</th>
+                            <th>Views</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${g.items.map((item, i) => `
+                            <tr>
+                                <td>
+                                    <input type="radio" name="primary_${idx}" value="${item.id}" ${i === 0 ? 'checked' : ''} id="radio_${item.id}">
+                                    <label for="radio_${item.id}" style="font-size:0.8rem; margin-left:0.3rem; cursor:pointer;">Keep</label>
+                                </td>
+                                <td>
+                                    <a href="/admin/files/${item.id}" style="color:var(--text-primary); font-weight:600; text-decoration:none;">${item.title || 'Untitled'}</a>
+                                    <div style="font-size:0.75rem; color:var(--text-secondary); font-family:var(--font-mono);">${item.id}</div>
+                                </td>
+                                <td><span style="font-family:var(--font-mono); font-size:0.8rem;">${(item.created_at || '').slice(0, 10)}</span></td>
+                                <td><span class="role-badge" style="background:rgba(99,102,241,0.15);">${item.status || 'approved'}</span></td>
+                                <td>${item.view_count || 0}</td>
+                                <td>
+                                    <a href="/resources/${item.id}?preview=true" target="_blank" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);"><i class="fas fa-eye"></i> Preview</a>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; margin-top:1rem;">
+                <button type="button" class="btn-action danger" onclick="resolveCluster(${idx}, '${g.items.map(x => x.id).join(',')}')">
+                    <i class="fas fa-compress"></i> Keep Selected & Remove Others
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function loadDuplicates() {
+    const container = document.getElementById('duplicateClustersContainer');
+    container.innerHTML = `<div style="text-align:center; padding:3rem; color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Analyzing document hashes and titles...</div>`;
+
+    try {
+        const res = await fetch('/api/admin/files/duplicates');
+        const data = await res.json();
+        duplicateGroupsCache = data.groups || [];
+        renderDuplicateClusters(1);
+    } catch (e) {
+        container.innerHTML = `<div class="glass-panel" style="color:var(--accent-rose); text-align:center; padding:2rem;">Failed to scan duplicates: ${e.message}</div>`;
+    }
+}
+
+function resolveCluster(clusterIdx, allDocIdsStr) {
+    const allIds = allDocIdsStr.split(',');
+    const selectedRadio = document.querySelector(`input[name="primary_${clusterIdx}"]:checked`);
+    if (!selectedRadio) return;
+    const keepId = selectedRadio.value;
+    const removeIds = allIds.filter(id => id !== keepId);
+
+    openConfirmModal({
+        title: 'Resolve Duplicate Cluster',
+        message: `Keep document ${keepId} as canonical and remove ${removeIds.length} duplicate file(s)?`,
+        confirmText: 'Resolve Duplicates',
+        danger: true,
+        requireReason: false,
+        onConfirm: async () => {
+            try {
+                const res = await fetch('/api/admin/files/duplicates/resolve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                    body: JSON.stringify({ keep_doc_id: keepId, remove_doc_ids: removeIds })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAdminToast('Duplicate cluster resolved successfully!', 'success');
+                    loadDuplicates();
+                } else {
+                    showAdminToast(data.error || 'Failed to resolve duplicates', 'error');
+                }
+            } catch (e) {
+                showAdminToast('Network error resolving duplicates', 'error');
+            }
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadDuplicates();
+});
+</script>
+{% endblock %}

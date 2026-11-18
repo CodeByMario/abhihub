@@ -1,0 +1,406 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Academic Taxonomy{% endblock %}
+
+{% block admin_content %}
+<div class="page-header-row">
+    <div>
+        <a href="/admin/files" style="color:var(--text-secondary); text-decoration:none; font-size:0.85rem; display:inline-flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem;">
+            <i class="fas fa-arrow-left"></i> Back to Files
+        </a>
+        <h1 class="page-title"><i class="fas fa-sitemap" style="color:var(--accent-emerald);"></i> Academic Taxonomy</h1>
+        <p class="page-desc">Manage institutional colleges, departments, branches, and subjects across the academic directory.</p>
+    </div>
+</div>
+
+<div class="taxonomy-grid">
+    <!-- Colleges Column -->
+    <div class="glass-panel" style="margin-bottom:0;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
+            <h3 style="font-size:1.1rem; font-weight:700; margin:0; display:flex; align-items:center; gap:0.5rem;">
+                <span><i class="fas fa-university text-indigo-400"></i> Colleges</span>
+                <span class="role-badge" id="badgeCollegesCount">0</span>
+            </h3>
+            <button type="button" class="btn-action primary" onclick="openTaxonomyModal('college')" style="font-size:0.75rem; padding:0.25rem 0.6rem;"><i class="fas fa-plus"></i> Add College</button>
+        </div>
+        <input type="text" id="filterCollegesInput" class="filter-input" style="width:100%; margin-bottom:0.75rem;" placeholder="Filter colleges..." onkeyup="filterTaxonomyList('collegesList', this.value)">
+        <div id="collegesList" style="max-height:550px; overflow-y:auto; display:flex; flex-direction:column; gap:0.4rem;">
+            <div style="color:var(--text-muted); font-size:0.85rem; padding:1rem; text-align:center;">Loading colleges...</div>
+        </div>
+    </div>
+
+    <!-- Departments Column -->
+    <div class="glass-panel" style="margin-bottom:0;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
+            <h3 style="font-size:1.1rem; font-weight:700; margin:0; display:flex; align-items:center; gap:0.5rem;">
+                <span><i class="fas fa-graduation-cap text-sky-400"></i> Departments</span>
+                <span class="role-badge" id="badgeDepartmentsCount">0</span>
+            </h3>
+            <button type="button" class="btn-action primary" onclick="openTaxonomyModal('department')" style="font-size:0.75rem; padding:0.25rem 0.6rem;"><i class="fas fa-plus"></i> Add Dept</button>
+        </div>
+        <input type="text" id="filterDeptInput" class="filter-input" style="width:100%; margin-bottom:0.75rem;" placeholder="Filter departments..." onkeyup="filterTaxonomyList('departmentsList', this.value)">
+        <div id="departmentsList" style="max-height:550px; overflow-y:auto; display:flex; flex-direction:column; gap:0.4rem;">
+            <div style="color:var(--text-muted); font-size:0.85rem; padding:1rem; text-align:center;">Loading departments...</div>
+        </div>
+    </div>
+
+    <!-- Subjects Column -->
+    <div class="glass-panel" style="margin-bottom:0;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
+            <h3 style="font-size:1.1rem; font-weight:700; margin:0; display:flex; align-items:center; gap:0.5rem;">
+                <span><i class="fas fa-book-bookmark text-emerald-400"></i> Subjects</span>
+                <span class="role-badge" id="badgeSubjectsCount">0</span>
+            </h3>
+            <button type="button" class="btn-action primary" onclick="openTaxonomyModal('subject')" style="font-size:0.75rem; padding:0.25rem 0.6rem;"><i class="fas fa-plus"></i> Add Subject</button>
+        </div>
+        <input type="text" id="filterSubjectsInput" class="filter-input" style="width:100%; margin-bottom:0.75rem;" placeholder="Filter subjects..." onkeyup="filterTaxonomyList('subjectsList', this.value)">
+        <div id="subjectsList" style="max-height:550px; overflow-y:auto; display:flex; flex-direction:column; gap:0.4rem;">
+            <div style="color:var(--text-muted); font-size:0.85rem; padding:1rem; text-align:center;">Loading subjects...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Taxonomy Create/Edit Modal -->
+<div class="modal-backdrop" id="taxonomyModal">
+    <div class="confirm-modal" style="max-width:440px;">
+        <div class="confirm-modal-header">
+            <div class="confirm-modal-icon" style="background:rgba(99,102,241,0.15); color:var(--accent-indigo);"><i class="fas fa-sitemap"></i></div>
+            <h3 class="confirm-modal-title" id="taxModalTitle">Manage Item</h3>
+        </div>
+        <div class="confirm-modal-body">
+            <input type="hidden" id="taxItemType">
+            <input type="hidden" id="taxItemId">
+            <div style="margin-bottom:0.85rem;">
+                <label style="display:block; font-size:0.8rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.3rem;">Name *</label>
+                <input type="text" id="taxItemName" class="filter-input" style="width:100%;" placeholder="Enter name...">
+            </div>
+            <div style="margin-bottom:0.85rem;">
+                <label style="display:block; font-size:0.8rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.3rem;">Code / Abbreviation</label>
+                <input type="text" id="taxItemCode" class="filter-input" style="width:100%;" placeholder="e.g. CSE, VNIT, UCSL101">
+            </div>
+            <div id="taxCityField" style="margin-bottom:0.85rem; display:none;">
+                <label style="display:block; font-size:0.8rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.3rem;">City</label>
+                <input type="text" id="taxItemCity" class="filter-input" style="width:100%;" placeholder="e.g. Nagpur, Pune, Mumbai">
+            </div>
+        </div>
+        <div class="confirm-modal-footer">
+            <button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-secondary);" onclick="closeTaxonomyModal()">Cancel</button>
+            <button type="button" class="btn-action primary" id="taxSaveBtn" onclick="saveTaxonomyModal()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- College Department Linkage Modal -->
+<div class="modal-backdrop" id="collegeDeptModal">
+    <div class="confirm-modal" style="max-width:540px;">
+        <div class="confirm-modal-header">
+            <div class="confirm-modal-icon" style="background:rgba(99,102,241,0.15); color:var(--accent-indigo);"><i class="fas fa-network-wired"></i></div>
+            <h3 class="confirm-modal-title" id="collegeDeptModalTitle">Manage Departments</h3>
+        </div>
+        <div class="confirm-modal-body">
+            <input type="hidden" id="activeCollegeId">
+            <div style="margin-bottom:1rem;">
+                <label style="display:block; font-size:0.8rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.3rem;">Link New Department</label>
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                    <select id="availableDeptSelect" class="filter-input" style="flex:1;">
+                        <option value="">Select department to link...</option>
+                    </select>
+                    <button type="button" class="btn-action primary" id="linkDeptBtn" onclick="linkDepartmentToCollege()" style="font-size:0.8rem; padding:0.45rem 0.8rem; white-space:nowrap;"><i class="fas fa-plus"></i> Link</button>
+                </div>
+            </div>
+
+            <div>
+                <label style="display:block; font-size:0.8rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.4rem;">Currently Linked Departments</label>
+                <div id="linkedDeptsList" style="max-height:260px; overflow-y:auto; display:flex; flex-direction:column; gap:0.35rem; padding:0.5rem; background:rgba(15,23,42,0.4); border:1px solid var(--border-subtle); border-radius:var(--radius-sm);">
+                    <div style="color:var(--text-muted); font-size:0.8rem; text-align:center; padding:1rem;">Loading...</div>
+                </div>
+            </div>
+        </div>
+        <div class="confirm-modal-footer">
+            <button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-secondary);" onclick="closeCollegeDeptModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let allTaxonomyDepartments = [];
+
+async function loadTaxonomy() {
+    try {
+        const res = await fetch('/api/admin/taxonomy');
+        const data = await res.json();
+        const tax = data.taxonomy || {};
+
+        const colleges = tax.colleges || [];
+        const departments = tax.departments || [];
+        const subjects = tax.subjects || [];
+
+        allTaxonomyDepartments = departments;
+
+        document.getElementById('badgeCollegesCount').textContent = colleges.length;
+        document.getElementById('badgeDepartmentsCount').textContent = departments.length;
+        document.getElementById('badgeSubjectsCount').textContent = subjects.length;
+
+        renderTaxonomyList('collegesList', colleges, 'college');
+        renderTaxonomyList('departmentsList', departments, 'department');
+        renderTaxonomyList('subjectsList', subjects, 'subject');
+    } catch (e) {
+        showAdminToast('Failed to load taxonomy', 'error');
+    }
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[m]));
+}
+
+function renderTaxonomyList(elementId, items, type) {
+    const el = document.getElementById(elementId);
+    if (!items.length) {
+        el.innerHTML = `<div style="color:var(--text-muted); font-size:0.85rem; padding:1rem; text-align:center;">No items registered.</div>`;
+        return;
+    }
+    el.innerHTML = items.map(item => `
+        <div class="tax-item" style="padding:0.6rem 0.8rem; background:rgba(15,23,42,0.4); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
+            <div style="flex:1; min-width:0;">
+                <strong style="font-size:0.85rem; color:var(--text-primary); display:block; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${escapeHtml(item.name)}</strong>
+                <div style="font-size:0.72rem; color:var(--text-muted); font-family:var(--font-mono);">${escapeHtml(item.code || '—')}${item.city ? ' · ' + escapeHtml(item.city) : ''}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.35rem; flex-shrink:0;">
+                ${type === 'college' ? `
+                <button type="button" class="btn-action" onclick="openCollegeDeptModal('${item.id}', '${encodeURIComponent(item.name)}')" title="Manage Linked Departments" style="background:rgba(99,102,241,0.15); color:var(--accent-indigo); padding:0.25rem 0.45rem; font-size:0.75rem;"><i class="fas fa-network-wired"></i></button>
+                ` : ''}
+                <a href="/admin/files?search=${encodeURIComponent(item.code || item.name)}" class="btn-action" title="View files" style="background:var(--border-subtle); color:var(--text-secondary); padding:0.25rem 0.45rem; font-size:0.75rem;"><i class="fas fa-folder-open"></i></a>
+                <button type="button" class="btn-action" onclick="openTaxonomyModal('${type}', '${item.id}', '${encodeURIComponent(item.name)}', '${encodeURIComponent(item.code || '')}', '${encodeURIComponent(item.city || '')}')" title="Edit" style="background:var(--border-subtle); color:var(--text-primary); padding:0.25rem 0.45rem; font-size:0.75rem;"><i class="fas fa-pen"></i></button>
+                <button type="button" class="btn-action danger" onclick="deleteTaxonomyItemConfirm('${type}', '${item.id}', '${encodeURIComponent(item.name)}')" title="Delete" style="padding:0.25rem 0.45rem; font-size:0.75rem;"><i class="fas fa-trash"></i></button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function openTaxonomyModal(type, id = '', name = '', code = '', city = '') {
+    name = decodeURIComponent(name || '');
+    code = decodeURIComponent(code || '');
+    city = decodeURIComponent(city || '');
+
+    document.getElementById('taxItemType').value = type;
+    document.getElementById('taxItemId').value = id;
+    document.getElementById('taxItemName').value = name;
+    document.getElementById('taxItemCode').value = code;
+    document.getElementById('taxItemCity').value = city;
+
+    const typeTitle = type.charAt(0).toUpperCase() + type.slice(1);
+    document.getElementById('taxModalTitle').textContent = id ? `Edit ${typeTitle}` : `Add New ${typeTitle}`;
+    document.getElementById('taxCityField').style.display = (type === 'college') ? 'block' : 'none';
+    document.getElementById('taxonomyModal').classList.add('show');
+}
+
+function closeTaxonomyModal() {
+    document.getElementById('taxonomyModal').classList.remove('show');
+}
+
+async function saveTaxonomyModal() {
+    const type = document.getElementById('taxItemType').value;
+    const id = document.getElementById('taxItemId').value;
+    const name = document.getElementById('taxItemName').value.trim();
+    const code = document.getElementById('taxItemCode').value.trim();
+    const city = document.getElementById('taxItemCity').value.trim();
+
+    if (!name) {
+        showAdminToast('Name cannot be empty', 'error');
+        return;
+    }
+
+    const saveBtn = document.getElementById('taxSaveBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+
+    try {
+        const res = await fetch('/api/admin/taxonomy', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({ type, id: id || null, name, code, city })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showAdminToast(data.message || 'Saved successfully', 'success');
+            closeTaxonomyModal();
+            loadTaxonomy();
+        } else {
+            showAdminToast(data.error || 'Failed to save', 'error');
+        }
+    } catch (e) {
+        showAdminToast('Network error saving item', 'error');
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save';
+    }
+}
+
+function deleteTaxonomyItemConfirm(type, id, nameEnc) {
+    const name = decodeURIComponent(nameEnc || '');
+    const typeTitle = type.charAt(0).toUpperCase() + type.slice(1);
+
+    showAdminConfirmModal({
+        title: `Delete ${typeTitle}`,
+        message: `Are you sure you want to permanently remove "${name}"? This node will only be deleted if no platform documents are linked to it.`,
+        confirmText: 'Delete Node',
+        requireReason: true,
+        onConfirm: async (reason) => {
+            try {
+                const res = await fetch(`/api/admin/taxonomy/${type}/${id}?reason=${encodeURIComponent(reason)}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRFToken': getCsrfToken() }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAdminToast(`${name} deleted successfully.`, 'success');
+                    loadTaxonomy();
+                } else {
+                    showAdminToast(data.error || 'Failed to delete item', 'error');
+                }
+            } catch (e) {
+                showAdminToast('Network error deleting item', 'error');
+            }
+        }
+    });
+}
+
+function filterTaxonomyList(elementId, query) {
+    const q = query.toLowerCase();
+    const items = document.querySelectorAll(`#${elementId} .tax-item`);
+    items.forEach(el => {
+        const text = el.textContent.toLowerCase();
+        el.style.display = text.includes(q) ? 'flex' : 'none';
+    });
+}
+
+let currentLinkedDeptIds = new Set();
+
+async function openCollegeDeptModal(collegeId, nameEnc) {
+    const collegeName = decodeURIComponent(nameEnc || '');
+    document.getElementById('activeCollegeId').value = collegeId;
+    document.getElementById('collegeDeptModalTitle').textContent = `Manage Departments: ${collegeName}`;
+    document.getElementById('collegeDeptModal').classList.add('show');
+    await loadCollegeDepartments(collegeId);
+}
+
+function closeCollegeDeptModal() {
+    document.getElementById('collegeDeptModal').classList.remove('show');
+}
+
+async function loadCollegeDepartments(collegeId) {
+    const listEl = document.getElementById('linkedDeptsList');
+    listEl.innerHTML = `<div style="color:var(--text-muted); font-size:0.8rem; text-align:center; padding:1rem;">Loading linked departments...</div>`;
+    currentLinkedDeptIds.clear();
+
+    try {
+        const res = await fetch(`/api/admin/taxonomy/colleges/${collegeId}/departments`);
+        const data = await res.json();
+        const depts = data.departments || [];
+
+        depts.forEach(d => currentLinkedDeptIds.add(d.id));
+
+        if (!depts.length) {
+            listEl.innerHTML = `<div style="color:var(--text-muted); font-size:0.8rem; text-align:center; padding:1rem;">No departments linked to this college yet.</div>`;
+        } else {
+            listEl.innerHTML = depts.map(d => `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:0.4rem 0.6rem; background:rgba(30,41,59,0.5); border-radius:var(--radius-sm); border:1px solid var(--border-subtle);">
+                    <div>
+                        <span style="font-size:0.85rem; color:var(--text-primary); font-weight:500;">${escapeHtml(d.name)}</span>
+                        ${d.code ? `<span style="font-size:0.75rem; color:var(--text-muted); margin-left:0.4rem; font-family:var(--font-mono);">(${escapeHtml(d.code)})</span>` : ''}
+                    </div>
+                    <button type="button" class="btn-action danger" onclick="unlinkCollegeDepartment('${d.id}', '${encodeURIComponent(d.name)}')" title="Unlink department" style="padding:0.2rem 0.45rem; font-size:0.7rem;">
+                        <i class="fas fa-unlink"></i> Unlink
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        const selectEl = document.getElementById('availableDeptSelect');
+        const unlinked = allTaxonomyDepartments.filter(d => !currentLinkedDeptIds.has(d.id));
+        selectEl.innerHTML = `<option value="">Select department to link (${unlinked.length} available)...</option>` +
+            unlinked.map(d => `<option value="${d.id}">${escapeHtml(d.name)}${d.code ? ' (' + escapeHtml(d.code) + ')' : ''}</option>`).join('');
+
+    } catch (e) {
+        listEl.innerHTML = `<div style="color:#ef4444; font-size:0.8rem; text-align:center; padding:1rem;">Failed to load departments.</div>`;
+    }
+}
+
+async function linkDepartmentToCollege() {
+    const collegeId = document.getElementById('activeCollegeId').value;
+    const selectEl = document.getElementById('availableDeptSelect');
+    const departmentId = selectEl.value;
+
+    if (!departmentId) {
+        showAdminToast('Please select a department to link', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('linkDeptBtn');
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Linking...`;
+
+    try {
+        const res = await fetch(`/api/admin/taxonomy/colleges/${collegeId}/departments`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({ department_id: departmentId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showAdminToast(data.message || 'Department linked', 'success');
+            await loadCollegeDepartments(collegeId);
+        } else {
+            showAdminToast(data.error || 'Failed to link department', 'error');
+        }
+    } catch (e) {
+        showAdminToast('Network error linking department', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-plus"></i> Link`;
+    }
+}
+
+function unlinkCollegeDepartment(departmentId, deptNameEnc) {
+    const collegeId = document.getElementById('activeCollegeId').value;
+    const deptName = decodeURIComponent(deptNameEnc || 'this department');
+
+    showAdminConfirmModal({
+        title: 'Unlink Department',
+        message: `Are you sure you want to unlink "${deptName}" from this college?`,
+        confirmText: 'Unlink',
+        requireReason: false,
+        onConfirm: async () => {
+            try {
+                const res = await fetch(`/api/admin/taxonomy/colleges/${collegeId}/departments/${departmentId}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRFToken': getCsrfToken() }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAdminToast('Department unlinked successfully', 'success');
+                    await loadCollegeDepartments(collegeId);
+                } else {
+                    showAdminToast(data.error || 'Failed to unlink department', 'error');
+                }
+            } catch (e) {
+                showAdminToast('Network error unlinking department', 'error');
+            }
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadTaxonomy();
+});
+</script>
+{% endblock %}

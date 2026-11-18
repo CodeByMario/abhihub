@@ -219,16 +219,6 @@ def fulfill_order_transaction(order_id: str, verified_amount: float, doc_id: str
         except Exception as e:
             logging.error("[_fulfill_phonepe_transaction] Creator credit failed (error_type=%s)", type(e).__name__)
 
-    if doc_id and session is not None:
-        try:
-            purchased = session.get('purchased_documents', [])
-            if doc_id not in purchased:
-                purchased.append(doc_id)
-                session['purchased_documents'] = purchased
-                session.modified = True
-        except Exception:
-            pass
-
     return True
 
 _fulfill_phonepe_transaction = fulfill_order_transaction

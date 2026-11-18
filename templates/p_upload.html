@@ -235,6 +235,35 @@
         <!-- RIGHT: Interactive Form with Smart Chips (Ordered by Importance) -->
         <div class="step-card">
           
+          <!-- Quick Exam Auto-Fill Selector -->
+          {% if recent_exams and recent_exams|length > 0 %}
+          <div style="background: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, var(--apple-surface, #fff) 100%); border: 1.5px solid #6366f1; border-radius: 12px; padding: 12px 14px; margin-bottom: 1.25rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span style="font-size:12px; font-weight:700; color:#4f46e5; text-transform:uppercase; letter-spacing:0.04em;">
+                <i class="fas fa-bolt"></i> 1-Click Auto-Fill from Exam Timetable
+              </span>
+              <span style="font-size:11px; color:#6b7280;">Takes 2-3 min</span>
+            </div>
+            <select id="quickExamPicker" class="apple-input" style="font-size:13px; padding:7px 10px; width:100%; cursor:pointer;" onchange="applyQuickExamFill(this)">
+              <option value="">⚡ Select recent or upcoming exam to auto-fill all details...</option>
+              {% for ex in recent_exams %}
+              <option value="{{ ex.id }}"
+                      data-subid="{{ ex.subject_id }}"
+                      data-subname="{{ ex.subjects.name if ex.subjects else '' }}"
+                      data-subcode="{{ ex.subjects.subject_code if ex.subjects else '' }}"
+                      data-sem="{{ ex.semester }}"
+                      data-type="{{ ex.exam_type }}"
+                      data-date="{{ ex.exam_date }}">
+                {{ ex.subjects.name if ex.subjects else 'Subject' }} ({{ ex.subjects.subject_code if ex.subjects else '' }}) • Sem {{ ex.semester }} • {{ ex.countdown_label }}
+              </option>
+              {% endfor %}
+            </select>
+            <div id="quickExamSuccessBanner" style="display:none; font-size:11.5px; color:#10b981; font-weight:600; margin-top:6px;">
+              <i class="fas fa-check-circle"></i> Subject, Code, Category, Title &amp; Year filled automatically!
+            </div>
+          </div>
+          {% endif %}
+
           <!-- Section 1 (Highest Priority): What is this material? -->
           <div class="apple-form-section">
             <div class="apple-section-title">1. Material Classification</div>
@@ -3065,6 +3094,79 @@ window.loadUploadHistory = async function () {
       reader.readAsDataURL(file);
     });
   }
+
+  function applyQuickExamFill(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    if (!opt || !opt.value) return;
+    const subName = opt.getAttribute('data-subname');
+    const subCode = opt.getAttribute('data-subcode');
+    const subId = opt.getAttribute('data-subid');
+    const sem = opt.getAttribute('data-sem');
+
+    const titleInput = document.getElementById('docTitle');
+    if (titleInput && subName) {
+      titleInput.value = `${subName} — Winter 2026 ESE Question Paper`;
+    }
+    const paperChip = document.querySelector('.cat-chip-btn[data-val="papers"]');
+    if (paperChip) paperChip.click();
+
+    const yChip = document.querySelector('.year-chip-btn[data-val="2026"]');
+    if (yChip) yChip.click();
+
+    if (subId && document.getElementById('subjectSelect')) {
+      const sSel = document.getElementById('subjectSelect');
+      let sOpt = sSel.querySelector(`option[value="${subId}"]`);
+      if (!sOpt && subName) {
+        sOpt = new Option(subName, subId, true, true);
+        sSel.appendChild(sOpt);
+      }
+      if (sOpt) {
+        sSel.value = subId;
+        sSel.dispatchEvent(new Event('change'));
+      }
+    }
+
+    const banner = document.getElementById('quickExamSuccessBanner');
+    if (banner) banner.style.display = 'block';
+  }
+
+  // Auto-prefill form from timetable / post-exam link
+  document.addEventListener('DOMContentLoaded', function() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const subId = params.get('subject_id');
+      const subName = params.get('subject_name');
+      const cat = params.get('category');
+      const title = params.get('title');
+      const year = params.get('year') || '2026';
+
+      if (title && document.getElementById('docTitle')) {
+        document.getElementById('docTitle').value = title;
+      }
+      if (cat) {
+        const catBtn = document.querySelector(`.cat-chip-btn[data-val="${cat}"]`);
+        if (catBtn) catBtn.click();
+      }
+      if (year) {
+        const yearBtn = document.querySelector(`.year-chip-btn[data-val="${year}"]`);
+        if (yearBtn) yearBtn.click();
+      }
+      if (subId && document.getElementById('subjectSelect')) {
+        const sel = document.getElementById('subjectSelect');
+        let opt = sel.querySelector(`option[value="${subId}"]`);
+        if (!opt && subName) {
+          opt = new Option(subName, subId, true, true);
+          sel.appendChild(opt);
+        }
+        if (opt) {
+          sel.value = subId;
+          sel.dispatchEvent(new Event('change'));
+        }
+      }
+    } catch(err) {
+      console.warn('[UploadPrefill] Auto-prefill error:', err);
+    }
+  });
 </script>
 
 {% endblock %}

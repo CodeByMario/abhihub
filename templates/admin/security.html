@@ -1,0 +1,150 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Security & Immutable Audit Trail{% endblock %}
+
+{% block admin_content %}
+<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+    <div>
+        <h1 style="font-size:1.6rem; font-weight:800; color:var(--text-primary); margin:0 0 0.25rem 0;">Security & Audit Trail</h1>
+        <p style="color:var(--text-secondary); font-size:0.88rem; margin:0;">Tamper-proof ledger of all administrative actions, credential reveals, financial adjustments, and moderation events.</p>
+    </div>
+    <div style="display:flex; gap:0.5rem;">
+        <button class="btn-action" onclick="window.location.href='/api/admin/audit/export';" style="background:var(--accent-emerald); color:white;"><i class="fas fa-file-excel"></i> Export Excel</button>
+        <button class="btn-action" onclick="loadAuditLogs(1);" style="background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-subtle);"><i class="fas fa-sync-alt"></i></button>
+    </div>
+</div>
+
+<div class="filter-card">
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:0.75rem;">
+        <div>
+            <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Search Logs</label>
+            <input type="text" id="auditSearch" class="form-control" placeholder="Admin email, target ID, reason..." onkeydown="if(event.key==='Enter') loadAuditLogs(1);">
+        </div>
+        <div>
+            <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Action Type</label>
+            <select id="auditActionFilter" class="form-control" onchange="loadAuditLogs(1);">
+                <option value="">All Actions</option>
+                <option value="verify_manual_payment">verify_manual_payment</option>
+                <option value="refund_order">refund_order</option>
+                <option value="set_user_block">set_user_block</option>
+                <option value="set_user_ban">set_user_ban</option>
+                <option value="force_logout_user">force_logout_user</option>
+                <option value="adjust_wallet">adjust_wallet</option>
+                <option value="kyc_reveal_credentials">kyc_reveal_credentials</option>
+                <option value="update_site_setting">update_site_setting</option>
+                <option value="create_promotion">create_promotion</option>
+            </select>
+        </div>
+        <div style="display:flex; align-items:flex-end;">
+            <button class="btn-action primary" onclick="loadAuditLogs(1);" style="width:100%;"><i class="fas fa-filter"></i> Filter</button>
+        </div>
+    </div>
+</div>
+
+<div class="data-card">
+    <div class="table-responsive" style="border:none;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Admin</th>
+                    <th>Action</th>
+                    <th>Target</th>
+                    <th>Justification</th>
+                    <th>IP Address</th>
+                    <th style="text-align:right;">Diff</th>
+                </tr>
+            </thead>
+            <tbody id="auditTbody">
+                <tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-muted);">Loading audit logs...</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1rem; padding-top:0.75rem; border-top:1px solid var(--border-subtle);">
+        <div style="font-size:0.8rem; color:var(--text-muted);" id="auditCount">Showing 0 logs</div>
+        <div style="display:flex; gap:0.5rem;" id="auditPagination"></div>
+    </div>
+</div>
+
+<script>
+let currentAuditPage = 1;
+
+async function loadAuditLogs(page = 1) {
+    currentAuditPage = page;
+    const search = document.getElementById('auditSearch').value.trim();
+    const action = document.getElementById('auditActionFilter').value;
+
+    const params = new URLSearchParams({ page, limit: 12 });
+    if (search) params.append('search', search);
+    if (action) params.append('action', action);
+
+    const tbody = document.getElementById('auditTbody');
+    try {
+        const res = await fetch(`/api/admin/security/audit-logs?${params.toString()}`);
+        const data = await res.json();
+        const logs = data.logs || [];
+
+        if (!logs.length) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:2.5rem; color:var(--text-muted);">No audit events matching criteria.</td></tr>`;
+            document.getElementById('auditCount').textContent = 'Showing 0 logs';
+            document.getElementById('auditPagination').innerHTML = '';
+            return;
+        }
+
+        tbody.innerHTML = logs.map(l => {
+            const isDanger = (l.action || '').includes('ban') || (l.action || '').includes('refund') || (l.action || '').includes('reveal');
+            return `
+                <tr>
+                    <td><span style="font-family:var(--font-mono); font-size:0.78rem;">${(l.timestamp || '').slice(0, 19).replace('T', ' ')}</span></td>
+                    <td><strong style="color:var(--text-primary); font-size:0.82rem;">${l.admin_email || 'system'}</strong></td>
+                    <td>
+                        <span class="role-badge ${isDanger ? 'superadmin' : 'admin'}">
+                            ${l.action}
+                        </span>
+                    </td>
+                    <td>
+                        <div style="font-size:0.8rem; color:var(--text-primary); text-transform:capitalize;">${l.target_type || '—'}</div>
+                        <div style="font-size:0.72rem; color:var(--text-muted); font-family:var(--font-mono);">${(l.target_id || '').slice(0, 16)}</div>
+                    </td>
+                    <td style="max-width:240px; font-size:0.82rem; color:var(--text-secondary);">${l.reason || '<em style="color:var(--text-muted);">No justification recorded</em>'}</td>
+                    <td><span style="font-family:var(--font-mono); font-size:0.78rem; color:var(--text-muted);">${l.ip_address || '—'}</span></td>
+                    <td style="text-align:right;">
+                        <button class="btn-action" onclick="showDiff('${encodeURIComponent(l.old_value || '')}', '${encodeURIComponent(l.new_value || '')}')" style="background:var(--border-subtle); color:var(--text-primary); font-size:0.75rem; padding:0.25rem 0.5rem;"><i class="fas fa-code"></i></button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        const total = data.total || logs.length;
+        document.getElementById('auditCount').textContent = total > 0 ? `Showing ${(page - 1) * 12 + 1}-${Math.min(page * 12, total)} of ${total} audit records` : 'Showing 0 logs';
+        renderPagination(total, 12, page);
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--accent-rose);">Error loading audit records: ${e.message}</td></tr>`;
+    }
+}
+
+function renderPagination(total, limit, page) {
+    const totalPages = Math.ceil(total / limit);
+    const container = document.getElementById('auditPagination');
+    if (totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+    }
+    container.innerHTML = `
+        <button class="btn-action" style="background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-subtle);" ${page <= 1 ? 'disabled' : ''} onclick="loadAuditLogs(${page - 1})">Prev</button>
+        <span style="font-size:0.82rem; color:var(--text-secondary); display:flex; align-items:center;">${page} / ${totalPages}</span>
+        <button class="btn-action" style="background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-subtle);" ${page >= totalPages ? 'disabled' : ''} onclick="loadAuditLogs(${page + 1})">Next</button>
+    `;
+}
+
+function showDiff(oldEnc, newEnc) {
+    const oldVal = decodeURIComponent(oldEnc);
+    const newVal = decodeURIComponent(newEnc);
+    alert(`AUDIT PAYLOAD:\n\n[Previous Value]:\n${oldVal || 'None'}\n\n[New Value]:\n${newVal || 'None'}`);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadAuditLogs(1);
+});
+</script>
+{% endblock %}

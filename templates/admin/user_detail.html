@@ -1,0 +1,863 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}User Profile & Moderation — {{ user_id }}{% endblock %}
+
+{% block admin_content %}
+<div class="page-header-row">
+    <div>
+        <a href="/admin/users" style="color:var(--text-secondary); text-decoration:none; font-size:0.85rem; display:inline-flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem;">
+            <i class="fas fa-arrow-left"></i> Back to User List
+        </a>
+        <h1 class="page-title" id="userNameHeader"><i class="fas fa-user-circle"></i> Loading User...</h1>
+        <p class="page-desc" id="userIdHeader" style="font-family:var(--font-mono);">UUID: {{ user_id }}</p>
+    </div>
+    <!-- Quick Actions -->
+    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+        <button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="openWarnModal()">
+            <i class="fas fa-triangle-exclamation" style="color:var(--accent-amber);"></i> Warn User
+        </button>
+        <button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="openForceLogoutModal()">
+            <i class="fas fa-right-from-bracket" style="color:var(--accent-sky);"></i> Force Logout
+        </button>
+        <button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="openWalletAdjustModal()">
+            <i class="fas fa-coins" style="color:var(--accent-emerald);"></i> Adjust Wallet
+        </button>
+        <button type="button" class="btn-action danger" id="btnBlockAction" onclick="openBlockModal()">
+            <i class="fas fa-ban"></i> Block User
+        </button>
+    </div>
+</div>
+
+<!-- Stats Row -->
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-header"><span>VIEW CREDITS</span><i class="fas fa-ticket"></i></div>
+        <div class="stat-value" id="statQuota">—</div>
+        <div class="stat-delta">Remaining views</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-header"><span>CREATOR WALLET</span><i class="fas fa-wallet"></i></div>
+        <div class="stat-value" id="statWallet">—</div>
+        <div class="stat-delta">Current balance (INR)</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-header"><span>DOCUMENTS UPLOADED</span><i class="fas fa-file-arrow-up"></i></div>
+        <div class="stat-value" id="statUploads">—</div>
+        <div class="stat-delta">Files contributed</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-header"><span>ACCOUNT STATUS</span><i class="fas fa-shield"></i></div>
+        <div class="stat-value" id="statStatus" style="font-size:1.4rem;">—</div>
+        <div class="stat-delta" id="statStatusSub">Security standing</div>
+    </div>
+</div>
+
+<div class="detail-split-grid">
+    <!-- Profile & Metadata Card -->
+    <div class="glass-panel" style="margin-bottom:0;">
+        <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;">
+            <i class="fas fa-id-card text-indigo-400"></i> Account Details
+        </h3>
+        <div style="display:flex; flex-direction:column; gap:0.75rem; font-size:0.88rem;">
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-subtle); padding-bottom:0.5rem;">
+                <span style="color:var(--text-secondary);">Full Name</span>
+                <strong id="detailFullName">—</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-subtle); padding-bottom:0.5rem;">
+                <span style="color:var(--text-secondary);">Email</span>
+                <span style="font-family:var(--font-mono);" id="detailEmail">—</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-subtle); padding-bottom:0.5rem;">
+                <span style="color:var(--text-secondary);">Role</span>
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <span class="role-badge" id="detailRoleBadge">student</span>
+                    <button type="button" class="btn-action" style="padding:2px 6px; font-size:0.7rem; background:var(--border-subtle);" onclick="openRoleModal()">Change</button>
+                </div>
+            </div>
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-subtle); padding-bottom:0.5rem;">
+                <span style="color:var(--text-secondary);">College / Department</span>
+                <span id="detailCollege">—</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-subtle); padding-bottom:0.5rem;">
+                <span style="color:var(--text-secondary);">Joined Date</span>
+                <span style="font-family:var(--font-mono);" id="detailCreatedAt">—</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-subtle); padding-bottom:0.5rem;">
+                <span style="color:var(--text-secondary);">Token Version</span>
+                <span style="font-family:var(--font-mono); font-weight:700;" id="detailTokenVersion">1</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Notes Card -->
+    <div class="glass-panel" style="margin-bottom:0; display:flex; flex-direction:column;">
+        <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;">
+            <i class="fas fa-clipboard-check text-emerald-400"></i> Internal Admin Notes
+        </h3>
+        <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+            <input type="text" id="newAdminNoteInput" class="filter-input" style="flex:1;" placeholder="Add an administrative note or reminder..." onkeyup="if(event.key==='Enter') saveAdminNote()">
+            <button type="button" class="btn-action primary" onclick="saveAdminNote()"><i class="fas fa-plus"></i> Add Note</button>
+        </div>
+        <div id="adminNotesList" style="flex:1; overflow-y:auto; max-height:220px; display:flex; flex-direction:column; gap:0.5rem;">
+            <div style="color:var(--text-muted); font-size:0.85rem; text-align:center; padding:1.5rem;">Loading admin notes...</div>
+        </div>
+    </div>
+</div>
+
+<!-- User Experience Snapshot & Note Access Diagnostic -->
+<div class="glass-panel" style="margin-top:1.25rem;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <h3 style="font-size:1.15rem; font-weight:700; margin:0; display:flex; align-items:center; gap:0.5rem;">
+            <i class="fas fa-compass" style="color:var(--accent-indigo);"></i> User Experience Snapshot
+        </h3>
+        <div style="display:flex; gap:0.5rem; align-items:center;">
+            <button type="button" class="btn-action" style="font-size:0.75rem; background:rgba(239,68,68,0.15); color:#ef4444; border:1px solid rgba(239,68,68,0.3);" onclick="openViewAsModal()">
+                <i class="fas fa-eye"></i> View as User (Read-Only)
+            </button>
+            <button type="button" class="btn-action" style="font-size:0.75rem; background:var(--border-subtle); color:var(--text-primary);" onclick="loadUserExperience()">
+                <i class="fas fa-sync-alt"></i> Refresh Snapshot
+            </button>
+        </div>
+    </div>
+
+    <!-- What This User Sees Checklist -->
+    <div style="background:rgba(15,23,42,0.4); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:1rem; margin-bottom:1rem;">
+        <div style="font-size:0.78rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.75rem;">
+            What this user sees & can do
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:0.75rem;" id="uxChecklistGrid">
+            <div style="color:var(--text-muted); font-size:0.85rem;">Loading user capabilities...</div>
+        </div>
+    </div>
+
+    <!-- Snapshot Metrics & Standing Grid -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1rem; margin-bottom:1.25rem;">
+        <!-- Academic & Privileges -->
+        <div style="background:rgba(15,23,42,0.3); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:0.85rem;">
+            <div style="font-size:0.78rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:0.6rem;">
+                <i class="fas fa-graduation-cap"></i> Academic & Privileges
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.45rem; font-size:0.84rem;">
+                <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-secondary);">College:</span> <strong id="uxCollege">—</strong></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-secondary);">Branch / Dept:</span> <span id="uxBranch">—</span></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-secondary);">XP / Reputation:</span> <span style="font-weight:700; color:#fbbf24;" id="uxXpScore">—</span></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-secondary);">Rank & Tier:</span> <span id="uxRankTier">—</span></div>
+            </div>
+        </div>
+
+        <!-- Library & Creator Economics -->
+        <div style="background:rgba(15,23,42,0.3); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:0.85rem;">
+            <div style="font-size:0.78rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:0.6rem;">
+                <i class="fas fa-book-bookmark"></i> Content & Finances
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.45rem; font-size:0.84rem;">
+                <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-secondary);">Unlocked / Purchased:</span> <strong id="uxLibraryCount">—</strong></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-secondary);">Saved Bookmarks:</span> <span id="uxBookmarksCount">—</span></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-secondary);">Withdrawable Wallet:</span> <span style="color:var(--accent-emerald); font-weight:700;" id="uxWalletBalance">—</span></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-secondary);">Pending Escrow:</span> <span style="color:var(--accent-amber);" id="uxPendingBalance">—</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Diagnostic Engine: Why can't they access note X? -->
+    <div style="background:rgba(30,41,59,0.4); border:1px solid rgba(99,102,241,0.25); border-radius:var(--radius-sm); padding:1.1rem;">
+        <h4 style="font-size:0.95rem; font-weight:700; margin:0 0 0.4rem 0; display:flex; align-items:center; gap:0.45rem; color:var(--text-primary);">
+            <i class="fas fa-stethoscope" style="color:var(--accent-indigo);"></i> Diagnostic: Why Can't They Access Note X?
+        </h4>
+        <p style="font-size:0.8rem; color:var(--text-secondary); margin:0 0 0.75rem 0;">
+            Enter a document UUID to inspect every security and commercial permission gate (status, purchase record, block state, role privilege, quota).
+        </p>
+        <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem; flex-wrap:wrap;">
+            <input type="text" id="diagDocIdInput" class="filter-input" style="flex:1; min-width:240px; font-family:var(--font-mono); font-size:0.82rem;" placeholder="Paste Document UUID (e.g. 244950b3-c30d-4912-88d6-3da881ae04f2)..." onkeyup="if(event.key==='Enter') runAccessDiagnostic()">
+            <button type="button" class="btn-action primary" id="btnRunDiag" onclick="runAccessDiagnostic()" style="font-size:0.82rem; padding:0.45rem 0.9rem;">
+                <i class="fas fa-play"></i> Run Diagnostic
+            </button>
+        </div>
+        <div id="diagResultsBox" style="display:none; margin-top:0.75rem;"></div>
+    </div>
+</div>
+
+<!-- Uploaded Documents by this User -->
+<div class="glass-panel">
+    <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;">
+        <i class="fas fa-folder-open text-sky-400"></i> Uploaded Documents
+    </h3>
+    <div class="table-responsive">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Status</th>
+                    <th>Views</th>
+                    <th>Likes</th>
+                    <th>Uploaded At</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="userDocsTbody">
+                <tr><td colspan="6" style="text-align:center; padding:1.5rem; color:var(--text-muted);">Loading user files...</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1rem;">
+        <div style="font-size:0.82rem; color:var(--text-secondary);" id="userDocsPaginationSummary"></div>
+        <div style="display:flex; gap:0.4rem;" id="userDocsPaginationBtns"></div>
+    </div>
+</div>
+
+<!-- Activity Timeline (Level 3) -->
+<div class="glass-panel" style="margin-top:1.25rem;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+        <h3 style="font-size:1.1rem; font-weight:700; margin:0; display:flex; align-items:center; gap:0.5rem;">
+            <i class="fas fa-history" style="color:var(--accent-cyan);"></i> Activity Timeline (90-Day Retention)
+        </h3>
+        <div style="display:flex; gap:0.5rem; align-items:center;">
+            <select id="activityEventFilter" class="filter-select" style="font-size:0.8rem; padding:0.35rem 0.6rem;" onchange="loadActivityTimeline(1)">
+                <option value="">All Event Types</option>
+                <option value="login">Login</option>
+                <option value="search">Search</option>
+                <option value="document_view">Document View</option>
+                <option value="document_preview">Document Preview</option>
+                <option value="checkout_start">Checkout Start</option>
+                <option value="checkout_success">Checkout Success</option>
+                <option value="checkout_fail">Checkout Fail</option>
+                <option value="document_upload">Document Upload</option>
+                <option value="error">Error</option>
+            </select>
+            <button type="button" class="btn-action" style="font-size:0.75rem; background:var(--border-subtle); color:var(--text-primary);" onclick="loadActivityTimeline(1)">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Device & Browser Distribution Summary -->
+    <div id="deviceSummaryBox" style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1rem;">
+        <div style="color:var(--text-muted); font-size:0.8rem;">No device telemetry yet.</div>
+    </div>
+
+    <!-- Timeline Events Table -->
+    <div class="table-responsive">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Event Type</th>
+                    <th>Entity / Target</th>
+                    <th>Device</th>
+                    <th>IP (Masked)</th>
+                    <th>Metadata</th>
+                </tr>
+            </thead>
+            <tbody id="activityTimelineTbody">
+                <tr><td colspan="6" style="text-align:center; padding:1.5rem; color:var(--text-muted);">No activity recorded within the 90-day retention window.</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1rem;">
+        <div style="font-size:0.82rem; color:var(--text-secondary);" id="timelinePaginationSummary"></div>
+        <div style="display:flex; gap:0.4rem;" id="timelinePaginationBtns"></div>
+    </div>
+</div>
+
+<!-- Modal: View-As Impersonation Reason -->
+<div id="viewAsModal" style="display:none; position:fixed; inset:0; z-index:999999; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
+    <div style="background:#1e293b; border:1px solid rgba(239,68,68,0.4); border-radius:12px; max-width:480px; width:92%; padding:1.5rem; box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+        <h4 style="font-size:1.1rem; font-weight:700; color:#ef4444; margin:0 0 0.5rem 0; display:flex; align-items:center; gap:0.5rem;">
+            <i class="fas fa-user-secret"></i> Start View-As Session
+        </h4>
+        <p style="font-size:0.83rem; color:var(--text-secondary); margin:0 0 1rem 0; line-height:1.45;">
+            You are about to view the platform through this student's perspective in <strong>strict read-only mode</strong> for up to 30 minutes. All state changes are centrally blocked and this action will be permanently recorded in the immutable audit log.
+        </p>
+        <div style="margin-bottom:1rem;">
+            <label style="display:block; font-size:0.8rem; font-weight:600; color:var(--text-primary); margin-bottom:0.35rem;">
+                Operational Justification / Ticket ID <span style="color:#ef4444;">*</span>
+            </label>
+            <textarea id="viewAsReasonInput" rows="3" class="filter-input" style="width:100%; font-size:0.85rem;" placeholder="e.g. Troubleshooting reported note unlock issue on Ticket #482..."></textarea>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:0.75rem;">
+            <button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="closeViewAsModal()">Cancel</button>
+            <button type="button" class="btn-action danger" id="btnConfirmViewAs" onclick="submitViewAsStart()">
+                <i class="fas fa-play"></i> Begin Session
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+const targetUserId = "{{ user_id }}";
+let userProfile = null;
+
+async function loadUserFullDetail() {
+    try {
+        const res = await fetch(`/api/admin/users/${targetUserId}/stats`);
+        const data = await res.json();
+        userProfile = data;
+
+        document.getElementById('userNameHeader').innerHTML = `<i class="fas fa-user-circle"></i> ${data.name || data.email || 'User Profile'}`;
+        document.getElementById('detailFullName').textContent = data.name || 'Anonymous';
+        document.getElementById('detailEmail').textContent = data.email || '—';
+        document.getElementById('detailRoleBadge').textContent = (data.role || 'student').toLowerCase();
+        document.getElementById('detailRoleBadge').className = `role-badge ${(data.role || 'student').toLowerCase()}`;
+        document.getElementById('detailCollege').textContent = data.college || 'General';
+        document.getElementById('detailCreatedAt').textContent = (data.created_at || '').slice(0, 10) || '—';
+        document.getElementById('detailTokenVersion').textContent = data.token_version || 1;
+
+        document.getElementById('statQuota').textContent = data.paper_quota !== undefined ? data.paper_quota : '0';
+        document.getElementById('statUploads').textContent = (data.uploaded_files || []).length;
+        document.getElementById('statWallet').textContent = '₹' + parseFloat(data.wallet_balance || 0).toFixed(2);
+
+        const isBlocked = data.is_blocked;
+        const isBanned = data.is_banned;
+        const statusEl = document.getElementById('statStatus');
+        const blockBtn = document.getElementById('btnBlockAction');
+        if (isBanned) {
+            statusEl.innerHTML = '<span style="color:var(--accent-rose);">Banned</span>';
+            blockBtn.textContent = 'Lift Ban';
+            blockBtn.className = 'btn-action success';
+        } else if (isBlocked) {
+            statusEl.innerHTML = '<span style="color:var(--accent-amber);">Blocked</span>';
+            blockBtn.textContent = 'Unblock';
+            blockBtn.className = 'btn-action success';
+        } else {
+            statusEl.innerHTML = '<span style="color:var(--accent-emerald);">Active</span>';
+            blockBtn.textContent = 'Block User';
+            blockBtn.className = 'btn-action danger';
+        }
+
+        // Render uploads table with 12-row pagination
+        let userDocsCache = data.uploaded_files || [];
+        renderUserDocsPage(1);
+
+        function renderUserDocsPage(page = 1) {
+            const tbody = document.getElementById('userDocsTbody');
+            const summary = document.getElementById('userDocsPaginationSummary');
+            const btns = document.getElementById('userDocsPaginationBtns');
+            const total = userDocsCache.length;
+
+            if (!total) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:1.5rem; color:var(--text-muted);">No documents uploaded yet.</td></tr>`;
+                if (summary) summary.textContent = '';
+                if (btns) btns.innerHTML = '';
+                return;
+            }
+
+            const totalPages = Math.ceil(total / 12);
+            const sliceStart = (page - 1) * 12;
+            const sliceEnd = Math.min(sliceStart + 12, total);
+            const pageDocs = userDocsCache.slice(sliceStart, sliceEnd);
+
+            if (summary) summary.textContent = `Showing ${sliceStart + 1}-${sliceEnd} of ${total}`;
+            if (btns) {
+                if (totalPages <= 1) {
+                    btns.innerHTML = '';
+                } else {
+                    let bHtml = '';
+                    if (page > 1) {
+                        bHtml += `<button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="renderUserDocsPage(${page - 1})"><i class="fas fa-chevron-left"></i> Prev</button>`;
+                    }
+                    bHtml += `<span style="font-size:0.82rem; color:var(--text-secondary); padding:0.4rem 0.6rem;">Page ${page} of ${totalPages}</span>`;
+                    if (page < totalPages) {
+                        bHtml += `<button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="renderUserDocsPage(${page + 1})">Next <i class="fas fa-chevron-right"></i></button>`;
+                    }
+                    btns.innerHTML = bHtml;
+                }
+            }
+
+            tbody.innerHTML = pageDocs.map(d => `
+                <tr>
+                    <td><strong style="color:var(--text-primary);">${d.title || 'Untitled'}</strong></td>
+                    <td><span class="role-badge" style="background:rgba(99,102,241,0.15);">${d.status || 'approved'}</span></td>
+                    <td>${d.view_count || 0}</td>
+                    <td>${d.like_count || 0}</td>
+                    <td><span style="font-family:var(--font-mono); font-size:0.78rem;">${(d.created_at || '').slice(0, 10)}</span></td>
+                    <td>
+                        <a href="/admin/files/${d.id}" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);"><i class="fas fa-eye"></i> View</a>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        loadAdminNotes();
+    } catch (e) {
+        showAdminToast(`Failed loading user profile: ${e.message}`, 'error');
+    }
+}
+
+async function loadAdminNotes() {
+    try {
+        const res = await fetch(`/api/admin/users/${targetUserId}/notes`);
+        const data = await res.json();
+        const listEl = document.getElementById('adminNotesList');
+        const notes = data.notes || [];
+        if (!notes.length) {
+            listEl.innerHTML = `<div style="color:var(--text-muted); font-size:0.82rem; text-align:center; padding:1.5rem;">No administrative notes recorded yet.</div>`;
+            return;
+        }
+        listEl.innerHTML = notes.map(n => `
+            <div style="background:rgba(15,23,42,0.4); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:0.6rem 0.8rem;">
+                <div style="display:flex; justify-content:space-between; font-size:0.72rem; color:var(--text-muted); margin-bottom:0.25rem;">
+                    <span>${n.admin_email || 'Admin'}</span>
+                    <span style="font-family:var(--font-mono);">${(n.created_at || '').slice(0, 16).replace('T', ' ')}</span>
+                </div>
+                <div style="font-size:0.85rem; color:var(--text-primary);">${n.note}</div>
+            </div>
+        `).join('');
+    } catch (e) {}
+}
+
+async function saveAdminNote() {
+    const input = document.getElementById('newAdminNoteInput');
+    const note = input.value.trim();
+    if (!note) return;
+    try {
+        const res = await fetch(`/api/admin/users/${targetUserId}/notes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+            body: JSON.stringify({ note })
+        });
+        const data = await res.json();
+        if (data.success) {
+            input.value = '';
+            showAdminToast('Note saved!', 'success');
+            loadAdminNotes();
+        } else {
+            showAdminToast(data.error || 'Failed to save note', 'error');
+        }
+    } catch (e) {
+        showAdminToast('Network error saving note', 'error');
+    }
+}
+
+function openWarnModal() {
+    openConfirmModal({
+        title: 'Issue Formal Warning',
+        message: 'Enter the violation justification. The user will be notified immediately.',
+        confirmText: 'Issue Warning',
+        danger: false,
+        requireReason: true,
+        onConfirm: async (reason) => {
+            try {
+                const res = await fetch(`/api/admin/users/${targetUserId}/warn`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                    body: JSON.stringify({ reason })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAdminToast('Warning issued and user notified.', 'success');
+                    loadAdminNotes();
+                } else {
+                    showAdminToast(data.error || 'Warning failed', 'error');
+                }
+            } catch (e) {
+                showAdminToast('Network error', 'error');
+            }
+        }
+    });
+}
+
+function openForceLogoutModal() {
+    openConfirmModal({
+        title: 'Force Session Logout',
+        message: 'This will invalidate all active browser and API sessions for this account immediately.',
+        confirmText: 'Revoke Sessions',
+        danger: true,
+        requireReason: false,
+        onConfirm: async () => {
+            try {
+                const res = await fetch(`/api/admin/users/${targetUserId}/force-logout`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAdminToast('User sessions revoked successfully!', 'success');
+                    loadUserFullDetail();
+                } else {
+                    showAdminToast(data.error || 'Force logout failed', 'error');
+                }
+            } catch (e) {
+                showAdminToast('Network error', 'error');
+            }
+        }
+    });
+}
+
+function openWalletAdjustModal() {
+    const amtStr = prompt("Enter adjustment amount in INR (positive to credit, negative to debit):");
+    if (!amtStr) return;
+    const amount = parseFloat(amtStr);
+    if (isNaN(amount) || amount === 0) {
+        showAdminToast("Invalid amount entered.", "error");
+        return;
+    }
+    openConfirmModal({
+        title: `Adjust Wallet by ₹${amount}`,
+        message: `Confirm wallet adjustment for this creator with immutable ledger recording.`,
+        confirmText: 'Apply Adjustment',
+        danger: amount < 0,
+        requireReason: true,
+        onConfirm: async (reason) => {
+            try {
+                const res = await fetch(`/api/admin/users/${targetUserId}/wallet-adjust`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                    body: JSON.stringify({ amount, reason })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAdminToast(data.message || 'Wallet adjusted!', 'success');
+                    loadUserFullDetail();
+                } else {
+                    showAdminToast(data.error || 'Wallet adjustment failed', 'error');
+                }
+            } catch (e) {
+                showAdminToast('Network error', 'error');
+            }
+        }
+    });
+}
+
+function openBlockModal() {
+    const isCurrentlyBlocked = userProfile && (userProfile.is_blocked || userProfile.is_banned);
+    if (isCurrentlyBlocked) {
+        openConfirmModal({
+            title: 'Restore User Access',
+            message: 'Unblock this user and restore normal marketplace privileges?',
+            confirmText: 'Restore Access',
+            danger: false,
+            requireReason: false,
+            onConfirm: async () => {
+                const res = await fetch(`/api/admin/users/${targetUserId}/block`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                    body: JSON.stringify({ is_blocked: false })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAdminToast('User access restored!', 'success');
+                    loadUserFullDetail();
+                } else {
+                    showAdminToast(data.error || 'Failed to unblock', 'error');
+                }
+            }
+        });
+    } else {
+        const days = prompt("Enter block duration in days (e.g. 1, 7, 30 or leave empty for indefinite):", "7");
+        if (days === null) return;
+        const expiryDays = parseInt(days) || null;
+        openConfirmModal({
+            title: `Temporary Block User (${expiryDays ? expiryDays + ' Days' : 'Indefinite'})`,
+            message: 'The user will be logged out and prevented from accessing services.',
+            confirmText: 'Confirm Block',
+            danger: true,
+            requireReason: true,
+            onConfirm: async (reason) => {
+                const res = await fetch(`/api/admin/users/${targetUserId}/block`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                    body: JSON.stringify({ is_blocked: true, reason: reason, expiry_days: expiryDays })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAdminToast('User blocked successfully.', 'success');
+                    loadUserFullDetail();
+                } else {
+                    showAdminToast(data.error || 'Block failed', 'error');
+                }
+            }
+        });
+    }
+}
+
+function openRoleModal() {
+    const newRole = prompt("Enter new role ('student', 'creator', 'moderator', 'admin', 'superadmin'):");
+    if (!newRole) return;
+    openConfirmModal({
+        title: `Change Role to ${newRole.toUpperCase()}`,
+        message: 'Role change will be checked against Anti-Lockout safeguards.',
+        confirmText: 'Update Role',
+        danger: true,
+        requireReason: true,
+        onConfirm: async (reason) => {
+            const res = await fetch(`/api/admin/update-user-role`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                body: JSON.stringify({ user_id: targetUserId, role: newRole.toLowerCase(), reason })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showAdminToast(`Role changed to ${newRole}!`, 'success');
+                loadUserFullDetail();
+            } else {
+                showAdminToast(data.error || 'Role change denied', 'error');
+            }
+        }
+    });
+}
+
+async function loadUserExperience() {
+    try {
+        const res = await fetch(`/api/admin/users/${targetUserId}/experience`);
+        const data = await res.json();
+        if (!data.success) return;
+
+        const u = data.user || {};
+        const chk = data.checklist || {};
+        const streak = u.streak_xp || {};
+        const wallet = data.wallet || {};
+
+        document.getElementById('uxCollege').textContent = u.college || 'General';
+        document.getElementById('uxBranch').textContent = u.branch || 'General';
+        document.getElementById('uxXpScore').textContent = `${streak.reputation_score || 0} Rep (${streak.abhihub_score || 0} XP)`;
+        document.getElementById('uxRankTier').textContent = `${streak.rank_title || 'Beginner'} · ${streak.access_level || 'explorer'}`;
+
+        document.getElementById('uxLibraryCount').textContent = `${data.library_count || 0} notes`;
+        document.getElementById('uxBookmarksCount').textContent = `${data.bookmarks_count || 0} notes`;
+        document.getElementById('uxWalletBalance').textContent = `₹${parseFloat(wallet.withdrawable_balance || 0).toFixed(2)}`;
+        document.getElementById('uxPendingBalance').textContent = `₹${parseFloat(wallet.pending_balance || 0).toFixed(2)}`;
+
+        const grid = document.getElementById('uxChecklistGrid');
+        const items = [
+            { label: 'Preview Notes', can: chk.can_preview, icon: 'fa-eye' },
+            { label: 'Download Notes', can: chk.can_download, icon: 'fa-download' },
+            { label: 'Purchase Notes', can: chk.can_buy, icon: 'fa-cart-shopping' },
+            { label: 'Upload Notes', can: chk.can_upload, icon: 'fa-upload' },
+            { label: `Ads (${chk.ad_density || 'high'})`, can: !chk.see_ads, icon: 'fa-rectangle-ad', inverted: true, note: chk.see_ads ? 'Active' : 'Ad-Free' }
+        ];
+
+        grid.innerHTML = items.map(it => {
+            const ok = it.inverted ? !it.can : it.can;
+            const bg = ok ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)';
+            const color = ok ? '#10b981' : '#ef4444';
+            const icon = ok ? 'fa-check' : 'fa-times';
+            const text = it.note || (ok ? 'Allowed' : 'Blocked');
+            return `
+                <div style="background:${bg}; border:1px solid ${color}; border-radius:var(--radius-sm); padding:0.6rem 0.8rem; display:flex; align-items:center; justify-content:space-between;">
+                    <div style="display:flex; align-items:center; gap:0.4rem;">
+                        <i class="fas ${it.icon}" style="color:${color}; font-size:0.85rem;"></i>
+                        <span style="font-size:0.78rem; font-weight:600; color:var(--text-primary);">${it.label}</span>
+                    </div>
+                    <span style="font-size:0.75rem; font-weight:700; color:${color}; display:flex; align-items:center; gap:0.25rem;">
+                        <i class="fas ${icon}"></i> ${text}
+                    </span>
+                </div>
+            `;
+        }).join('');
+    } catch (e) {
+        console.error('Failed loading UX snapshot:', e);
+    }
+}
+
+async function runAccessDiagnostic() {
+    const input = document.getElementById('diagDocIdInput');
+    const docId = input.value.trim();
+    if (!docId) {
+        showAdminToast('Please paste a Document UUID to diagnose', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('btnRunDiag');
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Checking...`;
+
+    const box = document.getElementById('diagResultsBox');
+    box.style.display = 'block';
+    box.innerHTML = `<div style="color:var(--text-muted); font-size:0.82rem; padding:0.75rem; text-align:center;">Running access evaluation...</div>`;
+
+    try {
+        const res = await fetch(`/api/admin/users/${targetUserId}/diagnose-access/${encodeURIComponent(docId)}`);
+        const data = await res.json();
+        if (!data.success) {
+            box.innerHTML = `<div style="background:rgba(239,68,68,0.15); border:1px solid #ef4444; border-radius:var(--radius-sm); padding:0.75rem; color:#ef4444; font-size:0.82rem;">${data.error || 'Diagnostic failed'}</div>`;
+            return;
+        }
+
+        const isOk = data.accessible;
+        const bannerBg = isOk ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)';
+        const bannerBorder = isOk ? '#10b981' : '#ef4444';
+        const docInfo = data.document || {};
+
+        let html = `
+            <div style="background:${bannerBg}; border:1px solid ${bannerBorder}; border-radius:var(--radius-sm); padding:0.75rem 1rem; margin-bottom:0.75rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+                <div>
+                    <strong style="color:var(--text-primary); font-size:0.88rem;">${docInfo.title || 'Target Document'}</strong>
+                    <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:0.2rem;">
+                        ${docInfo.is_paid ? `Premium (₹${docInfo.price})` : 'Free Note'} · Status: <strong>${docInfo.status || 'unknown'}</strong>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.35rem; font-weight:700; font-size:0.85rem; color:${bannerBorder};">
+                    <i class="fas ${isOk ? 'fa-check-circle' : 'fa-times-circle'}"></i>
+                    ${isOk ? 'ACCESSIBLE BY THIS USER' : 'ACCESS BLOCKED'}
+                </div>
+            </div>
+            <div style="font-size:0.78rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:0.5rem;">Individual Access Checks</div>
+            <div style="display:flex; flex-direction:column; gap:0.4rem;">
+        `;
+
+        (data.checks || []).forEach(c => {
+            const checkColor = c.passed ? '#10b981' : '#ef4444';
+            const checkIcon = c.passed ? 'fa-check' : 'fa-times';
+            html += `
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:0.5rem; background:rgba(15,23,42,0.4); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:0.5rem 0.75rem; font-size:0.8rem;">
+                    <div>
+                        <strong style="color:var(--text-primary); font-size:0.8rem;">${c.name}</strong>
+                        <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:0.15rem;">${c.message}</div>
+                    </div>
+                    <span style="color:${checkColor}; font-weight:700; font-size:0.75rem; display:inline-flex; align-items:center; gap:0.25rem; flex-shrink:0;">
+                        <i class="fas ${checkIcon}"></i> ${c.passed ? 'PASS' : 'FAIL'}
+                    </span>
+                </div>
+            `;
+        });
+
+        html += `
+            </div>
+            <div style="margin-top:0.6rem; font-size:0.78rem; color:var(--text-muted); font-style:italic;">
+                ${data.summary}
+            </div>
+        `;
+
+        box.innerHTML = html;
+    } catch (e) {
+        box.innerHTML = `<div style="color:#ef4444; font-size:0.82rem; padding:0.75rem;">Network error running diagnostic: ${e.message}</div>`;
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-play"></i> Run Diagnostic`;
+    }
+}
+
+// ─── Level 2: View-As Modal & Actions ───
+
+function openViewAsModal() {
+    document.getElementById('viewAsReasonInput').value = '';
+    const modal = document.getElementById('viewAsModal');
+    modal.style.display = 'flex';
+}
+
+function closeViewAsModal() {
+    document.getElementById('viewAsModal').style.display = 'none';
+}
+
+async function submitViewAsStart() {
+    const reason = document.getElementById('viewAsReasonInput').value.trim();
+    if (!reason) {
+        showAdminToast('Please provide an operational reason / ticket ID.', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('btnConfirmViewAs');
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Initializing...`;
+
+    try {
+        const res = await fetch(`/api/admin/users/${targetUserId}/view-as/start`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({reason: reason})
+        });
+        const data = await res.json();
+        if (!data.success) {
+            showAdminToast(data.error || 'Failed to start View-As session', 'error');
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fas fa-play"></i> Begin Session`;
+            return;
+        }
+
+        showAdminToast('View-As session active! Redirecting to student view...', 'success');
+        closeViewAsModal();
+        setTimeout(() => {
+            window.location.href = '/home';
+        }, 800);
+    } catch (e) {
+        showAdminToast('Network error: ' + e.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-play"></i> Begin Session`;
+    }
+}
+
+// ─── Level 3: Activity Timeline ───
+
+async function loadActivityTimeline(page = 1) {
+    const tbody = document.getElementById('activityTimelineTbody');
+    const filter = document.getElementById('activityEventFilter').value;
+    const devBox = document.getElementById('deviceSummaryBox');
+    const summary = document.getElementById('timelinePaginationSummary');
+    const btns = document.getElementById('timelinePaginationBtns');
+
+    try {
+        let url = `/api/admin/users/${targetUserId}/activity-timeline?page=${page}&limit=12`;
+        if (filter) url += `&event_type=${encodeURIComponent(filter)}`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+        const events = data.events || [];
+        const total = data.total || events.length;
+        const totalPages = Math.ceil(total / 12);
+
+        // Render device summary chips
+        const devSummary = data.device_summary || {};
+        const devKeys = Object.keys(devSummary);
+        if (!devKeys.length) {
+            devBox.innerHTML = `<div style="color:var(--text-muted); font-size:0.8rem;">No device telemetry yet.</div>`;
+        } else {
+            devBox.innerHTML = devKeys.map(k => `
+                <span style="background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.3); border-radius:12px; padding:0.25rem 0.65rem; font-size:0.75rem; color:var(--text-secondary); display:inline-flex; align-items:center; gap:0.35rem;">
+                    <i class="fas fa-mobile-alt"></i> ${k}: <strong style="color:var(--text-primary);">${devSummary[k]}</strong>
+                </span>
+            `).join('');
+        }
+
+        if (summary) summary.textContent = total > 0 ? `Showing ${(page - 1) * 12 + 1}-${Math.min(page * 12, total)} of ${total}` : '';
+        if (btns) {
+            if (totalPages <= 1) {
+                btns.innerHTML = '';
+            } else {
+                let bHtml = '';
+                if (page > 1) {
+                    bHtml += `<button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="loadActivityTimeline(${page - 1})"><i class="fas fa-chevron-left"></i> Prev</button>`;
+                }
+                bHtml += `<span style="font-size:0.82rem; color:var(--text-secondary); padding:0.4rem 0.6rem;">Page ${page} of ${totalPages}</span>`;
+                if (page < totalPages) {
+                    bHtml += `<button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="loadActivityTimeline(${page + 1})">Next <i class="fas fa-chevron-right"></i></button>`;
+                }
+                btns.innerHTML = bHtml;
+            }
+        }
+
+        if (!events.length) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:1.5rem; color:var(--text-muted);">No activity recorded within the 90-day retention window.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = events.map(ev => {
+            let metaStr = '—';
+            try {
+                if (ev.metadata && Object.keys(ev.metadata).length) {
+                    metaStr = `<code style="font-size:0.75rem; color:var(--text-muted);">${JSON.stringify(ev.metadata)}</code>`;
+                }
+            } catch (e) {}
+
+            return `
+                <tr>
+                    <td><span style="font-family:var(--font-mono); font-size:0.78rem;">${(ev.created_at || '').replace('T', ' ').slice(0, 19)}</span></td>
+                    <td><span class="role-badge" style="background:rgba(14,165,233,0.15); color:#0ea5e9;">${ev.event_type}</span></td>
+                    <td><span style="font-family:var(--font-mono); font-size:0.78rem;">${ev.entity_id || '—'}</span></td>
+                    <td><span style="font-size:0.8rem;">${ev.device || 'unknown'}</span></td>
+                    <td><span style="font-family:var(--font-mono); font-size:0.78rem; color:var(--text-secondary);">${ev.ip || '—'}</span></td>
+                    <td style="max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${metaStr}</td>
+                </tr>
+            `;
+        }).join('');
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:1.5rem; color:#ef4444;">Failed to load activity events: ${e.message}</td></tr>`;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadUserFullDetail();
+    loadUserExperience();
+    loadActivityTimeline();
+});
+</script>
+{% endblock %}

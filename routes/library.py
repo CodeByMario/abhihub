@@ -660,6 +660,15 @@ def resource_og_image(doc_id):
     return resp
 
 
+@library_bp.route('/view/<path:slug>')
+def legacy_view_redirect(slug):
+    """Legacy redirect from /view/ to /resources/"""
+    target = url_for('library.resource_landing', slug=slug)
+    if request.query_string:
+        target = f"{target}?{request.query_string.decode('utf-8')}"
+    return redirect(target, code=301)
+
+
 @library_bp.route('/resource/<path:slug>')
 @library_bp.route('/resources/<path:slug>')
 def resource_landing(slug):

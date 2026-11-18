@@ -1,0 +1,298 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}User Management{% endblock %}
+
+{% block admin_content %}
+<div class="page-header-row">
+    <div>
+        <h1 class="page-title"><i class="fas fa-users" style="color:var(--accent-indigo);"></i> User Management</h1>
+        <p class="page-desc">Search, filter, inspect, and moderate all platform student, creator, and admin accounts.</p>
+    </div>
+    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+        <button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="exportUsersCsv()">
+            <i class="fas fa-file-csv"></i> Export CSV
+        </button>
+        <button type="button" class="btn-action danger" id="btnBulkBlock" style="display:none;" onclick="bulkActionUsers('block')">
+            <i class="fas fa-ban"></i> Bulk Block Selected (<span id="selectedCount">0</span>)
+        </button>
+    </div>
+</div>
+
+<!-- Filters Bar -->
+<div class="filter-bar">
+    <div style="position:relative; flex:1; min-width:240px;">
+        <input type="text" id="userSearchInput" class="filter-input" style="width:100%;" placeholder="Search by name, email, or user ID..." onkeyup="if(event.key==='Enter') loadUsers(1)">
+    </div>
+    <select id="userRoleFilter" class="filter-select" onchange="loadUsers(1)">
+        <option value="">All Roles</option>
+        <option value="student">Student</option>
+        <option value="creator">Creator / Teacher</option>
+        <option value="moderator">Moderator</option>
+        <option value="admin">Admin</option>
+        <option value="superadmin">Superadmin</option>
+    </select>
+    <select id="userStatusFilter" class="filter-select" onchange="loadUsers(1)">
+        <option value="">All Statuses</option>
+        <option value="active">Active</option>
+        <option value="blocked">Temporarily Blocked</option>
+        <option value="banned">Permanently Banned</option>
+        <option value="deleted">Soft Deleted</option>
+    </select>
+    <select id="userSortFilter" class="filter-select" onchange="loadUsers(1)">
+        <option value="recent">Newest Joined</option>
+        <option value="name">Name (A-Z)</option>
+        <option value="reputation">Highest Score</option>
+        <option value="quota">View Quota</option>
+    </select>
+    <button type="button" class="btn-action primary" onclick="loadUsers(1)">
+        <i class="fas fa-filter"></i> Apply
+    </button>
+</div>
+
+<!-- Users Table -->
+<div class="table-responsive">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th style="width:36px;"><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAllUsers(this)"></th>
+                <th>User</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Academic / College</th>
+                <th>Joined</th>
+                <th>Quota / Credits</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="usersTableBody">
+            <tr><td colspan="8" style="text-align:center; padding:2.5rem; color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Loading users...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+<div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.25rem;">
+    <div style="font-size:0.82rem; color:var(--text-secondary);" id="usersPaginationSummary">Showing 0-0 of 0</div>
+    <div style="display:flex; gap:0.4rem;" id="usersPaginationBtns"></div>
+</div>
+
+<script>
+let currentPage = 1;
+let selectedUserIds = new Set();
+
+async function loadUsers(page = 1) {
+    currentPage = page;
+    const tbody = document.getElementById('usersTableBody');
+    const q = document.getElementById('userSearchInput').value.trim();
+    const role = document.getElementById('userRoleFilter').value;
+    const status = document.getElementById('userStatusFilter').value;
+    const sort = document.getElementById('userSortFilter').value;
+
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Fetching users...</td></tr>`;
+
+    try {
+        const params = new URLSearchParams({ page, limit: 12 });
+        if (q) params.set('q', q);
+        if (role) params.set('role', role);
+        if (status) params.set('status', status);
+        if (sort) params.set('sort', sort);
+
+        const res = await fetch(`/api/admin/users?${params}`);
+        const data = await res.json();
+        const users = data.users || [];
+        const total = data.total || users.length;
+
+        document.getElementById('usersPaginationSummary').textContent = total > 0 ? `Showing ${(page - 1) * 12 + 1}-${Math.min(page * 12, total)} of ${total}` : 'Showing 0 of 0';
+        renderPagination(total, page);
+
+        if (!users.length) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:3rem; color:var(--text-muted);"><i class="fas fa-user-slash" style="font-size:2rem; display:block; margin-bottom:0.5rem;"></i> No users match the current filter criteria.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = users.map(u => {
+            const isBlocked = u.is_blocked || (u.account_status === 'blocked');
+            const isBanned = u.is_banned || (u.account_status === 'banned');
+            const isDeleted = u.is_deleted;
+            let statusBadge = '<span class="role-badge" style="background:rgba(16,185,129,0.15); color:#34d399;">Active</span>';
+            if (isBanned) statusBadge = '<span class="role-badge" style="background:rgba(244,63,94,0.2); color:#fb7185;">Banned</span>';
+            else if (isBlocked) statusBadge = `<span class="role-badge" style="background:rgba(245,158,11,0.2); color:#fbbf24;" title="${u.blocked_until || ''}">Blocked</span>`;
+            else if (isDeleted) statusBadge = '<span class="role-badge" style="background:rgba(148,163,184,0.2); color:#94a3b8;">Deleted</span>';
+
+            const userRole = (u.role || 'student').toLowerCase();
+            return `
+                <tr>
+                    <td><input type="checkbox" class="user-row-checkbox" value="${u.id}" onchange="toggleSelectUser('${u.id}', this)"></td>
+                    <td>
+                        <div style="display:flex; align-items:center; gap:0.6rem;">
+                            <div class="user-pill-avatar">${(u.full_name || u.email || 'U')[0].toUpperCase()}</div>
+                            <div>
+                                <a href="/admin/users/${u.id}" style="font-weight:600; color:var(--text-primary); text-decoration:none;">${u.full_name || 'Anonymous User'}</a>
+                                <div style="font-size:0.75rem; color:var(--text-secondary); font-family:var(--font-mono);">${u.email || u.id}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="role-badge ${userRole}">${userRole}</span></td>
+                    <td>${statusBadge}</td>
+                    <td><span style="font-size:0.8rem; color:var(--text-secondary);">${u.college || u.college_id || '—'}</span></td>
+                    <td><span style="font-size:0.78rem; font-family:var(--font-mono);">${(u.created_at || '').slice(0,10)}</span></td>
+                    <td><span style="font-family:var(--font-mono); font-weight:700;">${u.paper_quota_remaining !== undefined ? u.paper_quota_remaining : '—'}</span></td>
+                    <td>
+                        <div style="display:flex; gap:0.35rem;">
+                            <a href="/admin/users/${u.id}" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" title="View Full Profile">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            ${!isBlocked && !isBanned ? `
+                            <button type="button" class="btn-action danger" onclick="quickBlockUser('${u.id}', '${u.full_name || u.email}')" title="Block User">
+                                <i class="fas fa-ban"></i>
+                            </button>` : `
+                            <button type="button" class="btn-action success" onclick="quickUnblockUser('${u.id}', '${u.full_name || u.email}')" title="Unblock User">
+                                <i class="fas fa-unlock"></i>
+                            </button>`}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--accent-rose);">Failed to load users: ${e.message}</td></tr>`;
+    }
+}
+
+function renderPagination(total, page) {
+    const totalPages = Math.ceil(total / 12);
+    const container = document.getElementById('usersPaginationBtns');
+    if (totalPages <= 1) { container.innerHTML = ''; return; }
+    let html = '';
+    if (page > 1) {
+        html += `<button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="loadUsers(${page - 1})"><i class="fas fa-chevron-left"></i> Prev</button>`;
+    }
+    html += `<span style="font-size:0.82rem; color:var(--text-secondary); padding:0.4rem 0.6rem;">Page ${page} of ${totalPages}</span>`;
+    if (page < totalPages) {
+        html += `<button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="loadUsers(${page + 1})">Next <i class="fas fa-chevron-right"></i></button>`;
+    }
+    container.innerHTML = html;
+}
+
+function quickBlockUser(userId, name) {
+    openConfirmModal({
+        title: `Temporary Block User: ${name}`,
+        message: 'Enter block duration and justification. The user will be automatically logged out.',
+        confirmText: 'Block User',
+        danger: true,
+        requireReason: true,
+        onConfirm: async (reason) => {
+            try {
+                const res = await fetch(`/api/admin/users/${userId}/block`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                    body: JSON.stringify({ is_blocked: true, reason: reason, expiry_days: 7 })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAdminToast(`User blocked for 7 days.`, 'success');
+                    loadUsers(currentPage);
+                } else {
+                    showAdminToast(data.error || 'Failed to block user', 'error');
+                }
+            } catch (e) {
+                showAdminToast('Network error blocking user', 'error');
+            }
+        }
+    });
+}
+
+function quickUnblockUser(userId, name) {
+    openConfirmModal({
+        title: `Unblock User: ${name}`,
+        message: 'Restore user access to the platform immediately?',
+        confirmText: 'Restore Access',
+        danger: false,
+        requireReason: false,
+        onConfirm: async () => {
+            try {
+                const res = await fetch(`/api/admin/users/${userId}/block`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                    body: JSON.stringify({ is_blocked: false })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAdminToast('User access restored!', 'success');
+                    loadUsers(currentPage);
+                } else {
+                    showAdminToast(data.error || 'Failed to unblock user', 'error');
+                }
+            } catch (e) {
+                showAdminToast('Network error unblocking user', 'error');
+            }
+        }
+    });
+}
+
+function toggleSelectUser(userId, cb) {
+    if (cb.checked) selectedUserIds.add(userId);
+    else selectedUserIds.delete(userId);
+    updateBulkBtn();
+}
+
+function toggleSelectAllUsers(cb) {
+    const boxes = document.querySelectorAll('.user-row-checkbox');
+    boxes.forEach(b => {
+        b.checked = cb.checked;
+        if (cb.checked) selectedUserIds.add(b.value);
+        else selectedUserIds.delete(b.value);
+    });
+    updateBulkBtn();
+}
+
+function updateBulkBtn() {
+    const btn = document.getElementById('btnBulkBlock');
+    const cnt = document.getElementById('selectedCount');
+    if (selectedUserIds.size > 0) {
+        btn.style.display = 'inline-flex';
+        cnt.textContent = selectedUserIds.size;
+    } else {
+        btn.style.display = 'none';
+    }
+}
+
+function bulkActionUsers(action) {
+    openConfirmModal({
+        title: `Bulk ${action.toUpperCase()} (${selectedUserIds.size} Users)`,
+        message: `Are you sure you want to ${action} ${selectedUserIds.size} selected accounts?`,
+        confirmText: `Confirm Bulk ${action}`,
+        danger: true,
+        requireReason: true,
+        onConfirm: async (reason) => {
+            try {
+                const res = await fetch('/api/admin/users/bulk-action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                    body: JSON.stringify({ action: action, user_ids: Array.from(selectedUserIds), reason: reason })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAdminToast(`Bulk ${action} completed: ${data.modified || selectedUserIds.size} users updated.`, 'success');
+                    selectedUserIds.clear();
+                    updateBulkBtn();
+                    loadUsers(currentPage);
+                } else {
+                    showAdminToast(data.error || 'Bulk action failed', 'error');
+                }
+            } catch (e) {
+                showAdminToast('Network error during bulk action', 'error');
+            }
+        }
+    });
+}
+
+function exportUsersCsv() {
+    window.location.href = '/api/admin/audit/export/csv';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadUsers(1);
+});
+</script>
+{% endblock %}

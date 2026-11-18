@@ -1358,6 +1358,19 @@ def execute_search_v3(
 
     meta['counts'] = counts
 
+    # Apply search boost from active promotions
+    try:
+        from services.admin_service import get_active_search_boosts
+        boosts = get_active_search_boosts()
+        if boosts:
+            for item in results:
+                b_val = boosts.get(item.get('id'))
+                if b_val:
+                    item['score'] = (item.get('score') or 0) + (b_val * 10)
+                    item['is_promoted'] = True
+    except Exception:
+        pass
+
     if sort == 'views_desc':
         results.sort(key=lambda x: x['view_count'], reverse=True)
     elif sort == 'likes_desc':
@@ -1708,6 +1721,10 @@ def search_v2_endpoint():
 def search_analytics_endpoint():
     """Log search analytics and zero-result queries for dictionary expansion."""
     try:
+        from flask import session as _session, g as _g
+        if _session.get('view_as') or getattr(_g, 'is_view_as', False):
+            return ('', 204)
+
         data = request.get_json(silent=True) or {}
         query = data.get('query', '').strip()
         results_count = data.get('results_count', 0)

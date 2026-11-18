@@ -1990,6 +1990,8 @@ def get_student_profile(user_id: str) -> Dict:
                 'college_abbreviation':  college.get('abbreviation', ''),
                 'college_slug':          (college.get('abbreviation') or '').lower() or re.sub(r'[^a-z0-9]+', '-', (college.get('name') or '').lower()).strip('-'),
                 'branch_name':           dept.get('name', ''),
+                'semester':              prof.get('semester') or row.get('semester', ''),
+                'section':               prof.get('section') or row.get('section', ''),
             }
             logging.info("[Profile] student profile loaded")
             return _set_req_cache({'success': True, 'data': flat})
@@ -2021,6 +2023,8 @@ def get_student_profile(user_id: str) -> Dict:
                 'college_abbreviation':  college.get('abbreviation', ''),
                 'college_slug':          (college.get('abbreviation') or '').lower() or re.sub(r'[^a-z0-9]+', '-', (college.get('name') or '').lower()).strip('-'),
                 'branch_name':           dept.get('name', ''),
+                'semester':              prof.get('semester') or row.get('semester', ''),
+                'section':               prof.get('section') or row.get('section', ''),
             }
             logging.info("[Profile] profile fallback loaded")
             return _set_req_cache({'success': True, 'data': flat})
@@ -2083,6 +2087,10 @@ def create_or_update_student_profile(user_id: str, profile_data: dict) -> Dict:
             'department_id': valid_department_id,
             'phone_number':  str(profile_data.get('student_moblie_number', '') or ''),
         }
+        if profile_data.get('semester'):
+            prof_payload['semester'] = str(profile_data.get('semester')).strip()
+        if profile_data.get('section'):
+            prof_payload['section'] = str(profile_data.get('section')).strip()
         if degree:
             prof_payload['degree'] = degree
 

@@ -1,0 +1,275 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Search & Trending Content Insights{% endblock %}
+
+{% block admin_content %}
+<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+    <div>
+        <h1 style="font-size:1.6rem; font-weight:800; color:var(--text-primary); margin:0 0 0.25rem 0;">Search & Trending Insights</h1>
+        <p style="color:var(--text-secondary); font-size:0.88rem; margin:0;">Identify student search demand, zero-result gaps, and trending study materials.</p>
+    </div>
+    <div style="display:flex; gap:0.5rem;">
+        <select id="insightsDays" class="form-control" style="width:auto;" onchange="loadInsights()">
+            <option value="7">Last 7 Days</option>
+            <option value="30" selected>Last 30 Days</option>
+        </select>
+        <button class="btn-action" onclick="loadInsights()" style="background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-subtle);"><i class="fas fa-sync-alt"></i></button>
+    </div>
+</div>
+
+<div class="insights-grid">
+    <!-- Top Search Queries -->
+    <div class="data-card">
+        <h3 style="font-size:1.05rem; font-weight:700; color:var(--text-primary); margin:0 0 1rem 0;"><i class="fas fa-search" style="color:var(--accent-indigo);"></i> Top Search Queries</h3>
+        <div class="table-responsive" style="border:none;">
+            <table class="admin-table" style="min-width:auto;">
+                <thead>
+                    <tr>
+                        <th>Search Term</th>
+                        <th style="text-align:right;">Volume</th>
+                        <th style="text-align:right;">Zero Hits</th>
+                    </tr>
+                </thead>
+                <tbody id="topSearchTbody">
+                    <tr><td colspan="3" style="text-align:center; padding:1.5rem; color:var(--text-muted);">Loading search trends...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.75rem;">
+            <div style="font-size:0.75rem; color:var(--text-secondary);" id="topSearchSummary"></div>
+            <div style="display:flex; gap:0.3rem;" id="topSearchBtns"></div>
+        </div>
+    </div>
+
+    <!-- Zero-Result Demand Gaps -->
+    <div class="data-card">
+        <h3 style="font-size:1.05rem; font-weight:700; color:var(--text-primary); margin:0 0 1rem 0;"><i class="fas fa-exclamation-circle" style="color:var(--accent-rose);"></i> Zero-Result Demand Gaps</h3>
+        <div style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:0.75rem;">Terms students searched for that yielded zero files on the marketplace:</div>
+        <div class="table-responsive" style="border:none;">
+            <table class="admin-table" style="min-width:auto;">
+                <thead>
+                    <tr>
+                        <th>Unanswered Query</th>
+                        <th style="text-align:right;">Attempts</th>
+                        <th style="text-align:right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="zeroSearchTbody">
+                    <tr><td colspan="3" style="text-align:center; padding:1.5rem; color:var(--text-muted);">No zero-result terms recorded.</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.75rem;">
+            <div style="font-size:0.75rem; color:var(--text-secondary);" id="zeroSearchSummary"></div>
+            <div style="display:flex; gap:0.3rem;" id="zeroSearchBtns"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Trending Marketplace Files -->
+<div class="data-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <div>
+            <h3 style="font-size:1.05rem; font-weight:700; color:var(--text-primary); margin:0 0 0.25rem 0;"><i class="fas fa-fire" style="color:var(--accent-amber);"></i> Trending Marketplace Files</h3>
+            <div style="font-size:0.8rem; color:var(--text-secondary);">Most viewed and engaged documents with 1-click feature promotion:</div>
+        </div>
+    </div>
+
+    <div class="table-responsive" style="border:none;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Document Title</th>
+                    <th>Category</th>
+                    <th>Views</th>
+                    <th>Likes</th>
+                    <th>Price</th>
+                    <th>Uploaded</th>
+                    <th style="text-align:right;">Action</th>
+                </tr>
+            </thead>
+            <tbody id="trendingFilesTbody">
+                <tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-muted);">Loading trending files...</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.75rem;">
+        <div style="font-size:0.75rem; color:var(--text-secondary);" id="trendingSummary"></div>
+        <div style="display:flex; gap:0.3rem;" id="trendingBtns"></div>
+    </div>
+</div>
+
+<script>
+let topSearchesCache = [];
+let zeroSearchesCache = [];
+let trendingFilesCache = [];
+
+function renderTopSearches(page = 1) {
+    const el = document.getElementById('topSearchTbody');
+    const summary = document.getElementById('topSearchSummary');
+    const btns = document.getElementById('topSearchBtns');
+    const total = topSearchesCache.length;
+
+    if (!total) {
+        el.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:1.5rem; color:var(--text-muted);">No search events recorded.</td></tr>`;
+        if (summary) summary.textContent = '';
+        if (btns) btns.innerHTML = '';
+        return;
+    }
+
+    const totalPages = Math.ceil(total / 12);
+    const start = (page - 1) * 12;
+    const slice = topSearchesCache.slice(start, start + 12);
+
+    if (summary) summary.textContent = `Showing ${start + 1}-${Math.min(start + 12, total)} of ${total}`;
+    if (btns) {
+        btns.innerHTML = totalPages <= 1 ? '' : `
+            <button type="button" class="btn-action" style="padding:0.2rem 0.5rem; font-size:0.75rem;" ${page <= 1 ? 'disabled' : ''} onclick="renderTopSearches(${page - 1})"><i class="fas fa-chevron-left"></i></button>
+            <span style="font-size:0.75rem; color:var(--text-secondary); display:flex; align-items:center;">${page}/${totalPages}</span>
+            <button type="button" class="btn-action" style="padding:0.2rem 0.5rem; font-size:0.75rem;" ${page >= totalPages ? 'disabled' : ''} onclick="renderTopSearches(${page + 1})"><i class="fas fa-chevron-right"></i></button>
+        `;
+    }
+
+    el.innerHTML = slice.map(t => `
+        <tr>
+            <td><strong style="color:var(--text-primary); font-family:var(--font-mono);">${t.query}</strong></td>
+            <td style="text-align:right;"><span class="role-badge" style="background:rgba(99,102,241,0.15);">${t.count}</span></td>
+            <td style="text-align:right;"><span style="color:${t.zero_results > 0 ? 'var(--accent-rose)' : 'var(--text-muted)'}; font-weight:600;">${t.zero_results}</span></td>
+        </tr>
+    `).join('');
+}
+
+function renderZeroSearches(page = 1) {
+    const el = document.getElementById('zeroSearchTbody');
+    const summary = document.getElementById('zeroSearchSummary');
+    const btns = document.getElementById('zeroSearchBtns');
+    const total = zeroSearchesCache.length;
+
+    if (!total) {
+        el.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:1.5rem; color:var(--text-muted);">No unmet search queries found.</td></tr>`;
+        if (summary) summary.textContent = '';
+        if (btns) btns.innerHTML = '';
+        return;
+    }
+
+    const totalPages = Math.ceil(total / 12);
+    const start = (page - 1) * 12;
+    const slice = zeroSearchesCache.slice(start, start + 12);
+
+    if (summary) summary.textContent = `Showing ${start + 1}-${Math.min(start + 12, total)} of ${total}`;
+    if (btns) {
+        btns.innerHTML = totalPages <= 1 ? '' : `
+            <button type="button" class="btn-action" style="padding:0.2rem 0.5rem; font-size:0.75rem;" ${page <= 1 ? 'disabled' : ''} onclick="renderZeroSearches(${page - 1})"><i class="fas fa-chevron-left"></i></button>
+            <span style="font-size:0.75rem; color:var(--text-secondary); display:flex; align-items:center;">${page}/${totalPages}</span>
+            <button type="button" class="btn-action" style="padding:0.2rem 0.5rem; font-size:0.75rem;" ${page >= totalPages ? 'disabled' : ''} onclick="renderZeroSearches(${page + 1})"><i class="fas fa-chevron-right"></i></button>
+        `;
+    }
+
+    el.innerHTML = slice.map(z => `
+        <tr>
+            <td><strong style="color:var(--accent-rose); font-family:var(--font-mono);">${z.query}</strong></td>
+            <td style="text-align:right;"><span class="role-badge superadmin">${z.zero_results}</span></td>
+            <td style="text-align:right;">
+                <button class="btn-action primary" onclick="requestContent('${z.query}')" style="font-size:0.75rem; padding:0.25rem 0.5rem;"><i class="fas fa-bullhorn"></i> Request</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function renderTrendingFiles(page = 1) {
+    const el = document.getElementById('trendingFilesTbody');
+    const summary = document.getElementById('trendingSummary');
+    const btns = document.getElementById('trendingBtns');
+    const total = trendingFilesCache.length;
+
+    if (!total) {
+        el.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:1.5rem; color:var(--text-muted);">No trending documents found.</td></tr>`;
+        if (summary) summary.textContent = '';
+        if (btns) btns.innerHTML = '';
+        return;
+    }
+
+    const totalPages = Math.ceil(total / 12);
+    const start = (page - 1) * 12;
+    const slice = trendingFilesCache.slice(start, start + 12);
+
+    if (summary) summary.textContent = `Showing ${start + 1}-${Math.min(start + 12, total)} of ${total}`;
+    if (btns) {
+        btns.innerHTML = totalPages <= 1 ? '' : `
+            <button type="button" class="btn-action" style="padding:0.2rem 0.5rem; font-size:0.75rem;" ${page <= 1 ? 'disabled' : ''} onclick="renderTrendingFiles(${page - 1})"><i class="fas fa-chevron-left"></i></button>
+            <span style="font-size:0.75rem; color:var(--text-secondary); display:flex; align-items:center;">${page}/${totalPages}</span>
+            <button type="button" class="btn-action" style="padding:0.2rem 0.5rem; font-size:0.75rem;" ${page >= totalPages ? 'disabled' : ''} onclick="renderTrendingFiles(${page + 1})"><i class="fas fa-chevron-right"></i></button>
+        `;
+    }
+
+    el.innerHTML = slice.map(f => `
+        <tr>
+            <td>
+                <a href="/admin/files/${f.id}" style="color:var(--text-primary); font-weight:600; text-decoration:none;">${f.title || 'Untitled'}</a>
+            </td>
+            <td><span class="role-badge" style="background:var(--border-subtle);">${f.category || 'Notes'}</span></td>
+            <td><strong>${f.view_count || 0}</strong></td>
+            <td>${f.like_count || 0}</td>
+            <td><strong>${f.is_paid ? '₹' + f.price : 'Free'}</strong></td>
+            <td><span style="font-family:var(--font-mono); font-size:0.78rem;">${(f.created_at || '').slice(0, 10)}</span></td>
+            <td style="text-align:right;">
+                <button class="btn-action success" onclick="promoteTrendingFile('${f.id}', '${f.title}')" style="font-size:0.75rem; padding:0.25rem 0.55rem;"><i class="fas fa-star"></i> Feature</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function loadInsights() {
+    const days = document.getElementById('insightsDays').value;
+    try {
+        const res = await fetch(`/api/admin/insights?days=${days}`);
+        const data = await res.json();
+
+        topSearchesCache = data.top_searches || [];
+        zeroSearchesCache = data.zero_result_searches || [];
+        trendingFilesCache = data.trending_files || [];
+
+        renderTopSearches(1);
+        renderZeroSearches(1);
+        renderTrendingFiles(1);
+    } catch (e) {
+        showAdminToast('Network error loading insights', 'error');
+    }
+}
+
+function requestContent(term) {
+    showAdminToast(`Content bounty requested for "${term}"`, 'success');
+}
+
+function promoteTrendingFile(docId, title) {
+    openConfirmModal({
+        title: `Promote "${title.slice(0, 30)}"`,
+        message: 'Boost this high-performing trending file into the Recommended Strip for 14 days?',
+        confirmText: 'Promote Now',
+        danger: false,
+        requireReason: false,
+        onConfirm: async () => {
+            try {
+                const res = await fetch('/api/admin/promotions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                    body: JSON.stringify({ document_id: docId, slot: 'recommended', priority: 50 })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAdminToast('File successfully featured in promotions!', 'success');
+                } else {
+                    showAdminToast(data.error || 'Promotion failed', 'error');
+                }
+            } catch (e) {
+                showAdminToast('Network error', 'error');
+            }
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadInsights();
+});
+</script>
+{% endblock %}

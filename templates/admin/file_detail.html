@@ -1,0 +1,156 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}File Detail — {{ doc_id }}{% endblock %}
+
+{% block admin_content %}
+<div class="page-header-row">
+    <div>
+        <a href="/admin/files" style="color:var(--text-secondary); text-decoration:none; font-size:0.85rem; display:inline-flex; align-items:center; gap:0.4rem; margin-bottom:0.4rem;">
+            <i class="fas fa-arrow-left"></i> Back to Files
+        </a>
+        <h1 class="page-title" id="fileTitleHeader"><i class="fas fa-file-pdf"></i> Loading File...</h1>
+        <p class="page-desc" style="font-family:var(--font-mono);">Document UUID: {{ doc_id }}</p>
+    </div>
+    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+        <button type="button" class="btn-action success" onclick="approveCurrentFile()"><i class="fas fa-check"></i> Approve</button>
+        <button type="button" class="btn-action danger" onclick="rejectCurrentFile()"><i class="fas fa-xmark"></i> Reject</button>
+        <button type="button" class="btn-action" style="background:rgba(245,158,11,0.2); color:#fbbf24;" onclick="quarantineCurrentFile()"><i class="fas fa-shield"></i> Quarantine</button>
+        <button type="button" class="btn-action danger" onclick="deleteCurrentFile()"><i class="fas fa-trash"></i> Delete</button>
+    </div>
+</div>
+
+<div class="detail-split-grid">
+    <!-- Metadata Panel -->
+    <div class="glass-panel" style="margin-bottom:0;">
+        <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:1rem;"><i class="fas fa-circle-info text-indigo-400"></i> Document Metadata</h3>
+        <div style="display:flex; flex-direction:column; gap:0.75rem; font-size:0.88rem;">
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-subtle); padding-bottom:0.5rem;">
+                <span style="color:var(--text-secondary);">Title</span>
+                <strong id="metaTitle">—</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-subtle); padding-bottom:0.5rem;">
+                <span style="color:var(--text-secondary);">College</span>
+                <span id="metaCollege">—</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-subtle); padding-bottom:0.5rem;">
+                <span style="color:var(--text-secondary);">Subject</span>
+                <span id="metaSubject">—</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-subtle); padding-bottom:0.5rem;">
+                <span style="color:var(--text-secondary);">Pricing</span>
+                <span id="metaPrice">—</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-subtle); padding-bottom:0.5rem;">
+                <span style="color:var(--text-secondary);">Status</span>
+                <span class="role-badge" id="metaStatus">approved</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-subtle); padding-bottom:0.5rem;">
+                <span style="color:var(--text-secondary);">Total Views</span>
+                <span style="font-family:var(--font-mono); font-weight:700;" id="metaViews">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- PDF Viewer Panel -->
+    <div class="glass-panel" style="margin-bottom:0; display:flex; flex-direction:column;">
+        <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:1rem;"><i class="fas fa-eye text-sky-400"></i> Inline Preview</h3>
+        <div style="flex:1; min-height:420px; background:#000; border-radius:var(--radius-sm); overflow:hidden;">
+            <iframe id="filePreviewIframe" style="width:100%; height:100%; min-height:420px; border:none;" src="/resources/{{ doc_id }}?preview=true"></iframe>
+        </div>
+    </div>
+</div>
+
+<script>
+const currentDocId = "{{ doc_id }}";
+
+async function loadFileDetail() {
+    try {
+        const res = await fetch(`/api/admin/files?search=${currentDocId}`);
+        const data = await res.json();
+        const files = data.files || [];
+        const file = files.find(f => f.id === currentDocId) || files[0];
+        if (file) {
+            document.getElementById('fileTitleHeader').innerHTML = `<i class="fas fa-file-pdf"></i> ${file.title || 'Document Detail'}`;
+            document.getElementById('metaTitle').textContent = file.title || 'Untitled';
+            document.getElementById('metaCollege').textContent = file.college_id || 'General';
+            document.getElementById('metaSubject').textContent = file.subject || 'Notes';
+            document.getElementById('metaPrice').textContent = file.is_paid ? '₹' + file.price : 'Free';
+            document.getElementById('metaStatus').textContent = file.status || 'approved';
+            document.getElementById('metaViews').textContent = file.view_count || 0;
+        }
+    } catch (e) {}
+}
+
+function approveCurrentFile() {
+    fetch('/api/admin/approve-document', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+        body: JSON.stringify({ document_id: currentDocId })
+    }).then(r => r.json()).then(d => {
+        if (d.success) { showAdminToast('File approved!', 'success'); loadFileDetail(); }
+        else showAdminToast(d.error || 'Failed', 'error');
+    });
+}
+
+function rejectCurrentFile() {
+    const reason = prompt("Enter rejection reason:", "Quality standards not met");
+    if (reason === null) return;
+    fetch('/api/admin/reject-document', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+        body: JSON.stringify({ document_id: currentDocId, reason })
+    }).then(r => r.json()).then(d => {
+        if (d.success) { showAdminToast('File rejected.', 'success'); loadFileDetail(); }
+        else showAdminToast(d.error || 'Failed', 'error');
+    });
+}
+
+function quarantineCurrentFile() {
+    openConfirmModal({
+        title: 'Quarantine Document',
+        message: 'Quarantine this document to immediately restrict public viewing?',
+        confirmText: 'Quarantine',
+        danger: true,
+        requireReason: true,
+        onConfirm: async (reason) => {
+            const res = await fetch(`/api/admin/files/${currentDocId}/quarantine`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                body: JSON.stringify({ reason })
+            });
+            const d = await res.json();
+            if (d.success) { showAdminToast('Document quarantined.', 'success'); loadFileDetail(); }
+            else showAdminToast(d.error || 'Failed', 'error');
+        }
+    });
+}
+
+function deleteCurrentFile() {
+    openConfirmModal({
+        title: 'Delete Document',
+        message: 'Soft-delete this document from public search and category listings?',
+        confirmText: 'Delete',
+        danger: true,
+        requireReason: true,
+        onConfirm: async (reason) => {
+            const res = await fetch(`/api/admin/files/${currentDocId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                body: JSON.stringify({ reason })
+            });
+            const d = await res.json();
+            if (d.success) {
+                showAdminToast('Document deleted.', 'success');
+                setTimeout(() => window.location.href = '/admin/files', 1000);
+            } else {
+                showAdminToast(d.error || 'Failed', 'error');
+            }
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadFileDetail();
+});
+</script>
+{% endblock %}

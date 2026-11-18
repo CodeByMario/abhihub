@@ -1,0 +1,198 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Promotions & Featured Content{% endblock %}
+
+{% block admin_content %}
+<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+    <div>
+        <h1 style="font-size:1.6rem; font-weight:800; color:var(--text-primary); margin:0 0 0.25rem 0;">Promotions & Featured Slots</h1>
+        <p style="color:var(--text-secondary); font-size:0.88rem; margin:0;">Boost high-quality documents across homepage banners, category tops, search results, and recommended strips.</p>
+    </div>
+    <div style="display:flex; gap:0.5rem;">
+        <button class="btn-action primary" onclick="openCreatePromoModal()"><i class="fas fa-plus"></i> Promote File</button>
+        <button class="btn-action" onclick="loadPromotions()" style="background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-subtle);"><i class="fas fa-sync-alt"></i></button>
+    </div>
+</div>
+
+<div class="filter-card">
+    <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+        <select id="promoSlotFilter" class="form-control" style="width:auto;" onchange="loadPromotions()">
+            <option value="">All Slots</option>
+            <option value="homepage_banner">Homepage Banner</option>
+            <option value="category_top">Category Top</option>
+            <option value="search_boost">Search Boost</option>
+            <option value="recommended">Recommended Strip</option>
+        </select>
+        <select id="promoStatusFilter" class="form-control" style="width:auto;" onchange="loadPromotions()">
+            <option value="active">Active</option>
+            <option value="paused">Paused</option>
+            <option value="expired">Expired</option>
+            <option value="">All Statuses</option>
+        </select>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Document</th>
+                <th>Slot</th>
+                <th>Priority</th>
+                <th>Type</th>
+                <th>Performance</th>
+                <th>Expires</th>
+                <th>Status</th>
+                <th style="text-align:right;">Actions</th>
+            </tr>
+        </thead>
+        <tbody id="promotionsTableBody">
+            <tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--text-muted);">Loading promotions...</td></tr>
+        </tbody>
+    </table>
+</div>
+<div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.25rem;">
+    <div style="font-size:0.82rem; color:var(--text-secondary);" id="promotionsPaginationSummary"></div>
+    <div style="display:flex; gap:0.4rem;" id="promotionsPaginationBtns"></div>
+</div>
+
+<script>
+let currentPromoPage = 1;
+async function loadPromotions(page = 1) {
+    currentPromoPage = page;
+    const slot = document.getElementById('promoSlotFilter').value;
+    const status = document.getElementById('promoStatusFilter').value;
+    const params = new URLSearchParams({ page, limit: 12 });
+    if (slot) params.append('slot', slot);
+    if (status) params.append('status', status);
+
+    const tbody = document.getElementById('promotionsTableBody');
+    const summary = document.getElementById('promotionsPaginationSummary');
+    const btns = document.getElementById('promotionsPaginationBtns');
+    try {
+        const res = await fetch(`/api/admin/promotions?${params.toString()}`);
+        const data = await res.json();
+        const promos = data.promotions || [];
+        const total = data.total || promos.length;
+        const totalPages = Math.ceil(total / 12);
+
+        if (summary) summary.textContent = total > 0 ? `Showing ${(page - 1) * 12 + 1}-${Math.min(page * 12, total)} of ${total}` : '';
+        if (btns) {
+            if (totalPages <= 1) {
+                btns.innerHTML = '';
+            } else {
+                let bHtml = '';
+                if (page > 1) {
+                    bHtml += `<button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="loadPromotions(${page - 1})"><i class="fas fa-chevron-left"></i> Prev</button>`;
+                }
+                bHtml += `<span style="font-size:0.82rem; color:var(--text-secondary); padding:0.4rem 0.6rem;">Page ${page} of ${totalPages}</span>`;
+                if (page < totalPages) {
+                    bHtml += `<button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="loadPromotions(${page + 1})">Next <i class="fas fa-chevron-right"></i></button>`;
+                }
+                btns.innerHTML = bHtml;
+            }
+        }
+
+        if (!promos.length) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:2.5rem; color:var(--text-muted);">No promotions found in this slot.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = promos.map(p => {
+            const doc = p.document || {};
+            const isActive = p.status === 'active';
+            return `
+                <tr>
+                    <td>
+                        <a href="/admin/files/${p.document_id}" style="color:var(--text-primary); font-weight:600; text-decoration:none;">${doc.title || 'Document ' + p.document_id.slice(0, 8)}</a>
+                        <div style="font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono);">${p.document_id.slice(0, 13)}...</div>
+                    </td>
+                    <td><span class="role-badge" style="background:rgba(99,102,241,0.15); color:#818cf8; text-transform:uppercase;">${p.slot.replace('_', ' ')}</span></td>
+                    <td><strong style="font-family:var(--font-mono); color:var(--accent-amber);">${p.priority}</strong></td>
+                    <td><span style="font-size:0.8rem; text-transform:capitalize;">${p.type || 'admin'}</span></td>
+                    <td>
+                        <div style="font-size:0.8rem; font-family:var(--font-mono);">
+                            <span><i class="fas fa-eye"></i> ${p.impressions || 0}</span> &nbsp;
+                            <span><i class="fas fa-mouse-pointer"></i> ${p.clicks || 0}</span>
+                        </div>
+                    </td>
+                    <td><span style="font-family:var(--font-mono); font-size:0.78rem;">${(p.ends_at || '').slice(0, 10)}</span></td>
+                    <td>
+                        <span class="role-badge ${isActive ? 'admin' : (p.status === 'expired' ? 'student' : 'moderator')}">
+                            ${p.status}
+                        </span>
+                    </td>
+                    <td style="text-align:right;">
+                        ${isActive ? `
+                            <button class="btn-action" onclick="updateStatus('${p.id}', 'paused')" style="background:var(--border-subtle); color:var(--text-primary); font-size:0.75rem; padding:0.25rem 0.5rem;"><i class="fas fa-pause"></i> Pause</button>
+                            <button class="btn-action danger" onclick="updateStatus('${p.id}', 'expired')" style="font-size:0.75rem; padding:0.25rem 0.5rem;"><i class="fas fa-stop"></i> Expire</button>
+                        ` : `
+                            <button class="btn-action success" onclick="updateStatus('${p.id}', 'active')" style="font-size:0.75rem; padding:0.25rem 0.5rem;"><i class="fas fa-play"></i> Activate</button>
+                        `}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--accent-rose);">Error loading promotions: ${e.message}</td></tr>`;
+    }
+}
+
+function openCreatePromoModal(prefilledDocId = '') {
+    const docId = prompt("Enter Document UUID to feature / promote:", prefilledDocId);
+    if (!docId) return;
+    const slot = prompt("Select Slot:\n1) homepage_banner\n2) category_top\n3) search_boost\n4) recommended", "recommended");
+    if (!slot) return;
+    const priority = prompt("Display Priority (e.g. 10 for normal, 50 for high boost):", "10");
+
+    openConfirmModal({
+        title: 'Confirm Document Promotion',
+        message: `Activate promotion for file ${docId} in slot '${slot}' with priority ${priority}?`,
+        confirmText: 'Activate Promotion',
+        danger: false,
+        requireReason: false,
+        onConfirm: async () => {
+            try {
+                const res = await fetch('/api/admin/promotions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                    body: JSON.stringify({ document_id: docId, slot, priority: parseInt(priority) || 10 })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showAdminToast('Promotion activated!', 'success');
+                    loadPromotions();
+                } else {
+                    showAdminToast(data.error || 'Failed activating promotion', 'error');
+                }
+            } catch (e) {
+                showAdminToast('Network error activating promotion', 'error');
+            }
+        }
+    });
+}
+
+async function updateStatus(promoId, status) {
+    try {
+        const res = await fetch(`/api/admin/promotions/${promoId}/status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+            body: JSON.stringify({ status })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showAdminToast(data.message, 'success');
+            loadPromotions();
+        } else {
+            showAdminToast(data.error || 'Status update failed', 'error');
+        }
+    } catch (e) {
+        showAdminToast('Network error updating promotion status', 'error');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadPromotions();
+});
+</script>
+{% endblock %}
