@@ -1,1 +1,0 @@
-window.ABHIHUB_USER_NAME = '{{ session.user.name if session.user else "" }}';

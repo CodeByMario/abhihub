@@ -52,16 +52,63 @@ icons.json
 # Test/trash artifacts
 trash/
 .wip/
+temp/
+dev/
+release/
+tools/
+tests/
+persona_tests/
+software-development/
+dist/
+REPORT/
+docs/
+.agent/
+.agents/
+.ai/
+Microsoft/
+abhihub-educator-preview/
+abhihub-educator-preview.html
 
-# Generated exports — contain user PII, never commit
+# Generated exports and database files
 exports/
 *.csv
+*.sql
+*.sqlite*
+*.log
 
-# Audit reports (generated)
-.ai/history/reports/
+# Sensitive data and schemas
 data/raw/
+data/*_schema.md
 
-
-REPORT
-data/supabase_abhihub_schema.md
-data/supabase_public_schema.md
+# Phase audit, optimization, planning and documentation reports
+PHASE*
+SEO_*
+*AUDIT*
+*REPORT*
+STAGING_*
+PRODUCTION_*
+VERIFIED_*
+SQL_*
+verify_report.json
+SUBJECT_LINKING_RESULTS.md
+README_TIMETABLE_AND_DEMAND.md
+ABHIHUB_VERCEL_OPTIMIZATION_REPORT.md
+SESSION_HANDOFF.md
+TASK_TRACKER.md
+CHAT_REDESIGN_PLAN.md
+COLAB_STOREROOM_LABELER.md
+FINDINGS.md
+all_routes_readable.txt
+scratch_*
+COMPETITOR_ANALYSIS.md
+CONTENT_GROWTH_PLAN.md
+DATABASE_CHANGE_LOG.md
+DATABASE_ENVIRONMENT_MATRIX.md
+DESCRIPTION_ENRICHMENT_RESULTS.md
+DOCUMENT_ENRICHMENT_QUEUE.md
+DUPLICATE_RESOLUTION_RESULTS.md
+INDEXING_RECOMMENDATIONS.md
+INTERNAL_LINKING_PLAN.md
+KEYWORD_MAPPING.md
+ORGANIC_CONVERSION_PLAN.md
+automation_test_report.md
