@@ -135,7 +135,7 @@ def features():
         client = init_supabase()
         if client:
             res = client.table('documents')\
-                .select('id, title, document_category, created_at, view_count, description, college:colleges(name, abbreviation), department:departments(name, abbreviation), subject:subjects(name)')\
+                .select('id, title, document_category, created_at, view_count, description, college:colleges(name, abbreviation), department:departments(name, abbreviation), subject:subjects(name, subject_code)')\
                 .eq('status', 'approved')\
                 .order('created_at', desc=True)\
                 .limit(12)\

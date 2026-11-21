@@ -108,7 +108,8 @@ def has_document_access(user_id, doc_id, document=None):
                         if tx.get('status') in ['completed', 'verified']:
                             tx_uid = str(tx.get('user_id') or '')
                             tx_notes = str(tx.get('admin_notes') or '') + ' ' + str(tx.get('purpose') or '')
-                            if (not tx_uid or tx_uid == u_uid) and doc_id in tx_notes:
+                            has_doc = f"doc_id={doc_id}" in tx_notes or f"Document-{doc_id}" in tx_notes
+                            if u_uid and tx_uid == u_uid and has_doc:
                                 return True
         except Exception:
             pass
@@ -116,10 +117,12 @@ def has_document_access(user_id, doc_id, document=None):
         try:
             from data.db import get_client
             supabase = get_client()
-            if supabase:
-                res = supabase.table('credit_transactions').select('id, status').eq('user_id', u_uid).ilike('admin_notes', f'%{doc_id}%').execute()
-                if res.data and any(t.get('status') in ['submitted', 'verified', 'completed'] for t in res.data):
-                    return True
+            if supabase and u_uid:
+                res = supabase.table('credit_transactions').select('id, status, admin_notes').eq('user_id', u_uid).in_('status', ['verified', 'completed']).execute()
+                for t in (res.data or []):
+                    notes = str(t.get('admin_notes') or '')
+                    if f"doc_id={doc_id}" in notes or f"Document-{doc_id}" in notes:
+                        return True
         except Exception:
             pass
 

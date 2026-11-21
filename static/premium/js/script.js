@@ -172,24 +172,25 @@ const SearchManager = {
     suggestDebounceTimer: null,
 
     elements: {
-        fileName: () => document.getElementById("searchFileName"),
-        author: () => document.getElementById("searchAuthor"),
-        college: () => document.getElementById("searchCollege"),
-        branch: () => document.getElementById("searchBranch"),
-        semester: () => document.getElementById("searchSemester"),
-        type: () => document.getElementById("searchType"),
-        subject: () => document.getElementById("searchSubject"),
-        year: () => document.getElementById("searchYear"),
-        sort: () => document.getElementById("searchSort"),
-        results: () => document.getElementById("searchResults"),
-        noResults: () => document.getElementById("noResults"),
-        loader: () => document.getElementById("loader"),
-        error: () => document.getElementById("error"),
-        history: () => document.getElementById("searchHistory"),
-        suggestions: () => document.getElementById("searchSuggestions"),
-        pills: () => document.getElementById("searchActivePills"),
-        relaxationBanner: () => document.getElementById("searchRelaxationBanner"),
-        typoBanner: () => document.getElementById("searchTypoBanner")
+        _ss: () => document.querySelector(".ss-search"),
+        fileName: function() { const s = this._ss(); return s ? s.querySelector("#searchFileName") : null; },
+        author: function() { const s = this._ss(); return s ? s.querySelector("#searchAuthor") : null; },
+        college: function() { const s = this._ss(); return s ? s.querySelector("#searchCollege") : null; },
+        branch: function() { const s = this._ss(); return s ? s.querySelector("#searchBranch") : null; },
+        semester: function() { const s = this._ss(); return s ? s.querySelector("#searchSemester") : null; },
+        type: function() { const s = this._ss(); return s ? s.querySelector("#searchType") : null; },
+        subject: function() { const s = this._ss(); return s ? s.querySelector("#searchSubject") : null; },
+        year: function() { const s = this._ss(); return s ? s.querySelector("#searchYear") : null; },
+        sort: function() { const s = this._ss(); return s ? s.querySelector("#searchSort") : null; },
+        results: function() { const s = this._ss(); return s ? s.querySelector("#searchResults") : null; },
+        noResults: function() { const s = this._ss(); return s ? s.querySelector("#noResults") : null; },
+        loader: function() { const s = this._ss(); return s ? s.querySelector("#loader") : null; },
+        error: function() { const s = this._ss(); return s ? s.querySelector("#error") : null; },
+        history: function() { const s = this._ss(); return s ? s.querySelector("#searchHistory") : null; },
+        suggestions: function() { const s = this._ss(); return s ? s.querySelector("#searchSuggestions") : null; },
+        pills: function() { const s = this._ss(); return s ? s.querySelector("#searchActivePills") : null; },
+        relaxationBanner: function() { const s = this._ss(); return s ? s.querySelector("#searchRelaxationBanner") : null; },
+        typoBanner: function() { const s = this._ss(); return s ? s.querySelector("#searchTypoBanner") : null; }
     },
     activeSuggestionElements: [],
     focusedSuggestionIndex: -1,
@@ -326,7 +327,8 @@ const SearchManager = {
 
         // Selects — instant search on change
         ['searchCollege','searchBranch','searchSemester','searchType','searchSubject','searchYear','searchSort'].forEach(id => {
-            document.getElementById(id)?.addEventListener('change', (e) => {
+            const el = this.elements._ss() ? this.elements._ss().querySelector('#' + id) : document.getElementById(id);
+            el?.addEventListener('change', (e) => {
                 e.target.classList.toggle('active', !!e.target.value);
                 this.performSearch();
             });

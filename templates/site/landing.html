@@ -1563,13 +1563,26 @@
 
       <div class="docs-apple-grid">
         {% for doc in recent_docs[:6] %}
+        {% set subj_val = doc.subject %}
+        {% set subj_dict = subj_val if subj_val is mapping else (subj_val[0] if (subj_val is iterable and subj_val is not string and subj_val|length > 0) else {}) %}
+        {% set subj_name = (subj_dict.get('name') if subj_dict is mapping else None) or (subj_val if subj_val is string else None) or 'Academic Subject' %}
+        {% set dept_val = doc.department %}
+        {% set dept_dict = dept_val if dept_val is mapping else (dept_val[0] if (dept_val is iterable and dept_val is not string and dept_val|length > 0) else {}) %}
+        {% set dept_code = (dept_dict.get('abbreviation') or dept_dict.get('name')) if dept_dict is mapping else (dept_val if dept_val is string else '') %}
+        {% set subj_code = (subj_dict.get('subject_code') if subj_dict is mapping else None) or dept_code or '' %}
+        {% set sub_type = (doc.document_category or 'Notes')|upper %}
         <div class="doc-apple-card">
           <div>
-            <span class="doc-category-badge">{{ doc.document_category or 'Semester Material' }}</span>
-            <h3 class="doc-card-title">{{ doc.title | truncate(50) }}</h3>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <span class="doc-category-badge">{{ sub_type }}</span>
+              {% if subj_code %}
+              <span style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 999px; background: rgba(0,0,0,0.06); color: var(--apple-gray);">{{ subj_code }}</span>
+              {% endif %}
+            </div>
+            <h3 class="doc-card-title">{{ subj_name }}</h3>
             <p class="doc-card-meta">
               {{ doc.college.abbreviation if doc.college else 'Autonomous College' }} • 
-              {{ doc.subject.name if doc.subject else 'Core Engineering' }}
+              {{ sub_type }}
             </p>
           </div>
           <div class="doc-card-footer">

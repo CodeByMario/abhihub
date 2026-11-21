@@ -9,7 +9,7 @@
  * - Background sync
  */
 
-const CACHE_VERSION = 'v2.0.18';
+const CACHE_VERSION = 'v2.0.19';
 const CACHE_NAME = `abhihub-${CACHE_VERSION}`;
 const STATIC_CACHE = `abhihub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `abhihub-dynamic-${CACHE_VERSION}`;
@@ -795,11 +795,261 @@ async function handleAppShellRequest(request) {
     if (cached) {
       return cached;
     }
-    const offlinePage = await caches.match('/offline');
-    return offlinePage || new Response('Offline — AbhiHub', {
-      headers: { 'Content-Type': 'text/html' }
-    });
+    return getUnifiedOfflineResponse();
   }
+}
+
+async function getUnifiedOfflineResponse() {
+  const offlinePage = await caches.match('/offline');
+  if (offlinePage) {
+    return offlinePage;
+  }
+  return new Response(
+    `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline · AbhiHub</title>
+  <link rel="icon" href="/static/images/android-chrome-192x192.png">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(22, 30, 46, 0.9);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --btn-secondary: rgba(255, 255, 255, 0.08);
+      --btn-secondary-hover: rgba(255, 255, 255, 0.14);
+      --badge-bg: rgba(239, 68, 68, 0.15);
+      --badge-text: #f87171;
+      --badge-border: rgba(239, 68, 68, 0.3);
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --card-border: #e2e8f0;
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --primary: #2563eb;
+        --primary-hover: #1d4ed8;
+        --btn-secondary: #f1f5f9;
+        --btn-secondary-hover: #e2e8f0;
+        --badge-bg: #fee2e2;
+        --badge-text: #dc2626;
+        --badge-border: #fca5a5;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .offline-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 24px;
+      padding: 2.5rem 2rem;
+      max-width: 460px;
+      width: 100%;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+    .icon-container {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: var(--badge-bg);
+      border: 1px solid var(--badge-border);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+      position: relative;
+    }
+    .pulse-dot {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #ef4444;
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: var(--badge-bg);
+      color: var(--badge-text);
+      border: 1px solid var(--badge-border);
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      margin-bottom: 0.6rem;
+      letter-spacing: -0.02em;
+    }
+    p {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      line-height: 1.5;
+      margin-bottom: 1.75rem;
+    }
+    .actions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      border: none;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: var(--btn-secondary);
+      color: var(--text);
+      border: 1px solid var(--card-border);
+    }
+    .btn-secondary:hover {
+      background: var(--btn-secondary-hover);
+      transform: translateY(-1px);
+    }
+    .btn-full {
+      grid-column: span 2;
+    }
+    .online-toast {
+      display: none;
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #10b981;
+      color: #ffffff;
+      padding: 0.6rem 1.25rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      box-shadow: 0 10px 25px rgba(16, 185, 129, 0.35);
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body>
+  <div id="onlineToast" class="online-toast">🟢 Back Online! Resuming your study session...</div>
+
+  <div class="offline-card">
+    <div class="icon-container">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="1" y1="1" x2="23" y2="23"></line>
+        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+        <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+        <line x1="12" y1="20" x2="12.01" y2="20"></line>
+      </svg>
+      <div class="pulse-dot"></div>
+    </div>
+
+    <div>
+      <span class="status-badge">No Internet Connection</span>
+    </div>
+
+    <h1>You're Offline</h1>
+    <p>AbhiHub is disconnected from the internet. Don't worry — previously viewed study notes and your dashboard remain accessible from your device cache.</p>
+
+    <div class="actions-grid">
+      <button class="btn btn-primary" onclick="retryConnection(event)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+        Try Again
+      </button>
+      <a href="/dashboard" class="btn btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+        Dashboard
+      </a>
+      <button class="btn btn-secondary btn-full" onclick="goBack()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        Return to Previous Page
+      </button>
+    </div>
+  </div>
+
+  <script>
+    function retryConnection(e) {
+      if (e && e.currentTarget) e.currentTarget.innerText = "Reconnecting...";
+      setTimeout(() => { window.location.reload(); }, 600);
+    }
+    function goBack() {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.href = '/dashboard';
+      }
+    }
+    function onOnlineDetected() {
+      const toast = document.getElementById('onlineToast');
+      if (toast) toast.style.display = 'block';
+      setTimeout(() => { window.location.reload(); }, 1200);
+    }
+    window.addEventListener('online', onOnlineDetected);
+    setInterval(() => {
+      if (navigator.onLine) {
+        fetch('/static/manifest.json', { method: 'HEAD', cache: 'no-store' })
+          .then(r => { if (r.ok) onOnlineDetected(); })
+          .catch(() => {});
+      }
+    }, 4000);
+  </script>
+</body>
+</html>`,
+    { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+  );
 }
 
 /**
@@ -839,24 +1089,8 @@ async function handleNavigationRequest(request) {
   const networkResponse = await networkFetch;
   if (networkResponse) return networkResponse;
 
-  // Fully offline fallback
-  const offlinePage = await caches.match('/offline');
-  return offlinePage || new Response(
-    `<!DOCTYPE html><html><head><title>Offline — AbhiHub</title><style>
-      body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#0f172a;color:#e2e8f0;text-align:center;}
-      .card{background:#1e293b;border-radius:16px;padding:2rem;max-width:360px;}
-      h1{font-size:1.5rem;margin-bottom:.5rem;} p{color:#94a3b8;}
-      a{display:inline-block;margin-top:1rem;padding:.7rem 1.5rem;background:#2563eb;color:#fff;border-radius:8px;text-decoration:none;}
-    </style></head><body>
-      <div class="card">
-        <div style="font-size:3rem">📚</div>
-        <h1>You're Offline</h1>
-        <p>AbhiHub isn't available right now. Previously visited pages are still accessible.</p>
-        <a href="/dashboard">Go to Dashboard</a>
-      </div>
-    </body></html>`,
-    { headers: { 'Content-Type': 'text/html' } }
-  );
+  // Fully offline fallback — unified single offline page
+  return getUnifiedOfflineResponse();
 }
 
 /**

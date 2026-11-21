@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advertisement</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+    }
+  </style>
+</head>
+<body>
+  <div id="ad-container"></div>
+  <script>
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      var slot = params.get('slot') || '300x250';
+
+      var SLOTS = {
+        '300x250': {
+          key: '38e972ed330c9bd02a2e924b68a6f005',
+          format: 'iframe',
+          height: 250,
+          width: 300,
+          src: 'https://bauval.org/22/38e972ed330c9bd02a2e924b68a6f005/invoke.js'
+        },
+        '728x90': {
+          key: '26baa39cb6e5a40282f23f118a36f1f1',
+          format: 'iframe',
+          height: 90,
+          width: 728,
+          src: 'https://bauval.org/22/26baa39cb6e5a40282f23f118a36f1f1/invoke.js'
+        },
+        '468x60': {
+          key: '05e2972f50e9b57e3ca89cbc533599f5',
+          format: 'iframe',
+          height: 60,
+          width: 468,
+          src: 'https://bauval.org/22/05e2972f50e9b57e3ca89cbc533599f5/invoke.js'
+        },
+        '320x50': {
+          key: '4a09ebf29b57311c630ddb644d974a85',
+          format: 'iframe',
+          height: 50,
+          width: 320,
+          src: 'https://bauval.org/22/4a09ebf29b57311c630ddb644d974a85/invoke.js'
+        },
+        'native': {
+          containerId: 'container-5491b644188aaa93b979ae86d0742d00',
+          src: 'https://bauval.org/21/5491b644188aaa93b979ae86d0742d00'
+        }
+      };
+
+      var config = SLOTS[slot];
+      if (!config) return;
+
+      if (slot === 'native') {
+        var container = document.createElement('div');
+        container.id = config.containerId;
+        document.getElementById('ad-container').appendChild(container);
+
+        var s = document.createElement('script');
+        s.async = true;
+        s.setAttribute('data-cfasync', 'false');
+        s.src = config.src;
+        document.body.appendChild(s);
+      } else {
+        window.atOptions = {
+          'key': config.key,
+          'format': config.format,
+          'height': config.height,
+          'width': config.width,
+          'params': {}
+        };
+        document.write('<scr' + 'ipt type="text/javascript" src="' + config.src + '"></scr' + 'ipt>');
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -20,8 +20,78 @@
 </style>
 
 <div class="ads-wrap">
+  <!-- Ad-Intensity & Auto-Guard Section -->
   <div class="ads-card">
-    <h1>Ads Control Portal</h1>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+      <div>
+        <h1 style="margin:0 0 6px 0;">Ad-Intensity & Auto-Guard Control</h1>
+        <p style="color:var(--text-secondary);margin:0;">
+          Configure global ad density levels on waiting screens. Auto-guard throttles ads if abandonment spikes.
+        </p>
+      </div>
+      <div id="throttleBanner" style="display:none;background:rgba(244,63,94,0.15);border:1px solid #f43f5e;color:#f43f5e;padding:8px 14px;border-radius:10px;font-weight:700;font-size:0.85rem;">
+        ⚠️ Auto-Guard Active: Ads throttled by -1 level due to abandonment &gt;35%
+      </div>
+    </div>
+
+    <!-- Live Metrics Grid -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:12px;margin:1.5rem 0;">
+      <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:0.75rem;color:var(--text-secondary);text-transform:uppercase;">Today's Waited</div>
+        <div id="stat-waited" style="font-size:1.6rem;font-weight:800;color:var(--text-primary);margin-top:4px;">0</div>
+      </div>
+      <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:0.75rem;color:var(--text-secondary);text-transform:uppercase;">Abandonment</div>
+        <div id="stat-abandoned" style="font-size:1.6rem;font-weight:800;color:var(--accent-rose);margin-top:4px;">0 (0%)</div>
+      </div>
+      <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:0.75rem;color:var(--text-secondary);text-transform:uppercase;">Ads Shown</div>
+        <div id="stat-screens" style="font-size:1.6rem;font-weight:800;color:var(--accent-indigo);margin-top:4px;">0</div>
+      </div>
+      <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:0.75rem;color:var(--text-secondary);text-transform:uppercase;">Upsell Clicks</div>
+        <div id="stat-upsells" style="font-size:1.6rem;font-weight:800;color:var(--accent-amber);margin-top:4px;">0</div>
+      </div>
+    </div>
+
+    <!-- Config Form -->
+    <form id="intensityForm" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:14px;align-items:end;">
+      <label style="display:flex;flex-direction:column;gap:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary);">
+        Ad-Intensity Level
+        <select id="cfgLevel" style="padding:10px;border-radius:8px;border:1px solid var(--border-subtle);background:var(--bg-surface);color:var(--text-primary);">
+          <option value="0">0 - Off (No ads anywhere)</option>
+          <option value="1">1 - Light (1 adaptive banner, 8s delay, min ETA 10s)</option>
+          <option value="2">2 - Standard (300x250 + banner, 3s delay, min ETA 5s)</option>
+          <option value="3">3 - Boosted (300x250 + banner + native, 2s delay, min ETA 15s)</option>
+        </select>
+      </label>
+
+      <label style="display:flex;flex-direction:column;gap:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary);">
+        New User Level Cap (First 3 visits)
+        <select id="cfgNewUserLevel" style="padding:10px;border-radius:8px;border:1px solid var(--border-subtle);background:var(--bg-surface);color:var(--text-primary);">
+          <option value="0">Level 0 (Off)</option>
+          <option value="1">Level 1 (Light - Recommended)</option>
+          <option value="2">Level 2 (Standard)</option>
+        </select>
+      </label>
+
+      <label style="display:flex;flex-direction:column;gap:6px;font-size:0.85rem;font-weight:600;color:var(--text-secondary);">
+        Auto-Guard Threshold (% Abandon)
+        <input type="number" id="cfgThreshold" min="10" max="80" value="35" style="padding:10px;border-radius:8px;border:1px solid var(--border-subtle);background:var(--bg-surface);color:var(--text-primary);">
+      </label>
+
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.85rem;font-weight:600;color:var(--text-secondary);cursor:pointer;padding-bottom:10px;">
+        <input type="checkbox" id="cfgAutoGuard" checked style="width:18px;height:18px;">
+        Enable Auto-Guard Protection
+      </label>
+
+      <button type="submit" class="ads-btn ads-btn-primary" style="height:42px;">Save Ad Settings</button>
+    </form>
+    <div id="intensityMsg" style="min-height:1.2rem;margin-top:10px;color:var(--accent-emerald);font-weight:600;"></div>
+  </div>
+
+  <div class="ads-card">
+    <h1>Manual Overrides Portal</h1>
     <p style="color:var(--text-secondary);margin:.5rem 0 1.2rem;">
       Override the normal quota-based ad schedule. User rules win over page rules,
       and page rules win over the global rule.
@@ -129,6 +199,56 @@
     return String(value || '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
   }
   load().catch(error => { message.textContent = error.message; rows.innerHTML = '<tr><td colspan="6">Unable to load overrides.</td></tr>'; });
+
+  // Ad-Intensity Control Script
+  async function loadAdIntensity() {
+    try {
+      const res = await fetch('/admin/api/ads');
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('cfgLevel').value = data.config.level;
+        document.getElementById('cfgNewUserLevel').value = data.config.new_user_level || 1;
+        document.getElementById('cfgThreshold').value = data.config.guard_abandon_pct || 35;
+        document.getElementById('cfgAutoGuard').checked = !!data.config.auto_guard;
+
+        document.getElementById('throttleBanner').style.display = data.throttled ? 'block' : 'none';
+        document.getElementById('stat-waited').textContent = data.waited || 0;
+        document.getElementById('stat-abandoned').textContent = `${data.abandoned || 0} (${data.abandon_pct || 0}%)`;
+        document.getElementById('stat-screens').textContent = data.ad_screens || 0;
+        document.getElementById('stat-upsells').textContent = data.upsell_clicks || 0;
+      }
+    } catch (e) {
+      console.warn('Failed to load ad intensity:', e);
+    }
+  }
+
+  const intensityForm = document.getElementById('intensityForm');
+  if (intensityForm) {
+    intensityForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        level: parseInt(document.getElementById('cfgLevel').value),
+        new_user_level: parseInt(document.getElementById('cfgNewUserLevel').value),
+        guard_abandon_pct: parseInt(document.getElementById('cfgThreshold').value),
+        auto_guard: document.getElementById('cfgAutoGuard').checked
+      };
+      const msg = document.getElementById('intensityMsg');
+      try {
+        const res = await fetch('/admin/api/ads', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        msg.textContent = data.success ? 'Ad configuration updated successfully!' : 'Save failed.';
+        loadAdIntensity();
+        setTimeout(() => { msg.textContent = ''; }, 3000);
+      } catch (err) {
+        msg.textContent = 'Network error saving ad settings.';
+      }
+    });
+  }
+  loadAdIntensity();
 })();
 </script>
 {% endblock %}

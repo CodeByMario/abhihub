@@ -213,6 +213,61 @@ def admin_economy_dashboard():
     return render_template('admin_economy.html')
 
 
+@admin_bp.route('/admin/api/ads', methods=['GET'])
+@admin_bp.route('/api/admin/ads', methods=['GET'])
+@auth_required
+@admin_required
+def admin_get_ads_config():
+    """Retrieve ad intensity config, throttle status, and live waiting telemetry."""
+    from methods.ad_manager import get_ad_config, check_and_apply_auto_guard
+    from methods.redis_client import get_redis_client
+    from datetime import datetime, timezone
+
+    # Evaluate auto-guard within admin routine (no cron)
+    check_and_apply_auto_guard()
+
+    r = get_redis_client()
+    d = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    waited = int(r.get(f"metrics:wait:wait_started:{d}") or 0)
+    abandoned = int(r.get(f"metrics:wait:abandoned:{d}") or 0)
+    ad_screens = int(r.get(f"metrics:wait:ads_shown:{d}") or 0)
+    upsell_clicks = int(r.get(f"metrics:wait:upsell_clicks:{d}") or 0)
+
+    abandon_pct = round((abandoned / waited * 100.0), 1) if waited > 0 else 0.0
+    throttled = bool(r.get("ads:throttled"))
+
+    config = get_ad_config()
+
+    return jsonify({
+        'success': True,
+        'config': config,
+        'throttled': throttled,
+        'today_joins': waited,
+        'waited': waited,
+        'abandoned': abandoned,
+        'abandon_pct': abandon_pct,
+        'ad_screens': ad_screens,
+        'upsell_clicks': upsell_clicks
+    })
+
+
+@admin_bp.route('/admin/api/ads', methods=['POST'])
+@admin_bp.route('/api/admin/ads', methods=['POST'])
+@auth_required
+@admin_required
+def admin_set_ads_config():
+    """Validate, clamp, and update ad configuration, clearing any throttle."""
+    data = request.get_json(silent=True) or {}
+    from methods.ad_manager import set_ad_config
+    updated = set_ad_config(data)
+    return jsonify({
+        'success': True,
+        'config': updated,
+        'message': 'Ad configuration updated successfully'
+    })
+
+
 @admin_bp.route('/admin/ads')
 @auth_required
 @admin_required
@@ -3531,12 +3586,17 @@ def admin_timetables_page():
     from methods.supabase_helper import init_supabase, init_supabase_admin
     client = init_supabase_admin() or init_supabase()
     depts = []
+    colleges = []
     if client:
         try:
             depts = client.table('departments').select('id, name, abbreviation').order('name').execute().data or []
         except Exception:
             depts = []
-    return render_template('admin/timetables.html', departments=depts)
+        try:
+            colleges = client.table('colleges').select('id, name, abbreviation').order('name').execute().data or []
+        except Exception:
+            colleges = []
+    return render_template('admin/timetables.html', departments=depts, colleges=colleges)
 
 
 @admin_bp.route('/admin/api/timetables', methods=['GET'])

@@ -1895,11 +1895,96 @@ def get_search_and_trending_insights(days: int = 30) -> Dict[str, Any]:
     except Exception as e:
         log.warning(f"[get_search_and_trending_insights] Trending files note: {e}")
 
+    funnel_data = get_abandoned_funnel_insights(days=days)
+
     return {
         'success': True,
         'top_searches': top_searches,
         'zero_result_searches': zero_searches,
-        'trending_files': trending_files
+        'trending_files': trending_files,
+        'funnel_stats': funnel_data.get('funnel_stats', {}),
+        'incomplete_actions': funnel_data.get('incomplete_actions', [])
+    }
+
+
+def get_abandoned_funnel_insights(days: int = 30) -> Dict[str, Any]:
+    """Aggregates uncompleted/abandoned feature funnels (Upload, Search, Channel, Request) across users."""
+    db = get_db()
+    if not db:
+        return {'funnel_stats': {}, 'incomplete_actions': []}
+
+    from datetime import timedelta
+    since_date = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+    funnel_stats = {
+        'upload': {'initiated': 0, 'completed': 0, 'abandoned': 0},
+        'search': {'initiated': 0, 'completed': 0, 'abandoned': 0},
+        'create_channel': {'initiated': 0, 'completed': 0, 'abandoned': 0},
+    }
+    incomplete_actions = []
+
+    try:
+        res = db.table('security_audit_logs').select(
+            'id, user_id, event, metadata, detected_at'
+        ).gte('detected_at', since_date).order('detected_at', desc=True).limit(300).execute()
+
+        raw_events = res.data or []
+        user_ids = list({r.get('user_id') for r in raw_events if r.get('user_id')})
+
+        # Fetch profile info for identified users
+        profiles_map = {}
+        if user_ids:
+            try:
+                p_res = db.table('profiles').select('id, full_name, email, role').in_('id', user_ids[:100]).execute()
+                for p in (p_res.data or []):
+                    profiles_map[p['id']] = p
+            except Exception:
+                pass
+
+        for row in raw_events:
+            meta = row.get('metadata') or {}
+            if meta.get('category') != 'feature_usage' and not meta.get('feature'):
+                continue
+
+            feature = str(meta.get('feature') or 'general').strip().lower()
+            action = str(meta.get('action') or 'interact').strip().lower()
+            uid = row.get('user_id')
+            prof = profiles_map.get(uid) or {}
+
+            if feature not in funnel_stats:
+                funnel_stats[feature] = {'initiated': 0, 'completed': 0, 'abandoned': 0}
+
+            if action == 'initiate':
+                funnel_stats[feature]['initiated'] += 1
+            elif action == 'completed':
+                funnel_stats[feature]['completed'] += 1
+            elif action in ('abandoned', 'drop_off', 'incomplete'):
+                funnel_stats[feature]['abandoned'] += 1
+                step_str = meta.get('step') or meta.get('params', {}).get('step') or 'Initiated and Left'
+                incomplete_actions.append({
+                    'id': row.get('id'),
+                    'user_id': uid,
+                    'user_name': prof.get('full_name') or (prof.get('email', '').split('@')[0] if prof.get('email') else 'Guest / Anonymous'),
+                    'user_email': prof.get('email') or '—',
+                    'role': prof.get('role') or 'student',
+                    'feature': feature.replace('_', ' ').title(),
+                    'step': step_str.replace('_', ' ').title(),
+                    'reason': meta.get('reason') or 'Navigated away without completing',
+                    'duration_seconds': meta.get('duration_seconds') or meta.get('params', {}).get('duration_seconds') or '—',
+                    'detected_at': row.get('detected_at'),
+                    'metadata': meta.get('params') or {}
+                })
+    except Exception as e:
+        log.warning(f"[get_abandoned_funnel_insights] Error: {e}")
+
+    for feat, stats in funnel_stats.items():
+        init = stats['initiated']
+        ab = stats['abandoned']
+        stats['drop_off_pct'] = round((ab / init * 100), 1) if init > 0 else 0
+
+    return {
+        'funnel_stats': funnel_stats,
+        'incomplete_actions': incomplete_actions
     }
 
 
@@ -2680,20 +2765,149 @@ def get_user_activity_timeline(
     page: int = 1,
     limit: int = 12
 ) -> Dict[str, Any]:
-    """Fetch paginated activity timeline and device summary for a user."""
+    """Fetch paginated activity timeline and device summary for a user across all activity channels."""
     try:
         client = init_supabase_admin() or init_supabase()
         if not client:
             return {'success': True, 'events': [], 'device_summary': {}, 'total': 0, 'page': page}
 
-        query = client.table('user_activity_events').select('*', count='exact').eq('user_id', user_id)
-        if event_type:
-            query = query.eq('event_type', event_type)
+        events = []
 
+        # 1. Telemetry & Direct Activity Events (if table exists)
+        try:
+            query = client.table('user_activity_events').select('*').eq('user_id', user_id)
+            if event_type:
+                query = query.eq('event_type', event_type)
+            res = query.order('created_at', desc=True).limit(limit * 3).execute()
+            for ev in (res.data or []):
+                events.append({
+                    'id': ev.get('id'),
+                    'event_type': ev.get('event_type'),
+                    'action': (ev.get('event_type') or 'Activity').replace('_', ' ').title(),
+                    'entity_id': ev.get('entity_id') or '—',
+                    'device': ev.get('device') or 'Desktop',
+                    'ip': ev.get('ip') or '—',
+                    'metadata': ev.get('metadata') or {},
+                    'created_at': ev.get('created_at')
+                })
+        except Exception:
+            pass
+
+        # 2. Document Views (Resource access)
+        if not event_type or event_type in ('document_view', 'view'):
+            try:
+                v_res = client.table('document_views').select(
+                    'id, document_id, accessed_at, ip_address, device_type, documents(title, document_category, subjects(name, subject_code))'
+                ).eq('user_id', user_id).order('accessed_at', desc=True).limit(50).execute()
+                for v in (v_res.data or []):
+                    doc = v.get('documents') or {}
+                    d_title = doc.get('title') or v.get('document_id')
+                    d_cat = (doc.get('document_category') or 'document').upper()
+                    subj = (doc.get('subjects') or {}).get('name') if isinstance(doc.get('subjects'), dict) else ''
+                    events.append({
+                        'id': v.get('id'),
+                        'event_type': 'document_view',
+                        'action': f"Viewed {d_cat}: {subj or d_title}",
+                        'entity_id': d_title,
+                        'device': v.get('device_type') or 'Desktop Browser',
+                        'ip': v.get('ip_address') or '—',
+                        'metadata': {'document_id': v.get('document_id'), 'title': d_title, 'category': d_cat, 'subject': subj},
+                        'created_at': v.get('accessed_at')
+                    })
+            except Exception as e:
+                log.warning(f"[Timeline] Views error: {e}")
+
+        # 3. Document Uploads
+        if not event_type or event_type in ('upload', 'document_upload'):
+            try:
+                u_res = client.table('documents').select(
+                    'id, title, document_category, created_at, status, price'
+                ).eq('uploader_id', user_id).order('created_at', desc=True).limit(50).execute()
+                for u in (u_res.data or []):
+                    events.append({
+                        'id': u.get('id'),
+                        'event_type': 'document_upload',
+                        'action': f"Uploaded {u.get('document_category') or 'file'}: {u.get('title')}",
+                        'entity_id': u.get('title'),
+                        'device': 'Web Portal',
+                        'ip': '—',
+                        'metadata': {'status': u.get('status'), 'price': u.get('price')},
+                        'created_at': u.get('created_at')
+                    })
+            except Exception as e:
+                log.warning(f"[Timeline] Uploads error: {e}")
+
+        # 4. Credit & Payment Transactions
+        if not event_type or event_type in ('transaction', 'payment'):
+            try:
+                t_res = client.table('credit_transactions').select(
+                    'id, amount, status, created_at, order_id, utr'
+                ).eq('user_id', user_id).order('created_at', desc=True).limit(50).execute()
+                for t in (t_res.data or []):
+                    events.append({
+                        'id': t.get('id'),
+                        'event_type': 'payment',
+                        'action': f"Payment/Credit: ₹{t.get('amount')} [{t.get('status')}]",
+                        'entity_id': t.get('order_id') or 'Order',
+                        'device': 'Payment Gateway',
+                        'ip': '—',
+                        'metadata': {'amount': t.get('amount'), 'status': t.get('status'), 'utr': t.get('utr')},
+                        'created_at': t.get('created_at')
+                    })
+            except Exception as e:
+                log.warning(f"[Timeline] Transactions error: {e}")
+
+        # 5. Account Registration & Onboarding
+        if not event_type or event_type in ('login', 'account_created'):
+            try:
+                p_res = client.table('profiles').select('created_at, email, full_name, role, last_active_at').eq('id', user_id).limit(1).execute()
+                if p_res.data:
+                    p = p_res.data[0]
+                    if p.get('created_at'):
+                        events.append({
+                            'id': f"reg-{user_id}",
+                            'event_type': 'account_created',
+                            'action': f"Registered Account ({p.get('role', 'student')})",
+                            'entity_id': p.get('email') or 'User Account',
+                            'device': 'Web',
+                            'ip': '—',
+                            'metadata': {'email': p.get('email'), 'role': p.get('role'), 'name': p.get('full_name')},
+                            'created_at': p.get('created_at')
+                        })
+            except Exception as e:
+                log.warning(f"[Timeline] Registration error: {e}")
+
+        # 6. Incomplete / Abandoned Actions from security_audit_logs
+        if not event_type or event_type in ('abandoned', 'incomplete', 'drop_off'):
+            try:
+                ab_res = client.table('security_audit_logs').select(
+                    'id, event, metadata, detected_at'
+                ).eq('user_id', user_id).order('detected_at', desc=True).limit(30).execute()
+                for r in (ab_res.data or []):
+                    meta = r.get('metadata') or {}
+                    action = meta.get('action')
+                    if meta.get('category') == 'feature_usage' and action in ('abandoned', 'drop_off', 'incomplete'):
+                        feat = str(meta.get('feature') or 'Feature').replace('_', ' ').title()
+                        step = meta.get('step') or 'Initiated but discarded'
+                        reason = meta.get('reason') or 'Left before completion'
+                        events.append({
+                            'id': r.get('id'),
+                            'event_type': 'abandoned',
+                            'action': f"⚠️ Abandoned {feat}: {step}",
+                            'entity_id': feat,
+                            'device': 'Web',
+                            'ip': '—',
+                            'metadata': {'feature': feat, 'step': step, 'reason': reason},
+                            'created_at': r.get('detected_at')
+                        })
+            except Exception as e:
+                log.warning(f"[Timeline] Abandoned logs note: {e}")
+
+        # Sort all chronologically descending
+        events.sort(key=lambda x: str(x.get('created_at') or ''), reverse=True)
+        total = len(events)
         offset = (page - 1) * limit
-        res = query.order('created_at', desc=True).range(offset, offset + limit - 1).execute()
-        events = res.data or []
-        total = res.count if hasattr(res, 'count') and res.count is not None else len(events)
+        paginated_events = events[offset:offset + limit]
 
         device_summary = {}
         for ev in events:
@@ -2702,7 +2916,7 @@ def get_user_activity_timeline(
 
         return {
             'success': True,
-            'events': events,
+            'events': paginated_events,
             'device_summary': device_summary,
             'total': total,
             'page': page,

@@ -224,16 +224,17 @@ def fulfill_order_transaction(order_id: str, verified_amount: float, doc_id: str
 _fulfill_phonepe_transaction = fulfill_order_transaction
 
 
+@webhooks_bp.route('/api/payments/webhook', methods=['POST'])
 @webhooks_bp.route('/api/webhooks/razorpay', methods=['POST'])
 def razorpay_webhook():
     """Webhook callback endpoint for Razorpay server-to-server notifications."""
-    from methods.razorpay_service import verify_webhook_signature
+    from methods.payment_plans import verify_razorpay_signature, fulfill_premium_subscription
     from data.transactions import get_transaction_record, save_transaction_record
 
     signature = request.headers.get('X-Razorpay-Signature', '')
-    raw_payload = request.get_data().decode('utf-8', errors='replace')
+    raw_payload_bytes = request.get_data()
 
-    if not verify_webhook_signature(raw_payload, signature):
+    if not verify_razorpay_signature(raw_payload_bytes, signature):
         logging.warning('[RZP WEBHOOK] Invalid signature — rejected')
         return jsonify({'error': 'Invalid signature'}), 400
 
@@ -243,18 +244,30 @@ def razorpay_webhook():
     order_id = payment_entity.get('order_id')
     payment_id = payment_entity.get('id')
 
-    if event == 'payment.captured' and order_id:
+    if event == 'payment.captured' and payment_id:
         amount = (payment_entity.get('amount') or 0) / 100.0
-        rec = get_transaction_record(order_id)
+        notes = payment_entity.get('notes') or {}
+        plan_id = notes.get('plan_id', 'day_pass')
+        user_id = notes.get('user_id')
+
+        rec = get_transaction_record(order_id) if order_id else {}
+        if not user_id:
+            user_id = rec.get('user_id', '')
+
+        # Fulfill premium subscription idempotently
+        if user_id:
+            fulfill_premium_subscription(payment_id=payment_id, user_id=user_id, plan_id=plan_id)
+
+        # Legacy doc-purchase fulfillment fallback
         doc_id = rec.get('doc_id', '')
         if not doc_id:
-            notes = rec.get('admin_notes', '')
-            for part in notes.split(';'):
+            admin_notes = rec.get('admin_notes', '')
+            for part in admin_notes.split(';'):
                 if part.startswith('doc_id='):
                     doc_id = part.replace('doc_id=', '').strip()
-        user_id = rec.get('user_id', '')
-        fulfill_order_transaction(order_id, amount, doc_id=doc_id, user_id=user_id, source="razorpay_webhook")
-        logging.info(f'[RZP WEBHOOK] Captured order: {order_id} (pay_id={payment_id})')
+        if order_id:
+            fulfill_order_transaction(order_id, amount, doc_id=doc_id, user_id=user_id, source="razorpay_webhook")
+        logging.info(f'[RZP WEBHOOK] Captured order: {order_id} (pay_id={payment_id}, plan={plan_id})')
 
     elif event == 'payment.failed' and order_id:
         save_transaction_record(order_id, {

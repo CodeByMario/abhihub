@@ -375,6 +375,40 @@ def home():
         except Exception as e:
             logging.warning(f"[Dashboard] Exam recommendations fallback: {e}")
 
+    # Fallback to college upcoming exams if user doesn't have timetable-specific exams
+    if not upcoming_exams:
+        try:
+            from services.recommendation_service import get_current_kolkata_date
+            now_kolkata = get_current_kolkata_date()
+            today_str = now_kolkata.strftime('%Y-%m-%d')
+            future_limit_str = (now_kolkata + timedelta(days=45)).strftime('%Y-%m-%d')
+            client = init_supabase()
+            if client:
+                res = client.table('exam_schedules').select(
+                    'id, exam_date, start_time, end_time, exam_type, semester, subjects(id, name, subject_code), departments(id, name, abbreviation)'
+                ).eq('is_active', True)\
+                 .gte('exam_date', today_str)\
+                 .lte('exam_date', future_limit_str)\
+                 .order('exam_date', desc=False)\
+                 .limit(10)\
+                 .execute()
+                for s in (res.data or []):
+                    exam_date_obj = datetime.strptime(s['exam_date'], '%Y-%m-%d').date()
+                    days_left = (exam_date_obj - now_kolkata.date()).days
+                    s['days_until_exam'] = days_left
+                    if days_left == 0:
+                        s['is_today'] = True
+                        s['status'] = 'TODAY'
+                        s['countdown_label'] = 'Exam is TODAY!'
+                    elif days_left == 1:
+                        s['status'] = 'TOMORROW'
+                        s['countdown_label'] = 'Tomorrow'
+                    else:
+                        s['countdown_label'] = f"in {days_left} days"
+                    upcoming_exams.append(s)
+        except Exception as e:
+            logging.warning(f"[Dashboard] Fallback college upcoming exams error: {e}")
+
     # Fallback to peer recommendations if no exam files returned
     if not recommended_files:
         peer_doc_ids = get_peer_recommended_files(user_id=current_user_id, college_id=college_id, department_id=branch_id, limit=8) if current_user_id else []
@@ -1843,23 +1877,38 @@ def memorywall_reveal(wall_id):
     metrics = get_dashboard_metrics(wall_id)
     personality_summary = generate_personality_summary(metrics)
 
-    wc_path = generate_wordcloud(word_list, wall_id)
-    sig_urls = [
-        r['signature'][0]['signature_url']
-        for r in responses
-        if r.get('signature') and r['signature'][0].get('signature_url')
-    ]
-    sw_path = generate_signature_wall(sig_urls, wall_id)
+    from methods.redis_client import cache_get_json, cache_set_json
+    cached_know_me = cache_get_json(f"cache:know_me:{wall_id}")
+    if cached_know_me and isinstance(cached_know_me, dict):
+        wc_path = cached_know_me.get('wc_path', '')
+        sw_path = cached_know_me.get('sw_path', '')
+        wc_firebase = cached_know_me.get('wc_firebase', '')
+        sw_firebase = cached_know_me.get('sw_firebase', '')
+    else:
+        wc_path = generate_wordcloud(word_list, wall_id)
+        sig_urls = [
+            r['signature'][0]['signature_url']
+            for r in responses
+            if r.get('signature') and r['signature'][0].get('signature_url')
+        ]
+        sw_path = generate_signature_wall(sig_urls, wall_id)
 
-    wc_firebase = ""
-    sw_firebase = ""
-    try:
-        if wc_path:
-            wc_firebase = upload_to_firebase(wc_path, f"know_me/{wall_id}/wordcloud.png")
-        if sw_path:
-            sw_firebase = upload_to_firebase(sw_path, f"know_me/{wall_id}/signature_wall.png")
-    except Exception as e:
-        logging.warning(f"[MemoryWall] Firebase upload skipped: {e}")
+        wc_firebase = ""
+        sw_firebase = ""
+        try:
+            if wc_path:
+                wc_firebase = upload_to_firebase(wc_path, f"know_me/{wall_id}/wordcloud.png")
+            if sw_path:
+                sw_firebase = upload_to_firebase(sw_path, f"know_me/{wall_id}/signature_wall.png")
+        except Exception as e:
+            logging.warning(f"[MemoryWall] Firebase upload skipped: {e}")
+
+        cache_set_json(f"cache:know_me:{wall_id}", {
+            'wc_path': wc_path,
+            'sw_path': sw_path,
+            'wc_firebase': wc_firebase,
+            'sw_firebase': sw_firebase
+        }, ttl_seconds=86400 * 7)
 
     wall = owner_check['data']
     return render_template('know_me/reveal.html',
@@ -2270,4 +2319,105 @@ def api_vote_demand_request(request_id):
     if res.get('success'):
         get_cache().invalidate_pattern("demand_requests:*")
     return jsonify(res), (200 if res.get('success') else 400)
+
+
+# ─── Academic Timetables, Syllabus & College Schedule ─────────────────────────
+
+@app_pages_bp.route('/timetables', methods=['GET'])
+def student_timetables_page():
+    """Student-facing timetable, curriculum syllabus, and academic calendar page."""
+    from methods.supabase_helper import init_supabase, init_supabase_admin
+    from services.academic_calendar_service import get_college_academic_schedule, DEFAULT_GHRCE_ID
+    client = init_supabase_admin() or init_supabase()
+
+    user_info = session.get('user', {})
+    college_id = request.args.get('college_id') or user_info.get('college_id') or DEFAULT_GHRCE_ID
+
+    colleges = []
+    departments = []
+    if client:
+        try:
+            colleges = client.table('colleges').select('id, name, abbreviation, city').order('name').execute().data or []
+        except Exception:
+            colleges = []
+        try:
+            # Fetch departments linked to this college
+            cd = client.table('college_departments').select('department_id, departments(id, name, abbreviation)').eq('college_id', college_id).execute().data or []
+            departments = [c['departments'] for c in cd if c.get('departments')]
+            if not departments:
+                departments = client.table('departments').select('id, name, abbreviation').order('name').execute().data or []
+        except Exception:
+            departments = []
+
+    schedule_res = get_college_academic_schedule(college_id=college_id)
+    schedule = schedule_res.get('schedule', {})
+
+    return render_template(
+        'app/timetables.html',
+        colleges=colleges,
+        departments=departments,
+        selected_college_id=college_id,
+        academic_schedule=schedule,
+        current_user=user_info
+    )
+
+
+@app_pages_bp.route('/api/colleges/<college_id>/departments', methods=['GET'])
+def api_get_college_departments(college_id):
+    """Returns branches/departments linked to a specific college."""
+    from methods.supabase_helper import init_supabase, init_supabase_admin
+    client = init_supabase_admin() or init_supabase()
+    if not client:
+        return jsonify({'success': False, 'departments': []})
+
+    try:
+        cd = client.table('college_departments').select('department_id, departments(id, name, abbreviation)').eq('college_id', college_id).execute().data or []
+        departments = [c['departments'] for c in cd if c.get('departments')]
+        if not departments:
+            departments = client.table('departments').select('id, name, abbreviation').order('name').execute().data or []
+        return jsonify({'success': True, 'departments': departments})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e), 'departments': []})
+
+
+@app_pages_bp.route('/api/colleges/<college_id>/schedule', methods=['GET', 'POST'])
+def api_college_academic_schedule(college_id):
+    """Fetch or update college-wise semester schedule (start date, submission, exams)."""
+    from services.academic_calendar_service import get_college_academic_schedule, save_college_academic_schedule
+    if request.method == 'POST':
+        user_info = session.get('user', {})
+        data = request.get_json() or {}
+        res = save_college_academic_schedule(college_id=college_id, data=data, user=user_info)
+        return jsonify(res), (200 if res.get('success') else 400)
+
+    term = request.args.get('term', 'Winter 2026')
+    res = get_college_academic_schedule(college_id=college_id, term=term)
+    return jsonify(res)
+
+
+@app_pages_bp.route('/api/colleges/<college_id>/subjects', methods=['GET', 'POST'])
+def api_college_subjects(college_id):
+    """Fetch or upsert college-specific subjects and syllabus."""
+    from services.academic_calendar_service import get_college_subjects, save_college_subject
+    if request.method == 'POST':
+        data = request.get_json() or {}
+        res = save_college_subject(college_id=college_id, data=data)
+        return jsonify(res), (200 if res.get('success') else 400)
+
+    dept_id = request.args.get('department_id')
+    sem = request.args.get('semester')
+    search = request.args.get('q')
+    res = get_college_subjects(college_id=college_id, department_id=dept_id, semester=sem, search=search)
+    return jsonify(res)
+
+
+@app_pages_bp.route('/api/timetables/submit', methods=['POST'])
+def api_submit_student_timetable():
+    """Allows student/user to add an exam timetable entry based on their college & branch."""
+    from services.timetable_service import submit_user_timetable_entry
+    user_info = session.get('user', {})
+    data = request.get_json() or {}
+    res = submit_user_timetable_entry(data=data, user=user_info)
+    return jsonify(res), (200 if res.get('success') else 400)
+
 

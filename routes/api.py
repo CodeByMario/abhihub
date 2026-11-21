@@ -2811,6 +2811,10 @@ def view_doc(doc_id, filename=None):
                 type(_e).__name__,
             )
 
+    # In production without stream=1 flag, redirect directly to storage to bypass Vercel compute
+    if not is_preview_mode and not is_image_preview and request.args.get('stream') != '1' and not current_app.config.get('TESTING'):
+        return redirect(file_url, code=302)
+
     upstream = _fetch(file_url)
 
     # Older records may contain a Cloudinary URL with a PDF extension even

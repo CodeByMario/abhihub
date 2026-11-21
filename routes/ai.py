@@ -444,6 +444,69 @@ def api_ai_daily_quota():
         'model': 'mercury-3'
     })
 
+@ai_bp.route('/api/queue/join', methods=['POST'])
+def api_queue_join():
+    """Join the load-aware serverless queue."""
+    user = session.get('user', {})
+    data = request.get_json(silent=True) or {}
+    op = data.get('op', 'ai')
+    from methods.queue_manager import join_queue
+    res = join_queue(user, op=op)
+    status_code = 200
+    if res.get('status') == 'exhausted':
+        status_code = 503
+    return jsonify(res), status_code
+
+
+@ai_bp.route('/api/queue/status/<qid>', methods=['GET'])
+def api_queue_status(qid):
+    """Poll queue position and retrieve ticket when ready."""
+    op = request.args.get('op', 'ai')
+    from methods.queue_manager import check_queue_status
+    res = check_queue_status(qid, op=op)
+    try:
+        from methods.ad_manager import resolve_waiting_screen_ads
+        user = session.get('user', {})
+        viewport_w = int(request.args.get('vw', 360))
+        ads_cfg = resolve_waiting_screen_ads(
+            user=user,
+            queue_status=res.get('status'),
+            viewport_width=viewport_w,
+            eta_s=res.get('eta_s', 10)
+        )
+        if ads_cfg:
+            res['ads'] = ads_cfg
+    except Exception:
+        pass
+    status_code = 200
+    if res.get('status') == 'expired':
+        status_code = 410
+    return jsonify(res), status_code
+
+
+@ai_bp.route('/api/telemetry/wait-event', methods=['POST'])
+def api_wait_telemetry():
+    """Track queue wait telemetry via navigator.sendBeacon."""
+    try:
+        data = request.get_json(silent=True)
+        if not data and request.data:
+            import json as _json
+            data = _json.loads(request.data.decode('utf-8'))
+        event_name = (data or {}).get('event')
+        if event_name in ('wait_started', 'abandoned', 'upsell_clicked', 'ads_shown'):
+            from datetime import datetime, timezone
+            from methods.redis_client import get_redis_client
+            r = get_redis_client()
+            d = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            key = f"metrics:wait:{event_name}:{d}"
+            r.incr(key)
+            r.expire(key, 86400 * 7)
+    except Exception:
+        pass
+    return ('', 204)
+
+
+@ai_bp.route('/api/ai/chat', methods=['POST'])
 @ai_bp.route('/api/ai/assistant', methods=['POST'])
 @auth_required
 def api_ai_assistant(user_data=None):
@@ -455,6 +518,7 @@ def api_ai_assistant(user_data=None):
         }), 403
 
     t0 = time.monotonic()
+    t_cpu_0 = time.thread_time()
     from methods.ai_provider import resolve_provider, KeyInvalidError, RateLimitError
     from methods.ai_usage import check_ceiling, log_turn, CostCeilingError
     from methods.ai_safety import check_input, clean_output, check_rate_limit
@@ -506,7 +570,40 @@ def api_ai_assistant(user_data=None):
         except Exception:
             pass
 
+    # Dynamic Daily Limit Check (Notes Consumption & Value Tier)
+    from methods.load_governor import admit, increment_user_op_usage, get_user_tier
+    decision = admit(user, 'ai')
+    if decision == 'limit':
+        return jsonify({
+            'success': False,
+            'daily_limit_reached': True,
+            'message': 'Daily AI query limit reached for your tier (Free: 3/day, Premium: 30/day). Upgrade to Premium or use your own API key in Settings.',
+            'options': ['upgrade', 'byok', 'webllm']
+        }), 429
+
     data = request.get_json(silent=True) or {}
+
+    # Phase 3 Queue Ticket Enforcement for platform free pool requests
+    is_premium = (get_user_tier(user) == 'premium')
+    user_provided_key = (data.get('api_key') or request.headers.get('X-OpenRouter-Key') or '').strip()
+    is_byok = bool(user_provided_key and user_provided_key.startswith('sk-or-'))
+
+    if not is_premium and not is_byok:
+        ticket = (data.get('ticket') or request.headers.get('X-Queue-Ticket') or '').strip()
+        if not ticket:
+            return jsonify({
+                'success': False,
+                'queue_required': True,
+                'message': 'Queue ticket required for free pool requests. Please join the queue.'
+            }), 429
+        from methods.queue_manager import consume_ticket
+        if not consume_ticket(ticket):
+            return jsonify({
+                'success': False,
+                'invalid_ticket': True,
+                'message': 'Invalid, expired, or already used queue ticket. Please join the queue again.'
+            }), 403
+
     message = (data.get('message') or data.get('question') or '').strip()
     doc_id = (data.get('doc_id') or '').strip()
     doc_title_req = (data.get('doc_title') or '').strip()
@@ -516,6 +613,17 @@ def api_ai_assistant(user_data=None):
 
     if not message:
         return jsonify({'success': False, 'message': 'Message is required'}), 400
+
+    ai_cache_key = None
+    if doc_id and len(message) > 3 and not (data.get('history') or []):
+        import hashlib
+        q_norm = re.sub(r'[^a-z0-9]+', ' ', message.lower()).strip()
+        ai_cache_key = f"cache:ai:{doc_id}:{hashlib.sha256(q_norm.encode()).hexdigest()[:16]}"
+        from methods.redis_client import cache_get_json
+        cached_ai = cache_get_json(ai_cache_key)
+        if cached_ai and isinstance(cached_ai, dict):
+            cached_ai['cached'] = True
+            return jsonify(cached_ai)
 
     from methods.supabase_helper import get_or_create_ai_conversation, save_ai_message
     if user_id:
@@ -897,6 +1005,22 @@ def api_ai_assistant(user_data=None):
                 type(log_err).__name__,
             )
 
+    try:
+        from methods.baseline_telemetry import log_ai_perf
+        cpu_ms = (time.thread_time() - t_cpu_0) * 1000
+        wall_ms = (time.monotonic() - t0) * 1000
+        log_ai_perf(
+            endpoint='/api/ai/chat',
+            cpu_ms=cpu_ms,
+            wall_ms=wall_ms,
+            model_id=getattr(resp, 'model_used', 'unknown'),
+            prompt_tokens=getattr(resp, 'tokens_in', 0),
+            completion_tokens=getattr(resp, 'tokens_out', 0),
+            cost_estimate=getattr(resp, 'cost_usd', 0.0)
+        )
+    except Exception:
+        pass
+
     auto_open = None
     if actions and re.search(r'\b(open it|open the|open this|take me to|navigate)\b', message, re.IGNORECASE):
         auto_open = actions[0].get('url')
@@ -944,6 +1068,27 @@ def api_ai_assistant(user_data=None):
     now_day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     with _daily_ai_lock:
         _daily_ai_usage[f"{user_id or 'anon'}:{now_day}"] = daily_used + 1
+
+    if user_id:
+        try:
+            from methods.load_governor import increment_user_op_usage
+            increment_user_op_usage(user_id, 'ai')
+        except Exception:
+            pass
+
+    if ai_cache_key:
+        try:
+            from methods.redis_client import cache_set_json
+            cache_set_json(ai_cache_key, {
+                'success': True,
+                'reply': final_text,
+                'answer': final_text,
+                'model_used': getattr(resp, 'model_used', 'unknown'),
+                'cards': cards,
+                'actions': actions
+            }, ttl_seconds=1800)
+        except Exception:
+            pass
 
     return jsonify({
         'success': True,
@@ -1006,45 +1151,75 @@ def api_ask_paper():
     return resp
 
 
+def invalidate_ocr_cache(doc_id: str):
+    """Invalidate cached OCR text when document changes."""
+    try:
+        from methods.redis_client import get_redis_client
+        get_redis_client().delete(f"cache:ocr:{doc_id}")
+    except Exception:
+        pass
+
+
 @ai_bp.route('/api/extract-ocr', methods=['POST'])
 @auth_required
 def api_extract_ocr():
     """Extract OCR text from paper image or PDF using free PyPDF/PyMuPDF or Vision models."""
-    try:
-        data = request.get_json(silent=True) or {}
-        doc_id = (data.get('doc_id') or '').strip()
-        selected_model = _resolve_model(data.get('model'))
-        if not doc_id:
-            return jsonify({'success': False, 'message': 'doc_id required'}), 400
-
-        client = init_supabase()
-        raw = client.table('documents').select('file_url').eq('id', doc_id).single().execute()
-        file_url = raw.data.get('file_url', '') if raw.data else ''
-        file_url = _resolve_signed_url(file_url, log_tag="AI")
-
-        if not file_url:
-            return jsonify({'success': False, 'message': 'File URL not available'}), 400
-
+    from methods.baseline_telemetry import measure_thread_cpu
+    with measure_thread_cpu('/api/extract-ocr'):
         try:
-            file_resp = requests.get(file_url, timeout=30, headers={'User-Agent': 'AbhiHub-AI/1.0'})
+            data = request.get_json(silent=True) or {}
+            doc_id = (data.get('doc_id') or '').strip()
+            selected_model = _resolve_model(data.get('model'))
+            if not doc_id:
+                return jsonify({'success': False, 'message': 'doc_id required'}), 400
+
+            from methods.load_governor import admit, increment_user_op_usage
+            user_session = session.get('user', {})
+            decision = admit(user_session, 'ocr')
+            if decision == 'limit':
+                return jsonify({'success': False, 'message': 'Daily OCR limit reached for your tier. Upgrade to Premium for 40/day.'}), 429
+
+            from methods.redis_client import get_redis_client
+            r = get_redis_client()
+            cached_ocr = r.get(f"cache:ocr:{doc_id}")
+            if cached_ocr:
+                return jsonify({'success': True, 'ocr_text': cached_ocr, 'source': 'cache'}), 200
+
+            client = init_supabase()
+            raw = client.table('documents').select('file_url').eq('id', doc_id).single().execute()
+            file_url = raw.data.get('file_url', '') if raw.data else ''
+            file_url = _resolve_signed_url(file_url, log_tag="AI")
+
+            if not file_url:
+                return jsonify({'success': False, 'message': 'File URL not available'}), 400
+
+            try:
+                file_resp = requests.get(file_url, timeout=30, headers={'User-Agent': 'AbhiHub-AI/1.0'})
+            except Exception as e:
+                return jsonify({'success': False, 'message': 'Could not fetch file'}), 502
+
+            if not file_resp.ok:
+                return jsonify({'success': False, 'message': f'Document fetch failed ({file_resp.status_code})'}), 502
+
+            content_bytes = file_resp.content
+            content_type = file_resp.headers.get('Content-Type', '').split(';')[0].lower()
+            is_pdf = _looks_like_pdf(content_type, file_url, content_bytes)
+
+            if is_pdf:
+                pdf_text, pdf_img_bytes, pdf_img_mime = extract_pdf_info(content_bytes)
+                if pdf_text and len(pdf_text.strip()) > 50:
+                    extracted = pdf_text.strip()
+                    try:
+                        r.setex(f"cache:ocr:{doc_id}", 86400 * 30, extracted)
+                        if user_session.get('uid'):
+                            increment_user_op_usage(user_session.get('uid'), 'ocr')
+                    except Exception:
+                        pass
+                    return jsonify({'success': True, 'ocr_text': extracted, 'source': 'pdf_native'}), 200
+
+            return jsonify({'success': False, 'message': 'OCR text extraction could not parse document.'}), 501
         except Exception as e:
-            return jsonify({'success': False, 'message': 'Could not fetch file'}), 502
-
-        if not file_resp.ok:
-            return jsonify({'success': False, 'message': f'Document fetch failed ({file_resp.status_code})'}), 502
-
-        content_bytes = file_resp.content
-        content_type = file_resp.headers.get('Content-Type', '').split(';')[0].lower()
-        is_pdf = _looks_like_pdf(content_type, file_url, content_bytes)
-
-        if is_pdf:
-            pdf_text, pdf_img_bytes, pdf_img_mime = extract_pdf_info(content_bytes)
-            if pdf_text and len(pdf_text.strip()) > 50:
-                return jsonify({'success': True, 'ocr_text': pdf_text.strip(), 'source': 'pdf_native'}), 200
-
-        return jsonify({'success': False, 'message': 'OCR text extraction could not parse document.'}), 501
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'OCR Error: {str(e)}'}), 500
+            return jsonify({'success': False, 'message': f'OCR Error: {str(e)}'}), 500
 
 
 @ai_bp.route('/api/ai/tools', methods=['GET'])

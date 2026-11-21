@@ -27,3 +27,29 @@ software-development
 # Deployment does not need generated Cloudinary metadata or source maps
 data/cache/*
 *.map
+
+# Heavy dependencies and package managers
+node_modules
+package-lock.json
+
+# Local and test uploads (files are stored in Cloudinary/Firebase in production)
+static/uploads/*
+static/uploads/chat/*
+
+# Database, SQL, and CSV artifacts
+*.sqlite
+*.sqlite3
+*.csv
+*.sql
+*.log
+
+# Phase audit and documentation reports
+PHASE*.md
+SEO_*.md
+*AUDIT*.md
+*REPORT*.md
+*PLAN*.md
+
+# Editor & CI/CD tooling
+.vscode
+.github

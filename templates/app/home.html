@@ -1422,16 +1422,19 @@
         <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1.25rem;">
           <div>
             <div style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.2rem 0.65rem; border-radius: 999px; font-size: 0.72rem; font-weight: 800; background: #4f46e5; color: #fff; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.04em;">
-              <i class="fas fa-bolt"></i> Exam Timetable Sync Active
+              <i class="fas fa-flask"></i> Beta Feature • Exam Timetable Sync
             </div>
             <h2 style="font-size: 1.35rem; font-weight: 800; margin: 0 0 0.25rem 0; color: var(--apple-text, #111);">
-              Upcoming Exams &amp; Subject Prep Vault
+              Upcoming College Exams <span style="font-size: 0.7rem; font-weight: 800; vertical-align: middle; padding: 0.15rem 0.5rem; border-radius: 999px; background: rgba(99, 102, 241, 0.15); color: #4f46e5; border: 1px solid rgba(99, 102, 241, 0.25); text-transform: uppercase;">Beta</span>
             </h2>
             <p style="font-size: 0.82rem; color: var(--apple-text-secondary, #666); margin: 0;">
-              Personalized for {{ user_data.get('branch_name') or 'Engineering' }} • Sem {{ user_data.get('semester') or 'Active' }} {{ '(' ~ user_data.get('section') ~ ')' if user_data.get('section') else '' }} • {{ user_data.get('college_abbreviation') or 'GHRCE' }}
+              Upcoming examination schedule for {{ user_data.get('college_name') or user_data.get('college_abbreviation') or 'GHRCE' }}{% if user_data.get('branch_name') %} • {{ user_data.get('branch_name') }}{% endif %}{% if user_data.get('semester') %} • Sem {{ user_data.get('semester') }}{% endif %}
             </p>
           </div>
-          <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <a href="/timetables" class="apple-qs-btn primary" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; text-decoration: none; background: #4f46e5; color: #fff;">
+              <i class="fas fa-calendar-alt"></i> Full Timetable & Schedule
+            </a>
             <a href="/notes-in-demand" class="apple-qs-btn secondary" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; text-decoration: none;">
               <i class="fas fa-chart-line"></i> Notes in Demand
             </a>
@@ -1844,10 +1847,10 @@
       <div class="apple-section-header">
         <div>
           <div style="display:inline-flex; align-items:center; gap:0.4rem; padding:0.2rem 0.6rem; border-radius:999px; font-size:0.75rem; font-weight:700; background:rgba(245, 158, 11, 0.12); color:#d97706; margin-bottom:0.35rem;">
-            <i class="fas fa-clock"></i> Timetable Countdown
+            <i class="fas fa-flask"></i> Beta Feature • Timetable Countdown
           </div>
-          <h2>Upcoming Examination Countdown</h2>
-          <p>Prioritized study materials for your scheduled Winter 2026 exams.</p>
+          <h2>Upcoming Examination Countdown <span style="font-size: 0.7rem; font-weight: 800; vertical-align: middle; padding: 0.15rem 0.5rem; border-radius: 999px; background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); text-transform: uppercase;">Beta</span></h2>
+          <p>Prioritized study materials for scheduled exams at {{ user_data.get('college_abbreviation') or 'your college' }}.</p>
         </div>
         <a href="/notes-in-demand" class="apple-section-link">
           <span>Notes in Demand & Forecast →</span>

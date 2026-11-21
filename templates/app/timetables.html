@@ -1,0 +1,858 @@
+{% extends 'p_struct.html' %}
+
+{% block title %}Academic Timetables, Syllabus & Exam Schedule • AbhiHub{% endblock %}
+
+{% block content %}
+<style>
+  :root {
+    --tt-bg: #f5f5f7;
+    --tt-surface: #ffffff;
+    --tt-surface-sub: #fbfbfd;
+    --tt-surface-card: #ffffff;
+    --tt-text: #1d1d1f;
+    --tt-text-secondary: #6e6e73;
+    --tt-text-muted: #86868b;
+    --tt-border: rgba(0, 0, 0, 0.08);
+    --tt-border-hover: rgba(0, 0, 0, 0.16);
+    --tt-blue: #0071e3;
+    --tt-blue-hover: #0077ed;
+    --tt-blue-subtle: rgba(0, 113, 227, 0.08);
+    --tt-rose: #ef4444;
+    --tt-rose-subtle: rgba(239, 68, 68, 0.08);
+    --tt-amber: #f59e0b;
+    --tt-amber-subtle: rgba(245, 158, 11, 0.1);
+    --tt-emerald: #10b981;
+    --tt-emerald-subtle: rgba(16, 185, 129, 0.1);
+    --tt-radius-pill: 980px;
+    --tt-radius-card: 18px;
+    --tt-radius-modal: 24px;
+    --tt-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --tt-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.07);
+    --tt-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.12);
+  }
+
+  [data-theme="dark"] {
+    --tt-bg: #000000;
+    --tt-surface: #1c1c1e;
+    --tt-surface-sub: #2c2c2e;
+    --tt-surface-card: #18181b;
+    --tt-text: #f5f5f7;
+    --tt-text-secondary: #a1a1a6;
+    --tt-text-muted: #86868b;
+    --tt-border: rgba(255, 255, 255, 0.1);
+    --tt-border-hover: rgba(255, 255, 255, 0.22);
+    --tt-blue: #2997ff;
+    --tt-blue-hover: #40a9ff;
+    --tt-blue-subtle: rgba(41, 151, 255, 0.15);
+    --tt-rose-subtle: rgba(239, 68, 68, 0.2);
+    --tt-amber-subtle: rgba(245, 158, 11, 0.2);
+    --tt-emerald-subtle: rgba(16, 185, 129, 0.2);
+    --tt-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --tt-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --tt-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.7);
+  }
+
+  .tt-container {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--tt-text);
+  }
+
+  /* Header */
+  .tt-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+  .tt-title-wrap h1 {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 6px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .tt-subtitle {
+    font-size: 15px;
+    color: var(--tt-text-secondary);
+    margin: 0;
+  }
+
+  /* Actions */
+  .tt-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .tt-btn-primary {
+    background: var(--tt-blue);
+    color: #fff;
+    border: none;
+    border-radius: var(--tt-radius-pill);
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 113, 227, 0.25);
+  }
+  .tt-btn-primary:hover {
+    background: var(--tt-blue-hover);
+    transform: translateY(-1px);
+  }
+  .tt-btn-secondary {
+    background: var(--tt-surface);
+    color: var(--tt-text);
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-pill);
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s ease;
+  }
+  .tt-btn-secondary:hover {
+    border-color: var(--tt-border-hover);
+  }
+
+  /* College Banner & Milestone Timeline */
+  .tt-calendar-card {
+    background: var(--tt-surface-card);
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-card);
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: var(--tt-shadow-sm);
+  }
+  .tt-college-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    border-bottom: 1px solid var(--tt-border);
+    padding-bottom: 18px;
+    margin-bottom: 20px;
+  }
+  .tt-college-select-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .tt-select {
+    background: var(--tt-surface-sub);
+    border: 1px solid var(--tt-border);
+    color: var(--tt-text);
+    padding: 8px 14px;
+    border-radius: var(--tt-radius-pill);
+    font-size: 14px;
+    font-weight: 500;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .tt-select:focus {
+    border-color: var(--tt-blue);
+  }
+
+  /* Timeline Grid */
+  .tt-timeline-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+  .tt-milestone-pill {
+    background: var(--tt-surface-sub);
+    border: 1px solid var(--tt-border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+  .tt-milestone-pill:hover {
+    transform: translateY(-2px);
+    border-color: var(--tt-border-hover);
+  }
+  .tt-milestone-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--tt-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .tt-milestone-date {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--tt-text);
+    margin: 0;
+  }
+  .tt-milestone-sub {
+    font-size: 12px;
+    color: var(--tt-text-muted);
+    margin-top: 4px;
+  }
+
+  /* Tabs */
+  .tt-tabs {
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid var(--tt-border);
+    margin-bottom: 20px;
+  }
+  .tt-tab {
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--tt-text-secondary);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s ease;
+  }
+  .tt-tab.active {
+    color: var(--tt-blue);
+    border-bottom-color: var(--tt-blue);
+  }
+
+  /* Filters Row */
+  .tt-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+    align-items: center;
+  }
+
+  /* Timetable Table */
+  .tt-table-wrap {
+    background: var(--tt-surface-card);
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-card);
+    overflow: hidden;
+    box-shadow: var(--tt-shadow-sm);
+  }
+  .tt-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    text-align: left;
+  }
+  .tt-table th {
+    background: var(--tt-surface-sub);
+    padding: 12px 16px;
+    font-weight: 600;
+    color: var(--tt-text-secondary);
+    border-bottom: 1px solid var(--tt-border);
+  }
+  .tt-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--tt-border);
+    color: var(--tt-text);
+  }
+  .tt-table tr:last-child td {
+    border-bottom: none;
+  }
+  .tt-badge-theory {
+    background: var(--tt-blue-subtle);
+    color: var(--tt-blue);
+    padding: 4px 10px;
+    border-radius: var(--tt-radius-pill);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .tt-badge-practical {
+    background: var(--tt-amber-subtle);
+    color: var(--tt-amber);
+    padding: 4px 10px;
+    border-radius: var(--tt-radius-pill);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  /* Syllabus Cards */
+  .tt-syllabus-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+  }
+  .tt-syllabus-card {
+    background: var(--tt-surface-card);
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-card);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+  .tt-syllabus-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--tt-border-hover);
+  }
+
+  /* Modal */
+  .tt-modal-backdrop {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 16px;
+  }
+  .tt-modal {
+    background: var(--tt-surface-card);
+    border: 1px solid var(--tt-border);
+    border-radius: var(--tt-radius-modal);
+    width: 100%;
+    max-width: 540px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 28px;
+    box-shadow: var(--tt-shadow-lg);
+  }
+  .tt-form-group {
+    margin-bottom: 16px;
+  }
+  .tt-form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tt-text-secondary);
+    margin-bottom: 6px;
+  }
+  .tt-input, .tt-modal select, .tt-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--tt-surface-sub);
+    border: 1px solid var(--tt-border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 14px;
+    color: var(--tt-text);
+    outline: none;
+  }
+  .tt-input:focus, .tt-modal select:focus, .tt-textarea:focus {
+    border-color: var(--tt-blue);
+  }
+</style>
+
+<div class="tt-container">
+  <!-- Hero / Header -->
+  <div class="tt-hero">
+    <div class="tt-title-wrap">
+      <h1>🗓️ Timetables, Syllabus & Schedule</h1>
+      <p class="tt-subtitle">Official examination calendars, branch schedules, curriculum syllabus, and academic milestones.</p>
+    </div>
+    <div class="tt-actions">
+      <button class="tt-btn-secondary" onclick="openSyllabusModal()">+ Add Subject / Syllabus</button>
+      <button class="tt-btn-primary" onclick="openTimetableModal()">+ Add Exam Timetable</button>
+    </div>
+  </div>
+
+  <!-- College & Academic Milestone Schedule Card -->
+  <div class="tt-calendar-card">
+    <div class="tt-college-header">
+      <div class="tt-college-select-wrap">
+        <label style="font-weight: 600; font-size: 14px;">🏛️ Select College:</label>
+        <select id="collegeSelect" class="tt-select" onchange="onCollegeChanged()">
+          {% for col in colleges %}
+          <option value="{{ col.id }}" {% if col.id == selected_college_id %}selected{% endif %}>
+            {{ col.name }} ({{ col.abbreviation or 'Autonomous' }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <span style="font-size: 13px; font-weight: 600; color: var(--tt-blue);">
+          Term: {{ academic_schedule.term or 'Winter 2026' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- College Timeline Milestones -->
+    <div class="tt-timeline-grid">
+      <div class="tt-milestone-pill">
+        <div class="tt-milestone-label">🚀 Semester Begins</div>
+        <p class="tt-milestone-date" id="m_sem_start">{{ academic_schedule.semester_start_date or 'July 15, 2025' }}</p>
+        <div class="tt-milestone-sub">Academic Term Kickoff</div>
+      </div>
+      <div class="tt-milestone-pill">
+        <div class="tt-milestone-label">📝 Term Submission</div>
+        <p class="tt-milestone-date" id="m_submission">{{ academic_schedule.submission_deadline or 'Nov 10, 2025' }}</p>
+        <div class="tt-milestone-sub">Assignments & Lab Files</div>
+      </div>
+      <div class="tt-milestone-pill">
+        <div class="tt-milestone-label">⏳ Mid-Sem Exams</div>
+        <p class="tt-milestone-date" id="m_mid_sem">{{ academic_schedule.mid_sem_start_date or 'Sep 15, 2025' }}</p>
+        <div class="tt-milestone-sub">MSE / Periodic Evaluation</div>
+      </div>
+      <div class="tt-milestone-pill">
+        <div class="tt-milestone-label">🎓 Final Exam Window</div>
+        <p class="tt-milestone-date" id="m_final_exam">{{ academic_schedule.exam_start_date or 'Nov 18, 2025' }}</p>
+        <div class="tt-milestone-sub">End-Sem Theory & Practical</div>
+      </div>
+      <div class="tt-milestone-pill">
+        <div class="tt-milestone-label">📜 Result Declaration</div>
+        <p class="tt-milestone-date" id="m_result">{{ academic_schedule.result_date or 'Jan 10, 2026' }}</p>
+        <div class="tt-milestone-sub">Grade Sheets & SGPA</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="tt-tabs">
+    <button class="tt-tab active" id="tabTimetableBtn" onclick="switchTab('timetable')">📅 Exam Timetables</button>
+    <button class="tt-tab" id="tabSyllabusBtn" onclick="switchTab('syllabus')">📚 Curriculum & Syllabus</button>
+  </div>
+
+  <!-- Filters Row -->
+  <div class="tt-filters">
+    <select id="branchFilter" class="tt-select" onchange="loadActiveData()">
+      <option value="">All Branches / Departments</option>
+      {% for dept in departments %}
+      <option value="{{ dept.id }}">{{ dept.name }} ({{ dept.abbreviation }})</option>
+      {% endfor %}
+    </select>
+
+    <select id="semFilter" class="tt-select" onchange="loadActiveData()">
+      <option value="">All Semesters</option>
+      <option value="I">Semester I</option>
+      <option value="II">Semester II</option>
+      <option value="III">Semester III</option>
+      <option value="IV">Semester IV</option>
+      <option value="V">Semester V</option>
+      <option value="VI">Semester VI</option>
+      <option value="VII">Semester VII</option>
+      <option value="VIII">Semester VIII</option>
+    </select>
+
+    <select id="typeFilter" class="tt-select" onchange="loadActiveData()">
+      <option value="">All Types (Theory + Practical)</option>
+      <option value="THEORY">Theory Written (ESE)</option>
+      <option value="PRACTICAL">Practical / Lab / Viva</option>
+    </select>
+
+    <input type="text" id="searchInput" class="tt-select" placeholder="Search subject or code..." onkeyup="filterLocalData()" style="flex: 1; min-width: 200px;">
+  </div>
+
+  <!-- Section 1: Timetable View -->
+  <div id="timetableSection">
+    <div class="tt-table-wrap">
+      <table class="tt-table">
+        <thead>
+          <tr>
+            <th>Course Code</th>
+            <th>Subject Name</th>
+            <th>Branch</th>
+            <th>Semester</th>
+            <th>Exam Date</th>
+            <th>Time</th>
+            <th>Type</th>
+          </tr>
+        </thead>
+        <tbody id="timetableTbody">
+          <tr><td colspan="7" style="text-align:center; padding: 30px;">Loading exam timetables...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Section 2: Syllabus View -->
+  <div id="syllabusSection" style="display: none;">
+    <div id="syllabusGrid" class="tt-syllabus-grid">
+      <!-- Syllabus cards inserted here -->
+    </div>
+  </div>
+</div>
+
+<!-- Modal 1: Submit Exam Timetable -->
+<div id="timetableModal" class="tt-modal-backdrop">
+  <div class="tt-modal">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h3 style="margin: 0; font-size: 20px; font-weight: 700;">+ Add Exam Timetable Entry</h3>
+      <button onclick="closeModal('timetableModal')" style="background: none; border: none; font-size: 22px; cursor: pointer; color: var(--tt-text-muted);">&times;</button>
+    </div>
+    <form id="timetableForm" onsubmit="handleTimetableSubmit(event)">
+      <div class="tt-form-group">
+        <label>Branch / Department *</label>
+        <select id="modalBranch" required class="tt-input">
+          <option value="">Select Branch</option>
+          {% for dept in departments %}
+          <option value="{{ dept.id }}">{{ dept.name }} ({{ dept.abbreviation }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div class="tt-form-group">
+          <label>Semester *</label>
+          <select id="modalSem" required class="tt-input">
+            <option value="III">Semester III</option>
+            <option value="IV">Semester IV</option>
+            <option value="V">Semester V</option>
+            <option value="VI">Semester VI</option>
+            <option value="VII">Semester VII</option>
+            <option value="VIII">Semester VIII</option>
+            <option value="I">Semester I</option>
+            <option value="II">Semester II</option>
+          </select>
+        </div>
+        <div class="tt-form-group">
+          <label>Exam Type *</label>
+          <select id="modalType" required class="tt-input">
+            <option value="THEORY">Theory Written</option>
+            <option value="PRACTICAL">Practical / Lab Viva</option>
+          </select>
+        </div>
+      </div>
+      <div class="tt-form-group">
+        <label>Subject Name *</label>
+        <input type="text" id="modalSubjectName" required placeholder="e.g. Data Structures & Algorithms" class="tt-input">
+      </div>
+      <div class="tt-form-group">
+        <label>Subject / Course Code *</label>
+        <input type="text" id="modalSubjectCode" required placeholder="e.g. UNCSL301" class="tt-input">
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div class="tt-form-group">
+          <label>Exam Date *</label>
+          <input type="date" id="modalDate" required class="tt-input">
+        </div>
+        <div class="tt-form-group">
+          <label>Start Time</label>
+          <input type="time" id="modalStartTime" value="09:30" class="tt-input">
+        </div>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+        <button type="button" class="tt-btn-secondary" onclick="closeModal('timetableModal')">Cancel</button>
+        <button type="submit" class="tt-btn-primary" id="btnSubmitTimetable">Submit Schedule</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal 2: Add Syllabus / Subject -->
+<div id="syllabusModal" class="tt-modal-backdrop">
+  <div class="tt-modal">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h3 style="margin: 0; font-size: 20px; font-weight: 700;">+ Add Subject & Syllabus</h3>
+      <button onclick="closeModal('syllabusModal')" style="background: none; border: none; font-size: 22px; cursor: pointer; color: var(--tt-text-muted);">&times;</button>
+    </div>
+    <form id="syllabusForm" onsubmit="handleSyllabusSubmit(event)">
+      <div class="tt-form-group">
+        <label>Branch / Department *</label>
+        <select id="sylBranch" required class="tt-input">
+          <option value="">Select Branch</option>
+          {% for dept in departments %}
+          <option value="{{ dept.id }}">{{ dept.name }} ({{ dept.abbreviation }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div class="tt-form-group">
+          <label>Semester *</label>
+          <input type="text" id="sylSem" required placeholder="e.g. III or 3" class="tt-input">
+        </div>
+        <div class="tt-form-group">
+          <label>Credits</label>
+          <input type="number" id="sylCredits" value="3" step="0.5" class="tt-input">
+        </div>
+      </div>
+      <div class="tt-form-group">
+        <label>Subject Name *</label>
+        <input type="text" id="sylName" required placeholder="e.g. Operating Systems" class="tt-input">
+      </div>
+      <div class="tt-form-group">
+        <label>Subject Code *</label>
+        <input type="text" id="sylCode" required placeholder="e.g. UNCSL304" class="tt-input">
+      </div>
+      <div class="tt-form-group">
+        <label>Syllabus Outline / Topics</label>
+        <textarea id="sylText" rows="3" placeholder="Unit 1: Process Management, Unit 2: Memory..." class="tt-textarea"></textarea>
+      </div>
+      <div class="tt-form-group">
+        <label>Syllabus PDF Link (Optional)</label>
+        <input type="url" id="sylPdf" placeholder="https://..." class="tt-input">
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+        <button type="button" class="tt-btn-secondary" onclick="closeModal('syllabusModal')">Cancel</button>
+        <button type="submit" class="tt-btn-primary" id="btnSubmitSyllabus">Save Subject & Syllabus</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  let activeTab = 'timetable';
+  let cachedExams = [];
+  let cachedSubjects = [];
+
+  function switchTab(tab) {
+    activeTab = tab;
+    document.getElementById('tabTimetableBtn').classList.toggle('active', tab === 'timetable');
+    document.getElementById('tabSyllabusBtn').classList.toggle('active', tab === 'syllabus');
+    document.getElementById('timetableSection').style.display = tab === 'timetable' ? 'block' : 'none';
+    document.getElementById('syllabusSection').style.display = tab === 'syllabus' ? 'block' : 'none';
+    loadActiveData();
+  }
+
+  function onCollegeChanged() {
+    const colId = document.getElementById('collegeSelect').value;
+    // 1. Refresh college academic schedule
+    fetch(`/api/colleges/${colId}/schedule`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.schedule) {
+          const s = d.schedule;
+          document.getElementById('m_sem_start').innerText = s.semester_start_date || 'N/A';
+          document.getElementById('m_submission').innerText = s.submission_deadline || 'N/A';
+          document.getElementById('m_mid_sem').innerText = s.mid_sem_start_date || 'N/A';
+          document.getElementById('m_final_exam').innerText = s.exam_start_date || 'N/A';
+          document.getElementById('m_result').innerText = s.result_date || 'N/A';
+        }
+      });
+
+    // 2. Refresh branches for this college
+    fetch(`/api/colleges/${colId}/departments`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.departments) {
+          const bSel = document.getElementById('branchFilter');
+          const mSel = document.getElementById('modalBranch');
+          const sSel = document.getElementById('sylBranch');
+          let opts = '<option value="">All Branches / Departments</option>';
+          let modalOpts = '<option value="">Select Branch</option>';
+          d.departments.forEach(dept => {
+            opts += `<option value="${dept.id}">${dept.name} (${dept.abbreviation || ''})</option>`;
+            modalOpts += `<option value="${dept.id}">${dept.name} (${dept.abbreviation || ''})</option>`;
+          });
+          bSel.innerHTML = opts;
+          mSel.innerHTML = modalOpts;
+          sSel.innerHTML = modalOpts;
+        }
+        loadActiveData();
+      });
+  }
+
+  function loadActiveData() {
+    const colId = document.getElementById('collegeSelect').value;
+    const deptId = document.getElementById('branchFilter').value;
+    const sem = document.getElementById('semFilter').value;
+    const examType = document.getElementById('typeFilter').value;
+
+    if (activeTab === 'timetable') {
+      let url = `/admin/api/timetables?college_id=${colId}`;
+      if (deptId) url += `&department_id=${deptId}`;
+      if (sem) url += `&semester=${sem}`;
+      if (examType) url += `&exam_type=${examType}`;
+
+      fetch(url)
+        .then(r => r.json())
+        .then(d => {
+          cachedExams = d.exams || [];
+          renderTimetableTable(cachedExams);
+        })
+        .catch(e => {
+          document.getElementById('timetableTbody').innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">Failed to load timetable: ${e.message}</td></tr>`;
+        });
+    } else {
+      let url = `/api/colleges/${colId}/subjects?`;
+      if (deptId) url += `department_id=${deptId}&`;
+      if (sem) url += `semester=${sem}`;
+
+      fetch(url)
+        .then(r => r.json())
+        .then(d => {
+          cachedSubjects = d.subjects || [];
+          renderSyllabusGrid(cachedSubjects);
+        });
+    }
+  }
+
+  function renderTimetableTable(exams) {
+    const tbody = document.getElementById('timetableTbody');
+    if (!exams || exams.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 30px; color: var(--tt-text-muted);">No exam schedules found for this selection.</td></tr>';
+      return;
+    }
+    let html = '';
+    exams.forEach(e => {
+      const sub = e.subjects || {};
+      const dept = e.departments || {};
+      const badgeClass = e.exam_type === 'PRACTICAL' ? 'tt-badge-practical' : 'tt-badge-theory';
+      const timeStr = (e.start_time || '') + (e.end_time ? ' - ' + e.end_time : '');
+      html += `<tr>
+        <td style="font-weight:700; font-family:monospace; color:var(--tt-blue);">${sub.subject_code || 'N/A'}</td>
+        <td style="font-weight:600;">${sub.name || 'Subject'}</td>
+        <td>${dept.abbreviation || dept.name || 'All'}</td>
+        <td>${e.semester || 'N/A'}</td>
+        <td style="font-weight:600;">${e.exam_date || 'TBD'}</td>
+        <td>${timeStr || '10:00 AM'}</td>
+        <td><span class="${badgeClass}">${e.exam_type}</span></td>
+      </tr>`;
+    });
+    tbody.innerHTML = html;
+  }
+
+  function renderSyllabusGrid(subjects) {
+    const grid = document.getElementById('syllabusGrid');
+    if (!subjects || subjects.length === 0) {
+      grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--tt-text-muted);">No syllabus recorded yet for this branch. Click "+ Add Subject / Syllabus" above to add one!</div>';
+      return;
+    }
+    let html = '';
+    subjects.forEach(s => {
+      html += `<div class="tt-syllabus-card">
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+            <span style="font-weight:700; font-family:monospace; color:var(--tt-blue); font-size:15px;">${s.subject_code || ''}</span>
+            <span style="font-size:12px; background:var(--tt-surface-sub); border:1px solid var(--tt-border); padding:3px 8px; border-radius:10px;">${s.credits || 3} Credits</span>
+          </div>
+          <h4 style="margin:0 0 8px 0; font-size:16px; font-weight:700;">${s.subject_name || s.name || ''}</h4>
+          <p style="font-size:13px; color:var(--tt-text-secondary); line-height:1.4; margin:0 0 14px 0;">
+            ${s.syllabus_text || 'Comprehensive units, recommended textbooks, and question-bank blueprint.'}
+          </p>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--tt-border); padding-top:12px;">
+          <span style="font-size:12px; color:var(--tt-text-muted);">${s.regulation || 'Autonomous Scheme'}</span>
+          ${s.syllabus_pdf_url ? `<a href="${s.syllabus_pdf_url}" target="_blank" class="tt-btn-secondary" style="padding:6px 12px; font-size:12px;">Download PDF</a>` : `<span style="font-size:12px; color:var(--tt-text-secondary);">Sem ${s.semester || 'All'}</span>`}
+        </div>
+      </div>`;
+    });
+    grid.innerHTML = html;
+  }
+
+  function filterLocalData() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    if (activeTab === 'timetable') {
+      const filtered = cachedExams.filter(e => {
+        const sub = e.subjects || {};
+        return (sub.name || '').toLowerCase().includes(q) || (sub.subject_code || '').toLowerCase().includes(q);
+      });
+      renderTimetableTable(filtered);
+    } else {
+      const filtered = cachedSubjects.filter(s => {
+        return (s.subject_name || '').toLowerCase().includes(q) || (s.subject_code || '').toLowerCase().includes(q);
+      });
+      renderSyllabusGrid(filtered);
+    }
+  }
+
+  function openTimetableModal() {
+    document.getElementById('timetableModal').style.display = 'flex';
+  }
+  function openSyllabusModal() {
+    document.getElementById('syllabusModal').style.display = 'flex';
+  }
+  function closeModal(id) {
+    document.getElementById(id).style.display = 'none';
+  }
+
+  function handleTimetableSubmit(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSubmitTimetable');
+    btn.disabled = true;
+    btn.innerText = 'Submitting...';
+
+    const colId = document.getElementById('collegeSelect').value;
+    const payload = {
+      college_id: colId,
+      department_id: document.getElementById('modalBranch').value,
+      semester: document.getElementById('modalSem').value,
+      exam_type: document.getElementById('modalType').value,
+      subject_name: document.getElementById('modalSubjectName').value,
+      subject_code: document.getElementById('modalSubjectCode').value,
+      exam_date: document.getElementById('modalDate').value,
+      start_time: document.getElementById('modalStartTime').value
+    };
+
+    fetch('/api/timetables/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(res => {
+      btn.disabled = false;
+      btn.innerText = 'Submit Schedule';
+      if (res.success) {
+        alert('Exam schedule added successfully!');
+        closeModal('timetableModal');
+        document.getElementById('timetableForm').reset();
+        loadActiveData();
+      } else {
+        alert('Failed to save schedule: ' + (res.message || 'Error occurred'));
+      }
+    })
+    .catch(err => {
+      btn.disabled = false;
+      btn.innerText = 'Submit Schedule';
+      alert('Network error: ' + err.message);
+    });
+  }
+
+  function handleSyllabusSubmit(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSubmitSyllabus');
+    btn.disabled = true;
+    btn.innerText = 'Saving...';
+
+    const colId = document.getElementById('collegeSelect').value;
+    const payload = {
+      department_id: document.getElementById('sylBranch').value,
+      semester: document.getElementById('sylSem').value,
+      credits: document.getElementById('sylCredits').value,
+      subject_name: document.getElementById('sylName').value,
+      subject_code: document.getElementById('sylCode').value,
+      syllabus_text: document.getElementById('sylText').value,
+      syllabus_pdf_url: document.getElementById('sylPdf').value
+    };
+
+    fetch(`/api/colleges/${colId}/subjects`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(res => {
+      btn.disabled = false;
+      btn.innerText = 'Save Subject & Syllabus';
+      if (res.success) {
+        alert('Subject & syllabus saved successfully!');
+        closeModal('syllabusModal');
+        document.getElementById('syllabusForm').reset();
+        if (activeTab === 'syllabus') loadActiveData();
+      } else {
+        alert('Failed: ' + (res.message || 'Error occurred'));
+      }
+    })
+    .catch(err => {
+      btn.disabled = false;
+      btn.innerText = 'Save Subject & Syllabus';
+      alert('Network error: ' + err.message);
+    });
+  }
+
+  // Initial load
+  document.addEventListener('DOMContentLoaded', () => {
+    loadActiveData();
+  });
+</script>
+{% endblock %}

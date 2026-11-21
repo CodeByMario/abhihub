@@ -108,8 +108,98 @@
     }
   };
 
+  // 4b. Funnel & Drop-off Intent Tracking
+  const _activeIntents = {};
+
+  window.startFeatureIntent = function (feature, step, metadata) {
+    if (!feature) return;
+    _activeIntents[feature] = {
+      step: step || 'initiated',
+      startTime: Date.now(),
+      metadata: metadata || {},
+      completed: false
+    };
+    window.trackFeature(feature, 'initiate', { step: step || 'initiated', ...(metadata || {}) });
+  };
+
+  window.completeFeatureIntent = function (feature, metadata) {
+    if (!feature) return;
+    if (_activeIntents[feature]) {
+      _activeIntents[feature].completed = true;
+      delete _activeIntents[feature];
+    }
+    window.trackFeature(feature, 'completed', metadata || {});
+  };
+
+  window.abandonFeatureIntent = function (feature, reason, metadata) {
+    if (!feature) return;
+    const intent = _activeIntents[feature];
+    if (intent && !intent.completed) {
+      const durationSec = Math.round((Date.now() - intent.startTime) / 1000);
+      window.trackFeature(feature, 'abandoned', {
+        step: intent.step,
+        duration_seconds: durationSec,
+        reason: reason || 'navigated_away',
+        ...intent.metadata,
+        ...(metadata || {})
+      });
+      delete _activeIntents[feature];
+      flushEvents();
+    }
+  };
+
   // 5. Automatic Listeners: Pageviews & Delegated Feature Clicks
   window.addEventListener('DOMContentLoaded', function () {
+    const path = window.location.pathname.toLowerCase();
+
+    // Auto-detect Upload Initiation
+    if (path.includes('/upload')) {
+      window.startFeatureIntent('upload', 'opened_upload_form');
+      const uploadForm = document.querySelector('form');
+      if (uploadForm) {
+        uploadForm.addEventListener('submit', function () {
+          window.completeFeatureIntent('upload');
+        });
+      }
+      const fileInput = document.querySelector('input[type="file"]');
+      if (fileInput) {
+        fileInput.addEventListener('change', function () {
+          if (fileInput.files && fileInput.files.length) {
+            window.startFeatureIntent('upload', 'file_selected', { fileName: fileInput.files[0].name });
+          }
+        });
+      }
+    }
+
+    // Auto-detect Search Intent
+    const searchInputs = document.querySelectorAll('input[type="search"], input[name="q"], input.search-input');
+    searchInputs.forEach(function (input) {
+      input.addEventListener('focus', function () {
+        window.startFeatureIntent('search', 'focused_search_input');
+      });
+      input.addEventListener('input', function () {
+        if (input.value.trim().length >= 2) {
+          window.startFeatureIntent('search', 'typed_query', { query: input.value.trim() });
+        }
+      });
+    });
+
+    // Delegated click for search results vs close
+    document.addEventListener('click', function (e) {
+      if (e.target.closest('.search-result-item, .search-card, a[href^="/resource/"]')) {
+        window.completeFeatureIntent('search');
+      }
+      if (e.target.closest('.close-search, .search-backdrop, [data-dismiss="search"]')) {
+        window.abandonFeatureIntent('search', 'closed_search_drawer');
+      }
+      // Channel Creation Intent
+      if (e.target.closest('[data-action="open-channel-modal"], button:has(.fa-plus-circle)')) {
+        window.startFeatureIntent('create_channel', 'opened_modal');
+      }
+      if (e.target.closest('[data-action="close-channel-modal"], .modal-close')) {
+        window.abandonFeatureIntent('create_channel', 'modal_closed');
+      }
+    }, { passive: true });
     // Record Page Feature View
     const pageFeature = document.body.getAttribute('data-feature') ||
       window.location.pathname.replace(/^\/|\/$/g, '').replace(/\//g, ':') ||
@@ -134,6 +224,12 @@
   });
 
   // Flush remaining events when navigating away
+  window.addEventListener('beforeunload', function () {
+    Object.keys(_activeIntents).forEach(function (feat) {
+      window.abandonFeatureIntent(feat, 'navigated_away');
+    });
+  });
+
   window.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'hidden') flushEvents();
   });

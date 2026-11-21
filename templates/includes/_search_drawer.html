@@ -543,6 +543,7 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 4px 14px 16px;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
@@ -578,6 +579,9 @@
     transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1) !important;
     color: inherit !important;
     cursor: pointer !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
   [data-theme="dark"] #abhiSearchDrawer .arch-apple-card {
     background: rgba(255, 255, 255, 0.03) !important;
@@ -862,7 +866,7 @@
     <div class="sd-spotlight-brand">
       <span class="sd-spotlight-dot"></span>
       <span class="sd-spotlight-title">Spotlight Search</span>
-      <span id="searchResultCount" class="sd-count-badge">0 papers</span>
+      <span id="sdResultCount" class="sd-count-badge">0 papers</span>
     </div>
     <div class="sd-spotlight-actions">
       <kbd class="sd-kbd-hint" aria-hidden="true">Esc</kbd>
@@ -876,8 +880,8 @@
   <div class="sd-input-container">
     <div class="sd-input-capsule">
       <svg class="sd-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-      <input type="text" id="searchFileName" class="sd-spotlight-input" placeholder="Search by subject name, code, topic..." autocomplete="off" spellcheck="false" aria-label="Search documents">
-      <button id="searchClearBtn" class="sd-input-clear" type="button" aria-label="Clear search" title="Clear search" style="display:none;">
+      <input type="text" id="sdSearchFileName" class="sd-spotlight-input" placeholder="Search by subject name, code, topic..." autocomplete="off" spellcheck="false" aria-label="Search documents">
+      <button id="sdSearchClearBtn" class="sd-input-clear" type="button" aria-label="Clear search" title="Clear search" style="display:none;">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
     </div>
@@ -914,20 +918,20 @@
   <!-- Collapsible Filter Sheet -->
   <div id="sdFilterAccordion" class="sd-filter-drawer-grid" style="display:none;">
     <div class="sd-grid-select-wrap">
-      <label class="sd-filter-label" for="searchCollege">College</label>
-      <select id="searchCollege" class="sd-grid-select">
+      <label class="sd-filter-label" for="sdCollege">College</label>
+      <select id="sdCollege" class="sd-grid-select">
         <option value="">All Colleges</option>
       </select>
     </div>
     <div class="sd-grid-select-wrap">
-      <label class="sd-filter-label" for="searchBranch">Branch</label>
-      <select id="searchBranch" class="sd-grid-select">
+      <label class="sd-filter-label" for="sdBranch">Branch</label>
+      <select id="sdBranch" class="sd-grid-select">
         <option value="">All Branches</option>
       </select>
     </div>
     <div class="sd-grid-select-wrap">
-      <label class="sd-filter-label" for="searchSemester">Semester</label>
-      <select id="searchSemester" class="sd-grid-select">
+      <label class="sd-filter-label" for="sdSemester">Semester</label>
+      <select id="sdSemester" class="sd-grid-select">
         <option value="">All Semesters</option>
         <option value="1">Semester 1</option>
         <option value="2">Semester 2</option>
@@ -940,14 +944,14 @@
       </select>
     </div>
     <div class="sd-grid-select-wrap">
-      <label class="sd-filter-label" for="searchYear">Year</label>
-      <select id="searchYear" class="sd-grid-select">
+      <label class="sd-filter-label" for="sdYear">Year</label>
+      <select id="sdYear" class="sd-grid-select">
         <option value="">All Years</option>
       </select>
     </div>
     <div class="sd-grid-select-wrap">
-      <label class="sd-filter-label" for="searchSort">Sort By</label>
-      <select id="searchSort" class="sd-grid-select">
+      <label class="sd-filter-label" for="sdSort">Sort By</label>
+      <select id="sdSort" class="sd-grid-select">
         <option value="relevance">Top Relevance</option>
         <option value="date_desc">Latest Uploads</option>
         <option value="views_desc">Most Viewed</option>
@@ -955,14 +959,14 @@
       </select>
     </div>
     <!-- Hidden sync element for searchType -->
-    <select id="searchType" style="display:none;" aria-label="Filter resource type">
+    <select id="sdType" style="display:none;" aria-label="Filter resource type">
       <option value=""></option>
       <option value="PYQ">PYQ</option>
       <option value="Notes">Notes</option>
       <option value="Syllabus">Syllabus</option>
     </select>
     <div class="sd-grid-select-wrap" style="align-self:flex-end;">
-      <button id="searchResetBtn" type="button" class="sd-reset-all-btn">
+      <button id="sdResetBtn" type="button" class="sd-reset-all-btn">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         <span>Reset Filters</span>
       </button>
@@ -971,7 +975,7 @@
 
   <!-- Scrollable Search Results Area -->
   <div class="sd-results-body">
-    <div id="loader" class="sd-skeleton-wrap" role="status" aria-label="Loading results" style="display:none;">
+    <div id="sdLoader" class="sd-skeleton-wrap" role="status" aria-label="Loading results" style="display:none;">
       <div class="sd-skeleton-card">
         <div class="sd-skeleton-icon"></div>
         <div class="sd-skeleton-body">
@@ -1014,17 +1018,17 @@
       </div>
     </div>
 
-    <div id="searchResults" class="ss-results" aria-live="polite"></div>
+    <div id="sdSearchResults" class="ss-results" aria-live="polite"></div>
 
     <!-- Pagination: Load More Trigger -->
-    <div id="searchLoadMoreWrap" class="sd-load-more-wrap" style="display:none;">
-      <button type="button" id="searchLoadMoreBtn" class="sd-load-more-btn" aria-label="Load more search results">
+    <div id="sdLoadMoreWrap" class="sd-load-more-wrap" style="display:none;">
+      <button type="button" id="sdLoadMoreBtn" class="sd-load-more-btn" aria-label="Load more search results">
         <span>Load More</span>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </button>
     </div>
 
-    <div id="noResults" class="ss-empty" style="display:none; padding:2rem 0.5rem; text-align:center;">
+    <div id="sdNoResults" class="ss-empty" style="display:none; padding:2rem 0.5rem; text-align:center;">
       <div style="width:40px; height:40px; border-radius:12px; background:rgba(0,0,0,0.04); display:inline-flex; align-items:center; justify-content:center; color:#86868b; margin-bottom:8px;">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
       </div>
@@ -1108,7 +1112,7 @@
       requestAnimationFrame(() => backdrop.classList.add('active'));
     }
 
-    const inp = document.getElementById('searchFileName');
+    const inp = document.getElementById('sdSearchFileName');
     if (inp) {
       if (typeof query === 'string' && query.length > 0) {
         inp.value = query;
@@ -1151,11 +1155,11 @@
 
   // Sync active filters indicator badge
   function updateFilterBadge() {
-    const college = document.getElementById('searchCollege')?.value || '';
-    const branch = document.getElementById('searchBranch')?.value || '';
-    const sem = document.getElementById('searchSemester')?.value || '';
-    const year = document.getElementById('searchYear')?.value || '';
-    const sort = document.getElementById('searchSort')?.value || 'relevance';
+    const college = document.getElementById('sdCollege')?.value || '';
+    const branch = document.getElementById('sdBranch')?.value || '';
+    const sem = document.getElementById('sdSemester')?.value || '';
+    const year = document.getElementById('sdYear')?.value || '';
+    const sort = document.getElementById('sdSort')?.value || 'relevance';
     const hasActive = Boolean(college || branch || sem || year || (sort && sort !== 'relevance'));
 
     const badge = document.getElementById('activeFiltersBadge');
@@ -1166,24 +1170,24 @@
 
   // Live Search Query Engine
   async function runLiveSearch() {
-    const inp = document.getElementById('searchFileName');
+    const inp = document.getElementById('sdSearchFileName');
     const q = inp ? inp.value.trim() : '';
-    const college = document.getElementById('searchCollege')?.value || '';
-    const branch = document.getElementById('searchBranch')?.value || '';
-    const sem = document.getElementById('searchSemester')?.value || '';
-    const type = document.getElementById('searchType')?.value || '';
-    const year = document.getElementById('searchYear')?.value || '';
-    const sort = document.getElementById('searchSort')?.value || 'relevance';
+    const college = document.getElementById('sdCollege')?.value || '';
+    const branch = document.getElementById('sdBranch')?.value || '';
+    const sem = document.getElementById('sdSemester')?.value || '';
+    const type = document.getElementById('sdType')?.value || '';
+    const year = document.getElementById('sdYear')?.value || '';
+    const sort = document.getElementById('sdSort')?.value || 'relevance';
 
-    const clearBtn = document.getElementById('searchClearBtn');
+    const clearBtn = document.getElementById('sdSearchClearBtn');
     if (clearBtn) clearBtn.style.display = q ? 'inline-flex' : 'none';
 
     updateFilterBadge();
 
-    const loader = document.getElementById('loader');
-    const noResults = document.getElementById('noResults');
-    const resultsContainer = document.getElementById('searchResults');
-    const countEl = document.getElementById('searchResultCount');
+    const loader = document.getElementById('sdLoader');
+    const noResults = document.getElementById('sdNoResults');
+    const resultsContainer = document.getElementById('sdSearchResults');
+    const countEl = document.getElementById('sdResultCount');
 
     if (loader) loader.style.display = 'block';
     if (noResults) noResults.style.display = 'none';
@@ -1213,7 +1217,7 @@
       if (!resultsContainer) return;
       resultsContainer.innerHTML = '';
 
-      const loadMoreWrap = document.getElementById('searchLoadMoreWrap');
+      const loadMoreWrap = document.getElementById('sdLoadMoreWrap');
       if (total === 0) {
         if (noResults) noResults.style.display = 'block';
         if (loadMoreWrap) loadMoreWrap.style.display = 'none';
@@ -1235,7 +1239,7 @@
     const a = document.createElement('a');
     a.className = 'arch-apple-card';
     const docId = file.record_id || file.id || '';
-    const docUrl = docId ? `/resource/${encodeURIComponent(docId)}` : '#';
+    const docUrl = file.canonical_slug ? `/resources/${encodeURIComponent(file.canonical_slug)}` : (docId ? `/resources/${encodeURIComponent(docId)}` : '#');
     a.href = docUrl;
 
     const subjName = file.subject || file.subject_name;
@@ -1313,9 +1317,9 @@
   }
 
   function renderSearchPage() {
-    const resultsContainer = document.getElementById('searchResults');
-    const loadMoreWrap = document.getElementById('searchLoadMoreWrap');
-    const loadMoreBtn = document.getElementById('searchLoadMoreBtn');
+    const resultsContainer = document.getElementById('sdSearchResults');
+    const loadMoreWrap = document.getElementById('sdLoadMoreWrap');
+    const loadMoreBtn = document.getElementById('sdLoadMoreBtn');
     if (!resultsContainer) return;
 
     const nextBatch = _currentSearchResults.slice(_renderedCount, _renderedCount + PAGE_SIZE);
@@ -1341,7 +1345,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function() {
-    const loadMoreBtn = document.getElementById('searchLoadMoreBtn');
+    const loadMoreBtn = document.getElementById('sdLoadMoreBtn');
     if (loadMoreBtn && !loadMoreBtn.dataset.wired) {
       loadMoreBtn.dataset.wired = 'true';
       loadMoreBtn.addEventListener('click', function(e) {
@@ -1359,7 +1363,7 @@
   // Populate Colleges dynamically
   async function populateFilterDropdowns() {
     try {
-      const colEl = document.getElementById('searchCollege');
+      const colEl = document.getElementById('sdCollege');
       if (colEl && colEl.options.length <= 1) {
         const resp = await fetch('/api/colleges?has_documents=true');
         const data = await resp.json();
@@ -1376,7 +1380,7 @@
 
   // Wire Inputs & Filter Triggers
   document.addEventListener('DOMContentLoaded', function() {
-    const inp = document.getElementById('searchFileName');
+    const inp = document.getElementById('sdSearchFileName');
     if (inp) {
       inp.addEventListener('input', function() {
         clearTimeout(_debounceTimer);
@@ -1391,7 +1395,7 @@
       });
     }
 
-    const clearBtn = document.getElementById('searchClearBtn');
+    const clearBtn = document.getElementById('sdSearchClearBtn');
     if (clearBtn && inp) {
       clearBtn.addEventListener('click', function() {
         inp.value = '';
@@ -1406,7 +1410,7 @@
       chip.addEventListener('click', function() {
         document.querySelectorAll('.sd-chip').forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
-        const hiddenType = document.getElementById('searchType');
+        const hiddenType = document.getElementById('sdType');
         if (hiddenType) {
           hiddenType.value = chip.dataset.typeChip || '';
         }
@@ -1438,7 +1442,7 @@
     });
 
     // Reset filters
-    const resetBtn = document.getElementById('searchResetBtn');
+    const resetBtn = document.getElementById('sdResetBtn');
     if (resetBtn) {
       resetBtn.addEventListener('click', function() {
         document.querySelectorAll('.sd-grid-select').forEach(sel => {
@@ -1448,7 +1452,7 @@
         document.querySelectorAll('.sd-chip').forEach(c => c.classList.remove('active'));
         const allChip = document.querySelector('.sd-chip[data-type-chip=""]');
         if (allChip) allChip.classList.add('active');
-        const hiddenType = document.getElementById('searchType');
+        const hiddenType = document.getElementById('sdType');
         if (hiddenType) hiddenType.value = '';
         if (inp) inp.value = '';
         if (clearBtn) clearBtn.style.display = 'none';

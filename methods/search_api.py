@@ -488,7 +488,7 @@ _YEAR_REGEX = re.compile(r'\b(201[5-9]|202[0-9])\b')
 _CATEGORY_REGEX = re.compile(r'\b(pyqs?|previous year|question papers?|notes?|practicals?|lab manuals?|syllabus)\b', re.IGNORECASE)
 _AUTHOR_REGEX = re.compile(r'\b(?:by|author|prof|dr|uploaded\s+by)[:\s]+([a-zA-Z0-9_\.]{2,30}(?:\s+[a-zA-Z0-9_\.]{2,30})?)\b', re.IGNORECASE)
 
-def parse_search_intent(query: str, client_college_id: str = None) -> Dict[str, Any]:
+def parse_search_intent(query: str, client_college_id: str = None, allow_fuzzy: bool = True) -> Dict[str, Any]:
     """Parse user query in memory to resolve entities, filters, and subject keywords."""
     taxonomy = get_taxonomy()
     parsed: Dict[str, Any] = {
@@ -755,7 +755,7 @@ def parse_search_intent(query: str, client_college_id: str = None) -> Dict[str, 
                 seen_subj_ids.add(s['id'])
 
     # Tier 5: Fuzzy Matching via rapidfuzz (for typos like 'algorithem')
-    if fuzz and not matched_candidates and len(clean_subj_q) >= 4:
+    if allow_fuzzy and fuzz and not matched_candidates and len(clean_subj_q) >= 4:
         for s in taxonomy['subjects']:
             score = fuzz.token_sort_ratio(clean_subj_q, s['name_norm'])
             if score >= 75:
@@ -808,8 +808,12 @@ def execute_search_v3(
     if not client:
         return [], {}
 
+    from methods.load_governor import get_load_state
+    is_red_load = (get_load_state() == 'red')
+    active_fuzz = None if is_red_load else fuzz
+
     taxonomy = get_taxonomy()
-    parsed = parse_search_intent(query, client_college_id=college_id)
+    parsed = parse_search_intent(query, client_college_id=college_id, allow_fuzzy=(not is_red_load))
 
     # 1. Resolve College IDs
     target_college_ids = list(parsed['college_ids'])
@@ -921,12 +925,14 @@ def execute_search_v3(
         'did_you_mean': None,
         'fallback': None,
         'relaxed': False,
-        'relaxation_message': None
+        'relaxation_message': None,
+        'search_mode': 'exact_prefix' if is_red_load else 'fuzzy',
+        'load_degraded': is_red_load
     }
 
     # Typo correction & did_you_mean generation using search_vocab / rapidfuzz
     did_you_mean_query = None
-    if fuzz and residual_text and len(residual_text) >= 4:
+    if active_fuzz and residual_text and len(residual_text) >= 4:
         vocab_list = taxonomy.get('vocab', [])
         corrected_words = []
         changed = False
@@ -940,7 +946,7 @@ def execute_search_v3(
             for v in vocab_list:
                 v_term = v.get('term', '')
                 if abs(len(v_term) - len(w_low)) <= 2:
-                    score = fuzz.ratio(w_low, v_term)
+                    score = active_fuzz.ratio(w_low, v_term)
                     if score > best_score and score >= 80:
                         best_score = score
                         best_match = v_term
@@ -1261,9 +1267,9 @@ def execute_search_v3(
 
         # 5. Trigram / fuzzy similarity on title and subject name (up to +40)
         sim = 0.0
-        if fuzz and clean_q:
-            sim = fuzz.token_set_ratio(clean_q, doc_title_norm) / 100.0
-            subj_sim = fuzz.token_set_ratio(clean_q, norm_text(subj_name)) / 100.0
+        if active_fuzz and clean_q:
+            sim = active_fuzz.token_set_ratio(clean_q, doc_title_norm) / 100.0
+            subj_sim = active_fuzz.token_set_ratio(clean_q, norm_text(subj_name)) / 100.0
             sim = max(sim, subj_sim)
             score += sim * 40.0
             if sim >= 0.70:
@@ -1699,24 +1705,42 @@ def search_v2_endpoint():
         logger.warning(f"[GATING] search quota check skipped: {quota_err}")
 
 
-    results, meta = execute_search_v3(
-        query=q,
-        college_id=college_id,
-        department_id=department_id,
-        semester=sem_int,
-        document_type=document_type,
-        subject=subject,
-        year=year,
-        author=author,
-        sort=sort
-    )
+    # Search query caching via Redis (TTL 2h)
+    import hashlib
+    from methods.redis_client import cache_get_json, cache_set_json
+    norm_q = norm_text(q) if q else ""
+    cache_params = f"{norm_q}|{college_id or ''}|{department_id or ''}|{sem_int or ''}|{document_type or ''}|{subject or ''}|{year or ''}|{author or ''}|{sort}"
+    search_cache_key = f"cache:search:{hashlib.sha256(cache_params.encode()).hexdigest()[:16]}"
 
-    return jsonify({
+    cached_payload = cache_get_json(search_cache_key)
+    if cached_payload is not None:
+        if isinstance(cached_payload, dict) and 'meta' in cached_payload:
+            cached_payload['meta']['cached'] = True
+        return jsonify(cached_payload)
+
+    from methods.baseline_telemetry import measure_thread_cpu
+    with measure_thread_cpu('uncached_search', {'query': q}):
+        results, meta = execute_search_v3(
+            query=q,
+            college_id=college_id,
+            department_id=department_id,
+            semester=sem_int,
+            document_type=document_type,
+            subject=subject,
+            year=year,
+            author=author,
+            sort=sort
+        )
+
+    payload = {
         'success': True,
         'count': len(results),
         'results': results,
         'meta': meta
-    })
+    }
+    cache_set_json(search_cache_key, payload, ttl_seconds=7200)
+
+    return jsonify(payload)
 
 def search_analytics_endpoint():
     """Log search analytics and zero-result queries for dictionary expansion."""

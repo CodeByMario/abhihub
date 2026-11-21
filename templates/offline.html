@@ -1,246 +1,335 @@
-{% extends 'p_struct.html' %}
-{% set disable_ads = true %}
-{% block content %}
-
-<style>
-  .offline-page-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    min-height: calc(100vh - 140px);
-    padding: 2.5rem 1rem 3rem;
-    text-align: center;
-    background: var(--bg-primary, #ffffff);
-  }
-
-  [data-theme="dark"] .offline-page-wrap {
-    background: #090d16;
-  }
-
-  .offline-icon-wrap {
-    width: 68px;
-    height: 68px;
-    border-radius: 50%;
-    background: var(--bg-secondary, rgba(0, 0, 0, 0.04));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-secondary, #64748b);
-    margin-bottom: 1.25rem;
-    border: 1px solid var(--border-light, rgba(0, 0, 0, 0.06));
-  }
-
-  [data-theme="dark"] .offline-icon-wrap {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.08);
-    color: #94a3b8;
-  }
-
-  .offline-status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 14px;
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    border-radius: 980px;
-    font-size: 0.78rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    margin-bottom: 1.25rem;
-  }
-
-  .offline-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #ef4444;
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
-    animation: offlinePulse 2s infinite;
-  }
-
-  @keyframes offlinePulse {
-    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
-    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-  }
-
-  .offline-title {
-    font-size: clamp(1.8rem, 4vw, 2.4rem);
-    font-weight: 800;
-    color: var(--text-primary, #0f172a);
-    margin: 0 0 0.5rem;
-    letter-spacing: -0.02em;
-  }
-
-  [data-theme="dark"] .offline-title {
-    color: #f8fafc;
-  }
-
-  .offline-message {
-    font-size: 0.95rem;
-    color: var(--text-secondary, #64748b);
-    max-width: 480px;
-    margin: 0 auto 1.5rem;
-    line-height: 1.5;
-  }
-
-  [data-theme="dark"] .offline-message {
-    color: #94a3b8;
-  }
-
-  .offline-actions {
-    display: flex;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-    justify-content: center;
-    margin-bottom: 2rem;
-  }
-
-  .offline-button {
-    padding: 0.7rem 1.4rem;
-    border-radius: 980px;
-    font-size: 0.88rem;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    cursor: pointer;
-    border: none;
-    text-decoration: none;
-  }
-
-  .retry-btn {
-    background: #0071E3;
-    color: #ffffff;
-    box-shadow: 0 2px 8px rgba(0, 113, 227, 0.25);
-  }
-
-  .retry-btn:hover {
-    background: #0077ED;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 113, 227, 0.35);
-  }
-
-  .cached-btn {
-    background: var(--bg-secondary, rgba(0, 0, 0, 0.05));
-    color: var(--text-primary, #1e293b);
-    border: 1px solid var(--border-light, rgba(0, 0, 0, 0.1));
-  }
-
-  [data-theme="dark"] .cached-btn {
-    background: rgba(255, 255, 255, 0.06);
-    color: #e2e8f0;
-    border-color: rgba(255, 255, 255, 0.12);
-  }
-
-  .cached-btn:hover {
-    background: var(--border-light, rgba(0, 0, 0, 0.08));
-    transform: translateY(-1px);
-  }
-
-  .offline-divider {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    width: min(100%, 420px);
-    margin: 0 auto 0.5rem;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--text-tertiary, #94a3b8);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .offline-divider::before,
-  .offline-divider::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border-light, rgba(0, 0, 0, 0.1));
-  }
-
-  [data-theme="dark"] .offline-divider::before,
-  [data-theme="dark"] .offline-divider::after {
-    background: rgba(255, 255, 255, 0.1);
-  }
-</style>
-
-<div class="offline-page-wrap">
-  <div class="offline-icon-wrap" aria-hidden="true">
-    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="1" y1="1" x2="23" y2="23"></line>
-      <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
-      <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
-      <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
-      <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
-      <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
-      <line x1="12" y1="20" x2="12.01" y2="20"></line>
-    </svg>
-  </div>
-
-  <div class="offline-status-badge">
-    <span class="offline-dot"></span>
-    <span>No Connection Detected</span>
-  </div>
-
-  <h1 class="offline-title">You're Offline</h1>
-
-  <p class="offline-message">
-    It seems you've lost internet connection. Don't worry — you can still access your cached papers or try reconnecting.
-  </p>
-
-  <div class="offline-actions">
-    <button class="offline-button retry-btn" type="button" onclick="retryConnection()" data-action="retryConnection" aria-label="Retry connection">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="23 4 23 10 17 10"></polyline>
-        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-      </svg>
-      Try Again
-    </button>
-
-    <button class="offline-button cached-btn" type="button" onclick="showCachedContent()" data-action="showCachedContent" aria-label="View cached content">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-      </svg>
-      View Cached Content
-    </button>
-  </div>
-
-  <div class="offline-divider">
-    <span>Quick Study Break Game</span>
-  </div>
-
-  {# Directly integrated retro game via Jinja2 — NO IFRAME #}
-  {% set show_game_back_btn = false %}
-  {% include 'includes/_retro_arcade.html' %}
-</div>
-
-<script>
-  function retryConnection() {
-    window.location.reload();
-  }
-
-  function showCachedContent() {
-    if (window.history.length > 2) {
-      window.history.back();
-    } else {
-      window.location.href = '/dashboard';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline · AbhiHub</title>
+  <link rel="icon" href="/static/images/android-chrome-192x192.png">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(22, 30, 46, 0.9);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --btn-secondary: rgba(255, 255, 255, 0.08);
+      --btn-secondary-hover: rgba(255, 255, 255, 0.14);
+      --badge-bg: rgba(239, 68, 68, 0.15);
+      --badge-text: #f87171;
+      --badge-border: rgba(239, 68, 68, 0.3);
     }
-  }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --card-border: #e2e8f0;
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --primary: #2563eb;
+        --primary-hover: #1d4ed8;
+        --btn-secondary: #f1f5f9;
+        --btn-secondary-hover: #e2e8f0;
+        --badge-bg: #fee2e2;
+        --badge-text: #dc2626;
+        --badge-border: #fca5a5;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .offline-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 24px;
+      padding: 2.5rem 2rem;
+      max-width: 460px;
+      width: 100%;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+    .icon-container {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: var(--badge-bg);
+      border: 1px solid var(--badge-border);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+      position: relative;
+    }
+    .pulse-dot {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #ef4444;
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: var(--badge-bg);
+      color: var(--badge-text);
+      border: 1px solid var(--badge-border);
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      margin-bottom: 0.6rem;
+      letter-spacing: -0.02em;
+    }
+    p {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      line-height: 1.5;
+      margin-bottom: 1.75rem;
+    }
+    .actions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      border: none;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: var(--btn-secondary);
+      color: var(--text);
+      border: 1px solid var(--card-border);
+    }
+    .btn-secondary:hover {
+      background: var(--btn-secondary-hover);
+      transform: translateY(-1px);
+    }
+    .btn-full {
+      grid-column: span 2;
+    }
+    .game-section {
+      border-top: 1px dashed var(--card-border);
+      padding-top: 1.25rem;
+      margin-top: 0.5rem;
+    }
+    .game-toggle-btn {
+      background: transparent;
+      border: none;
+      color: var(--primary);
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    #gameCanvas {
+      display: none;
+      background: #0f172a;
+      border-radius: 12px;
+      margin-top: 1rem;
+      width: 100%;
+      height: 140px;
+      border: 1px solid var(--card-border);
+    }
+    .online-toast {
+      display: none;
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #10b981;
+      color: #ffffff;
+      padding: 0.6rem 1.25rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      box-shadow: 0 10px 25px rgba(16, 185, 129, 0.35);
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body>
+  <div id="onlineToast" class="online-toast">🟢 Back Online! Resuming your study session...</div>
 
-  window.addEventListener('online', () => {
-    const title = document.querySelector('.offline-title');
-    const msg = document.querySelector('.offline-message');
-    if (title) title.textContent = "You're Back Online!";
-    if (msg) msg.textContent = "Connection restored. Resuming your study session…";
-    setTimeout(() => {
-      window.location.reload();
-    }, 1200);
-  });
-</script>
+  <div class="offline-card">
+    <div class="icon-container">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="1" y1="1" x2="23" y2="23"></line>
+        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+        <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+        <line x1="12" y1="20" x2="12.01" y2="20"></line>
+      </svg>
+      <div class="pulse-dot"></div>
+    </div>
 
-{% endblock %}
+    <div>
+      <span class="status-badge">No Internet Connection</span>
+    </div>
+
+    <h1>You're Offline</h1>
+    <p>AbhiHub is disconnected from the internet. Don't worry — previously viewed study notes and your dashboard remain accessible from your device cache.</p>
+
+    <div class="actions-grid">
+      <button class="btn btn-primary" onclick="retryConnection(event)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+        Try Again
+      </button>
+      <a href="/dashboard" class="btn btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+        Dashboard
+      </a>
+      <button class="btn btn-secondary btn-full" onclick="goBack()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        Return to Previous Page
+      </button>
+    </div>
+
+    <div class="game-section">
+      <button class="game-toggle-btn" onclick="toggleOfflineGame()">
+        🎮 Play Study Break Game (Tap to Jump)
+      </button>
+      <canvas id="gameCanvas" width="380" height="140"></canvas>
+    </div>
+  </div>
+
+  <script>
+    function retryConnection(e) {
+      if (e && e.currentTarget) e.currentTarget.innerText = "Reconnecting...";
+      setTimeout(() => { window.location.reload(); }, 600);
+    }
+    function goBack() {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.href = '/dashboard';
+      }
+    }
+    function onOnlineDetected() {
+      const toast = document.getElementById('onlineToast');
+      if (toast) toast.style.display = 'block';
+      setTimeout(() => { window.location.reload(); }, 1200);
+    }
+    window.addEventListener('online', onOnlineDetected);
+    setInterval(() => {
+      if (navigator.onLine) {
+        fetch('/static/manifest.json', { method: 'HEAD', cache: 'no-store' })
+          .then(r => { if (r.ok) onOnlineDetected(); })
+          .catch(() => {});
+      }
+    }, 4000);
+
+    // Lightweight Offline Mini-Game
+    let gameRunning = false, gInterval = null;
+    function toggleOfflineGame() {
+      const cvs = document.getElementById('gameCanvas');
+      if (cvs.style.display === 'block') {
+        cvs.style.display = 'none';
+        gameRunning = false;
+        clearInterval(gInterval);
+        return;
+      }
+      cvs.style.display = 'block';
+      startOfflineGame(cvs);
+    }
+
+    function startOfflineGame(cvs) {
+      const ctx = cvs.getContext('2d');
+      let score = 0, px = 40, py = 100, vy = 0, gravity = 0.6, jumping = false;
+      let obsX = 380, obsW = 16, obsH = 26, speed = 3.5;
+      gameRunning = true;
+      clearInterval(gInterval);
+
+      function jump() {
+        if (!jumping) { vy = -9; jumping = true; }
+      }
+      window.addEventListener('keydown', (e) => { if (e.code === 'Space') { e.preventDefault(); jump(); } });
+      cvs.addEventListener('click', jump);
+      cvs.addEventListener('touchstart', (e) => { e.preventDefault(); jump(); });
+
+      gInterval = setInterval(() => {
+        if (!gameRunning) return;
+        vy += gravity;
+        py += vy;
+        if (py >= 100) { py = 100; vy = 0; jumping = false; }
+        obsX -= speed;
+        if (obsX < -obsW) { obsX = 380; score += 1; speed = Math.min(6, speed + 0.1); }
+
+        // Collision check
+        if (obsX < px + 18 && obsX + obsW > px && py + 18 > 140 - obsH) {
+          score = 0; obsX = 380; speed = 3.5;
+        }
+
+        // Draw
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, cvs.width, cvs.height);
+        // Floor
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(0, 120, cvs.width, 20);
+        // Player (Study Cap / Student)
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(px, py, 18, 20);
+        // Obstacle (Exam Paper)
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(obsX, 120 - obsH, obsW, obsH);
+        // Score
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '12px sans-serif';
+        ctx.fillText('Score: ' + score, 15, 20);
+      }, 1000 / 60);
+    }
+  </script>
+</body>
+</html>

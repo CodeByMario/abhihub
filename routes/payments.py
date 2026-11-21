@@ -94,12 +94,30 @@ def phonepe_initiate_api():
     return initiate_payment()
 
 
+@payments_bp.route('/api/payments/plans', methods=['GET'])
+def get_premium_plans():
+    """Retrieve available premium subscription tiers."""
+    from methods.payment_plans import PREMIUM_PLANS
+    return jsonify({
+        'success': True,
+        'plans': list(PREMIUM_PLANS.values())
+    })
+
+
 @payments_bp.route('/api/create-order', methods=['POST'])
 @payments_bp.route('/api/payment/initiate', methods=['POST'])
 @payments_bp.route('/api/payment/razorpay/initiate', methods=['POST'])
 @auth_required
 def initiate_payment():
     """Initiates a Razorpay standard checkout order."""
+    from methods.payment_plans import is_payments_feature_enabled
+    if not is_payments_feature_enabled():
+        return jsonify({
+            'success': False,
+            'message': 'Payments are currently disabled on this instance (Vercel Hobby compliance). Upgrade to Vercel Pro before enabling FEATURE_PAYMENTS.',
+            'feature_disabled': True
+        }), 503
+
     from methods.razorpay_service import create_order
     from data.transactions import save_transaction_record
 
@@ -149,11 +167,7 @@ def initiate_payment():
             pack_size = 50
 
         valid_packs = {50: 100.0, 100: 200.0, 500: 1000.0}
-        passed_amount = float(data.get('amount', 0) or 0)
-        if passed_amount > 0:
-            price = passed_amount
-        else:
-            price = float(valid_packs.get(pack_size, pack_size * 2))
+        price = float(valid_packs.get(pack_size, pack_size * 2))
         admin_notes_parts.append(f"purpose=Credits-{pack_size};pack={pack_size};views={pack_size}")
         currency = 'INR'
     elif request.path.endswith('/create-order') and 'amount' in data and not doc_id and not pack_size:
@@ -163,21 +177,25 @@ def initiate_payment():
         price = raw_paise / 100.0
         currency = data.get('currency', 'INR')
     elif doc_id:
-        passed_amount = float(data.get('amount', 0) or 0)
-        if passed_amount > 0:
-            price = passed_amount
-        else:
-            client = init_supabase()
-            if client:
-                try:
-                    p_res = client.table('documents').select('price, is_paid, description').eq('id', doc_id).limit(1).execute()
-                    if p_res.data:
-                        pricing_data = extract_document_pricing(p_res.data[0])
-                        price = float(pricing_data.get('price', 0))
-                except Exception:
-                    pass
-            if price <= 0:
-                price = 49.0
+        client = init_supabase()
+        if client:
+            try:
+                p_res = client.table('documents').select('price, is_paid, description, coupon_code, coupon_discount').eq('id', doc_id).limit(1).execute()
+                if p_res.data:
+                    pricing_data = extract_document_pricing(p_res.data[0])
+                    base_price = float(pricing_data.get('price', 0))
+                    coupon_input = str(data.get('coupon_code', '')).strip().upper()
+                    expected_coupon = str(pricing_data.get('coupon_code', '')).strip().upper()
+                    discount_pct = int(pricing_data.get('coupon_discount', 0))
+                    if coupon_input and expected_coupon and coupon_input == expected_coupon and discount_pct > 0:
+                        discount = round(base_price * (discount_pct / 100.0), 2)
+                        price = max(1.0, round(base_price - discount, 2))
+                    else:
+                        price = base_price
+            except Exception:
+                pass
+        if price <= 0:
+            price = 49.0
         admin_notes_parts.append(f"doc_id={doc_id}")
         if purpose:
             admin_notes_parts.append(f"purpose={purpose}")

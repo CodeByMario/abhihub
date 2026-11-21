@@ -13,7 +13,8 @@
   {% set is_assignment = ('assignment' in combined_text or 'submission' in combined_text) %}
   {% set cat = 'pyq' if is_pyq else ('question bank' if is_qb else ('practical' if is_practical else ('syllabus' if is_syllabus else ('assignment' if is_assignment else ('notes'))))) %}
   {% set doc_id = file.get('document_id') or file.get('id') or file.get('doc_id') or file.get('record_id') %}
-  {% set furl = ('/resources/' ~ doc_id) if doc_id else (file.get('file_url') or '#') %}
+  {% set c_slug = file.get('canonical_slug') or file.get('slug') %}
+  {% set furl = ('/resources/' ~ (c_slug if c_slug else doc_id)) if (c_slug or doc_id) else (file.get('file_url') or '#') %}
   {% set price_val = file.get('price_inr') if file.get('price_inr') is not none else file.get('price', 0) %}
   {% set is_paid = file.get('is_paid') or (price_val and (price_val|float > 0)) %}
   
@@ -42,6 +43,17 @@
   {% set raw_author = (prof_dict.get('full_name') if prof_dict is mapping else None) or (prof_val if prof_val is string else None) or file.get('uploader_name') or file.get('author') %}
   {% set uploader_name = raw_author if (raw_author and raw_author|lower not in ('unknown', 'none', 'null', '')) else 'Student Contributor' %}
   {% set initial = (uploader_name[:1] or 'S')|upper %}
+
+  {# Canonical Slug Resolution - Never generate a bare UUID link that requires a 301 redirect #}
+  {% set c_slug = file.get('canonical_slug') or file.get('slug') %}
+  {% if not c_slug and doc_id %}
+    {% set coll_s = (college_label or 'college')|lower|replace(' ', '-')|replace('/', '-') %}
+    {% set dept_s = (dept_code or 'all')|lower|replace(' ', '-')|replace('/', '-') %}
+    {% set subj_s = (card_heading or 'subject')|lower|replace(' ', '-')|replace('/', '-') %}
+    {% set title_s = (file_title or 'file')|lower|replace(' ', '-')|replace('/', '-') %}
+    {% set c_slug = (coll_s ~ '-' ~ dept_s ~ '-' ~ subj_s ~ '-' ~ title_s ~ '-' ~ doc_id)|lower %}
+  {% endif %}
+  {% set furl = ('/resources/' ~ (c_slug if c_slug else doc_id)) if (c_slug or doc_id) else (file.get('file_url') or '#') %}
 
   <a href="{{ furl }}" class="arch-apple-card note-card {% if subject_detail %}subject-detail-card {% endif %}{% if is_pyq %}type-pyq{% elif is_practical %}type-practical{% elif is_syllabus %}type-syllabus{% else %}type-notes{% endif %}"
      data-title="{{ (card_heading ~ ' ' ~ subj_code)|lower }}"

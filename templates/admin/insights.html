@@ -99,10 +99,48 @@
     </div>
 </div>
 
+<!-- Feature Initiation & Drop-Off Funnel (Incomplete Actions) -->
+<div class="data-card" style="margin-top:1.5rem;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem; flex-wrap:wrap; gap:0.75rem;">
+        <div>
+            <h3 style="font-size:1.15rem; font-weight:800; color:var(--text-primary); margin:0 0 0.25rem 0;">
+                <i class="fas fa-filter" style="color:var(--accent-indigo);"></i> Feature Drop-Off &amp; Incomplete Actions
+            </h3>
+            <p style="color:var(--text-secondary); font-size:0.82rem; margin:0;">
+                Users who started an action (e.g. Upload, Search, Create Channel) but abandoned before completing.
+            </p>
+        </div>
+        <div id="funnelPills" style="display:flex; gap:0.5rem; flex-wrap:wrap;"></div>
+    </div>
+
+    <div class="table-responsive" style="border:none;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>User</th>
+                    <th>Feature Initiated</th>
+                    <th>Last Step Reached</th>
+                    <th>Drop-Off Reason</th>
+                    <th style="text-align:right;">Profile</th>
+                </tr>
+            </thead>
+            <tbody id="incompleteActionsTbody">
+                <tr><td colspan="6" style="text-align:center; padding:1.5rem; color:var(--text-muted);">No incomplete actions recorded.</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.75rem;">
+        <div style="font-size:0.75rem; color:var(--text-secondary);" id="incompleteSummary"></div>
+        <div style="display:flex; gap:0.3rem;" id="incompleteBtns"></div>
+    </div>
+</div>
+
 <script>
 let topSearchesCache = [];
 let zeroSearchesCache = [];
 let trendingFilesCache = [];
+let incompleteActionsCache = [];
 
 function renderTopSearches(page = 1) {
     const el = document.getElementById('topSearchTbody');
@@ -228,13 +266,76 @@ async function loadInsights() {
         topSearchesCache = data.top_searches || [];
         zeroSearchesCache = data.zero_result_searches || [];
         trendingFilesCache = data.trending_files || [];
+        incompleteActionsCache = data.incomplete_actions || [];
 
         renderTopSearches(1);
         renderZeroSearches(1);
         renderTrendingFiles(1);
+        renderIncompleteActions(1);
+        renderFunnelPills(data.funnel_stats || {});
     } catch (e) {
         showAdminToast('Network error loading insights', 'error');
     }
+}
+
+function renderFunnelPills(stats) {
+    const el = document.getElementById('funnelPills');
+    if (!el) return;
+    const feats = Object.keys(stats);
+    if (!feats.length) { el.innerHTML = ''; return; }
+    el.innerHTML = feats.map(f => {
+        const s = stats[f];
+        return `
+            <div style="background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:10px; padding:0.4rem 0.75rem; font-size:0.75rem; display:inline-flex; align-items:center; gap:0.4rem;">
+                <strong style="text-transform:capitalize; color:var(--text-primary);">${f.replace('_', ' ')}:</strong>
+                <span style="color:var(--text-secondary);">${s.completed}/${s.initiated}</span>
+                <span style="font-weight:700; color:${s.drop_off_pct > 40 ? 'var(--accent-rose)' : 'var(--text-muted)'};">(${s.drop_off_pct}% Drop-off)</span>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderIncompleteActions(page = 1) {
+    const el = document.getElementById('incompleteActionsTbody');
+    const summary = document.getElementById('incompleteSummary');
+    const btns = document.getElementById('incompleteBtns');
+    const total = incompleteActionsCache.length;
+
+    if (!total) {
+        el.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:1.5rem; color:var(--text-muted);">No incomplete feature drop-offs recorded in this time range.</td></tr>`;
+        if (summary) summary.textContent = '';
+        if (btns) btns.innerHTML = '';
+        return;
+    }
+
+    const totalPages = Math.ceil(total / 12);
+    const start = (page - 1) * 12;
+    const slice = incompleteActionsCache.slice(start, start + 12);
+
+    if (summary) summary.textContent = `Showing ${start + 1}-${Math.min(start + 12, total)} of ${total}`;
+    if (btns) {
+        btns.innerHTML = totalPages <= 1 ? '' : `
+            <button type="button" class="btn-action" style="padding:0.2rem 0.5rem; font-size:0.75rem;" ${page <= 1 ? 'disabled' : ''} onclick="renderIncompleteActions(${page - 1})"><i class="fas fa-chevron-left"></i></button>
+            <span style="font-size:0.75rem; color:var(--text-secondary); display:flex; align-items:center;">${page}/${totalPages}</span>
+            <button type="button" class="btn-action" style="padding:0.2rem 0.5rem; font-size:0.75rem;" ${page >= totalPages ? 'disabled' : ''} onclick="renderIncompleteActions(${page + 1})"><i class="fas fa-chevron-right"></i></button>
+        `;
+    }
+
+    el.innerHTML = slice.map(a => `
+        <tr>
+            <td><span style="font-family:var(--font-mono); font-size:0.78rem;">${(a.detected_at || '').slice(0, 19).replace('T', ' ')}</span></td>
+            <td>
+                ${a.user_id ? `<a href="/admin/users/${a.user_id}" style="color:var(--text-primary); font-weight:600; text-decoration:none;">${a.user_name}</a>` : `<span style="color:var(--text-muted);">${a.user_name}</span>`}
+                <div style="font-size:0.72rem; color:var(--text-secondary);">${a.user_email}</div>
+            </td>
+            <td><span class="role-badge" style="background:rgba(239,68,68,0.12); color:#ef4444; font-weight:700;">${a.feature}</span></td>
+            <td><strong style="font-size:0.8rem; color:var(--text-primary);">${a.step}</strong></td>
+            <td><span style="font-size:0.78rem; color:var(--text-muted);">${a.reason}</span></td>
+            <td style="text-align:right;">
+                ${a.user_id ? `<a href="/admin/users/${a.user_id}" class="btn-action" style="font-size:0.72rem; padding:0.2rem 0.5rem; text-decoration:none;">View User &rarr;</a>` : '—'}
+            </td>
+        </tr>
+    `).join('');
 }
 
 function requestContent(term) {

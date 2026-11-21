@@ -1,0 +1,313 @@
+/**
+ * Queue Screen Stylesheet
+ * Optimized for mobile (320px+) with zero cumulative layout shift (CLS).
+ */
+
+.queue-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.queue-modal-card {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  width: 100%;
+  max-width: 440px;
+  min-width: 280px;
+  padding: 24px;
+  box-sizing: border-box;
+  color: #f8fafc;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow-y: auto;
+  max-height: 90vh;
+}
+
+/* 1. Header */
+.queue-header {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.queue-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #38bdf8;
+  margin-bottom: 10px;
+}
+
+.queue-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 10px #38bdf8;
+  animation: queuePulse 1.5s infinite;
+}
+
+@keyframes queuePulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.queue-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.02em;
+}
+
+.queue-subtitle {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Stats */
+.queue-stats-box {
+  display: flex;
+  justify-content: space-around;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+
+.queue-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.queue-stat-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  margin-bottom: 2px;
+}
+
+.queue-stat-value {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #38bdf8;
+}
+
+/* Progress bar */
+.queue-progress-bar-wrap {
+  background: rgba(30, 41, 59, 0.8);
+  border-radius: 9999px;
+  height: 8px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.queue-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8 0%, #818cf8 100%);
+  border-radius: 9999px;
+  transition: width 0.4s ease;
+}
+
+/* 2. Skip the line Upsell */
+.queue-action-primary {
+  margin-bottom: 18px;
+}
+
+.queue-btn-premium {
+  width: 100%;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #0f172a;
+  border: none;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.queue-btn-premium:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.45);
+}
+
+.queue-btn-sub {
+  font-size: 0.72rem;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+/* 3. Alternatives */
+.queue-alternatives {
+  margin-bottom: 18px;
+}
+
+.queue-alt-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  display: block;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.queue-alt-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.queue-btn-secondary {
+  width: 100%;
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.queue-btn-secondary:hover {
+  background: rgba(51, 65, 85, 0.8);
+  color: #f8fafc;
+}
+
+/* 4. Useful Study Content */
+.queue-study-nugget {
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.queue-nugget-icon {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.queue-nugget-body {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: #cbd5e1;
+}
+
+.queue-nugget-body strong {
+  color: #38bdf8;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.queue-nugget-body p {
+  margin: 0 0 6px 0;
+}
+
+.queue-nugget-link {
+  color: #38bdf8;
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 0.75rem;
+}
+
+.queue-nugget-link:hover {
+  text-decoration: underline;
+}
+
+/* 5. Ads Container (LAST and visually separated) */
+.queue-ad-section {
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+  padding-top: 14px;
+  margin-top: 10px;
+  margin-bottom: 14px;
+  text-align: center;
+}
+
+.queue-ad-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.queue-ad-frame-wrapper {
+  min-height: 250px;
+  min-width: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Footer Cancel */
+.queue-footer {
+  text-align: center;
+}
+
+.queue-btn-cancel {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 4px 8px;
+}
+
+.queue-btn-cancel:hover {
+  color: #f1f5f9;
+}
+
+/* Responsive adjustments for 320px screens */
+@media (max-width: 360px) {
+  .queue-modal-card {
+    padding: 16px;
+  }
+  .queue-title {
+    font-size: 1.1rem;
+  }
+  .queue-stat-value {
+    font-size: 1.2rem;
+  }
+  .queue-ad-frame-wrapper {
+    min-height: 250px;
+    min-width: 280px;
+  }
+}

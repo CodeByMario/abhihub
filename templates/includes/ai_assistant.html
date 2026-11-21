@@ -1,4 +1,6 @@
 <!-- AbhiHub Native AI Assistant Component (Tarika - Mercury-3 Edition) -->
+<link rel="stylesheet" href="/static/css/queue_screen.css">
+<script src="/static/js/queue_screen.js"></script>
 <style>
 /* ── Tarika Design Tokens & Shell (Apple HIG) ───────────────────── */
 :root {
@@ -906,16 +908,33 @@ body.has-active-modal #abhiAiLauncher {
 
     const ctx = getActiveDocContext();
 
+    let queueTicket = null;
+    if (window.AbhiHubQueue && window.AbhiHubQueue.joinAndAcquireTicket) {
+      try {
+        queueTicket = await window.AbhiHubQueue.joinAndAcquireTicket('ai');
+      } catch(qErr) {
+        appendMessage('assistant', qErr.message || "Queue wait interrupted.");
+        isSubmitting = false;
+        if (sendBtn) sendBtn.disabled = false;
+        if (typingIndicator) typingIndicator.style.display = 'none';
+        return;
+      }
+    }
+
     try {
       const res = await fetch('/api/ai/assistant', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(queueTicket ? { 'X-Queue-Ticket': queueTicket } : {})
+        },
         body: JSON.stringify({
           message: text,
           doc_id: ctx.docId,
           doc_title: ctx.docTitle,
           history: chatHistory.slice(-6),
-          model: 'mercury-3'
+          model: 'mercury-3',
+          ticket: queueTicket
         })
       });
 

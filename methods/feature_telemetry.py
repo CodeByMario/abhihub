@@ -67,7 +67,7 @@ def log_feature_event(
         'recorded_at': datetime.now(timezone.utc).isoformat()
     }
     
-    event_name = f"feature:{feature}"[:60]
+    event_name = 'unauthorized_access'
     client_ip = combined_network.get('ip', '127.0.0.1')
     user_agent = combined_network.get('user_agent', '')
 

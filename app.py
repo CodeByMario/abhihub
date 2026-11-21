@@ -369,12 +369,13 @@ def check_resource_page_security():
 
 @app.after_request
 def enhance_resource_page_security(response):
-    """Add additional security headers for resource pages."""
+    """Add security and CDN cache headers for resource pages."""
     if request.path.startswith('/resource') or request.path.startswith('/resources'):
-        # Prevent caching of potentially sensitive resource metadata
         if response.status_code == 200:
-            response.headers.setdefault('Cache-Control', 'private, no-store, no-cache, must-revalidate')
-            response.headers['Pragma'] = 'no-cache'
+            if not session.get('user'):
+                response.headers.setdefault('Cache-Control', 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800')
+            else:
+                response.headers.setdefault('Cache-Control', 'private, no-cache, must-revalidate')
             # Add CORS for same-origin only
             response.headers['Access-Control-Allow-Origin'] = f'https://{BASE_DOMAIN}'
             response.headers['Access-Control-Allow-Methods'] = 'GET, HEAD, OPTIONS'
@@ -508,9 +509,15 @@ def apply_security_and_cache_headers(response):
         response.headers['Cache-Control'] = 'public, max-age=31536000, must-revalidate'
         if request.path.startswith('/static/js/ai/'):
             response.headers['Cross-Origin-Resource-Policy'] = 'cross-origin'
+    elif request.path.startswith('/api/og/'):
+        response.headers.setdefault('Cache-Control', 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=2592000')
     elif request.path.startswith('/api/'):
         if 'Cache-Control' not in response.headers:
             response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    elif request.method == 'GET' and response.status_code == 200 and not session.get('user'):
+        public_cached_paths = ('/', '/about', '/terms', '/privacy', '/features-tour', '/contact', '/team', '/open-source', '/college', '/subject', '/pyq')
+        if any(request.path == p or request.path.startswith(p + '/') for p in public_cached_paths):
+            response.headers.setdefault('Cache-Control', 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800')
     elif request.path.endswith('.html'):
         response.headers['Cache-Control'] = 'private, no-cache, no-store, must-revalidate'
     return response
@@ -908,7 +915,7 @@ init_push_api(app)
 # Initialize background scheduler for upload notifications
 try:
     import os
-    if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not app.debug:
+    if not os.environ.get("VERCEL") and (os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not app.debug):
         from scheduled_tasks import init_scheduler
         init_scheduler(app)
         logging.info("✅ Background task scheduler initialized")
@@ -1445,6 +1452,14 @@ def static_files(filename):
     if filename.endswith(".mjs"):
         return send_from_directory(static_dir, filename, mimetype="application/javascript")
     return send_from_directory(static_dir, filename)
+
+
+@app.route('/ad-frame.html')
+@app.route('/public/ad-frame.html')
+def serve_ad_frame():
+    """CDN-ready sandboxed ad frame runner."""
+    public_dir = os.path.join(app.root_path, 'public')
+    return send_from_directory(public_dir, 'ad-frame.html')
 
 
 

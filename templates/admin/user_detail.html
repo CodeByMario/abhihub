@@ -222,6 +222,7 @@
                 <option value="checkout_success">Checkout Success</option>
                 <option value="checkout_fail">Checkout Fail</option>
                 <option value="document_upload">Document Upload</option>
+                <option value="abandoned">⚠️ Abandoned / Incomplete</option>
                 <option value="error">Error</option>
             </select>
             <button type="button" class="btn-action" style="font-size:0.75rem; background:var(--border-subtle); color:var(--text-primary);" onclick="loadActivityTimeline(1)">
@@ -242,10 +243,10 @@
                 <tr>
                     <th>Timestamp</th>
                     <th>Event Type</th>
-                    <th>Entity / Target</th>
+                    <th>Action Performed</th>
+                    <th>Target / Resource</th>
                     <th>Device</th>
-                    <th>IP (Masked)</th>
-                    <th>Metadata</th>
+                    <th>Details</th>
                 </tr>
             </thead>
             <tbody id="activityTimelineTbody">
@@ -834,18 +835,24 @@ async function loadActivityTimeline(page = 1) {
             let metaStr = '—';
             try {
                 if (ev.metadata && Object.keys(ev.metadata).length) {
-                    metaStr = `<code style="font-size:0.75rem; color:var(--text-muted);">${JSON.stringify(ev.metadata)}</code>`;
+                    const entries = Object.entries(ev.metadata).filter(([k, v]) => v !== null && v !== '');
+                    if (entries.length) {
+                        metaStr = entries.map(([k, v]) => `<span style="display:inline-block; margin-right:4px; font-size:0.75rem; background:rgba(255,255,255,0.06); padding:0.1rem 0.35rem; border-radius:4px;"><span style="color:var(--text-secondary);">${k}:</span> ${typeof v === 'object' ? JSON.stringify(v) : v}</span>`).join('');
+                    }
                 }
             } catch (e) {}
+
+            const actionText = ev.action || (ev.event_type || 'Activity').replace('_', ' ');
+            const entityText = ev.entity_id || '—';
 
             return `
                 <tr>
                     <td><span style="font-family:var(--font-mono); font-size:0.78rem;">${(ev.created_at || '').replace('T', ' ').slice(0, 19)}</span></td>
-                    <td><span class="role-badge" style="background:rgba(14,165,233,0.15); color:#0ea5e9;">${ev.event_type}</span></td>
-                    <td><span style="font-family:var(--font-mono); font-size:0.78rem;">${ev.entity_id || '—'}</span></td>
-                    <td><span style="font-size:0.8rem;">${ev.device || 'unknown'}</span></td>
-                    <td><span style="font-family:var(--font-mono); font-size:0.78rem; color:var(--text-secondary);">${ev.ip || '—'}</span></td>
-                    <td style="max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${metaStr}</td>
+                    <td><span class="role-badge" style="background:rgba(14,165,233,0.15); color:#0ea5e9; text-transform:uppercase; font-size:0.7rem;">${ev.event_type}</span></td>
+                    <td><strong style="color:var(--text-primary); font-size:0.82rem;">${actionText}</strong></td>
+                    <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><span style="font-size:0.8rem; color:var(--text-secondary);" title="${entityText}">${entityText}</span></td>
+                    <td><span style="font-size:0.8rem;">${ev.device || 'Desktop'}</span></td>
+                    <td style="max-width:260px; overflow:hidden; text-overflow:ellipsis;">${metaStr}</td>
                 </tr>
             `;
         }).join('');

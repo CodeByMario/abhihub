@@ -314,8 +314,8 @@
     </div>
     <div class="tt-kpi-card">
         <div class="tt-kpi-title">Institution</div>
-        <div class="tt-kpi-val" style="font-size:1.25rem; color:var(--accent-amber); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">GHRCE Nagpur</div>
-        <div class="tt-kpi-sub">Autonomous Examination Cell</div>
+        <div class="tt-kpi-val" id="statInstitutionName" style="font-size:1.25rem; color:var(--accent-amber); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">GHRCE Nagpur</div>
+        <div class="tt-kpi-sub" id="statInstitutionSub">Autonomous Examination Cell</div>
     </div>
 </div>
 
@@ -338,6 +338,13 @@
     <div class="glass-panel" style="padding:1rem; margin-bottom:1rem;">
         <div class="tt-toolbar">
             <div class="tt-filters">
+                <select id="filterCollege" class="filter-input" style="min-width:240px; font-weight:700; border-color:var(--accent-indigo);" onchange="onCollegeFilterChanged()">
+                    {% for c in colleges %}
+                    <option value="{{ c.id }}" {% if c.id == '87928d20-edb3-4185-94e3-b0678470e850' %}selected{% endif %}>
+                        {{ c.name }} ({{ c.abbreviation or 'Autonomous' }})
+                    </option>
+                    {% endfor %}
+                </select>
                 <select id="filterDepartment" class="filter-input" style="min-width:200px;" onchange="loadTimetables()">
                     <option value="">All Branches / Departments</option>
                     {% for d in departments %}
@@ -683,12 +690,53 @@ function switchViewMode(mode) {
     }
 }
 
-async function loadTimetables() {
-    const dept = document.getElementById('filterDepartment').value;
-    const sem = document.getElementById('filterSemester').value;
-    const type = document.getElementById('filterExamType').value;
+async function onCollegeFilterChanged() {
+    const colSelect = document.getElementById('filterCollege');
+    if (!colSelect) return;
+    const colId = colSelect.value;
+    const selectedText = colSelect.options[colSelect.selectedIndex]?.text || 'Institution';
 
-    const url = `/admin/api/timetables?department_id=${encodeURIComponent(dept)}&semester=${encodeURIComponent(sem)}&exam_type=${encodeURIComponent(type)}`;
+    // Update institution KPI card
+    const nameEl = document.getElementById('statInstitutionName');
+    const subEl = document.getElementById('statInstitutionSub');
+    if (nameEl) {
+        const parts = selectedText.split('(');
+        nameEl.textContent = parts[0].trim();
+    }
+    if (subEl) {
+        subEl.textContent = selectedText.includes('(') ? selectedText.split('(')[1].replace(')', '') + ' Examination Cell' : 'Autonomous Examination Cell';
+    }
+
+    // Refresh branches for selected college
+    try {
+        const res = await fetch(`/api/colleges/${colId}/departments`);
+        const data = await res.json();
+        if (data.success && data.departments) {
+            const deptFilter = document.getElementById('filterDepartment');
+            const modalDept = document.getElementById('modalDeptSelect');
+            let opts = '<option value="">All Branches / Departments</option>';
+            let modalOpts = '<option value="">Select Department</option>';
+            data.departments.forEach(d => {
+                opts += `<option value="${d.id}">${d.abbreviation || d.name} — ${d.name}</option>`;
+                modalOpts += `<option value="${d.id}">${d.name} (${d.abbreviation || 'DEPT'})</option>`;
+            });
+            if (deptFilter) deptFilter.innerHTML = opts;
+            if (modalDept) modalDept.innerHTML = modalOpts;
+        }
+    } catch(e) {
+        console.warn("Failed fetching college branches:", e);
+    }
+
+    loadTimetables();
+}
+
+async function loadTimetables() {
+    const colId = document.getElementById('filterCollege')?.value || '';
+    const dept = document.getElementById('filterDepartment')?.value || '';
+    const sem = document.getElementById('filterSemester')?.value || '';
+    const type = document.getElementById('filterExamType')?.value || '';
+
+    const url = `/admin/api/timetables?college_id=${encodeURIComponent(colId)}&department_id=${encodeURIComponent(dept)}&semester=${encodeURIComponent(sem)}&exam_type=${encodeURIComponent(type)}`;
     try {
         const res = await fetch(url);
         const data = await res.json();
@@ -980,7 +1028,9 @@ function closeAliasModal() {
 async function saveExamForm(e) {
     e.preventDefault();
     const id = document.getElementById('editScheduleId').value;
+    const colId = document.getElementById('filterCollege')?.value || '87928d20-edb3-4185-94e3-b0678470e850';
     const payload = {
+        college_id: colId,
         department_id: document.getElementById('modalDeptSelect').value,
         semester: document.getElementById('modalSemester').value,
         course_code: document.getElementById('modalCourseCode').value,

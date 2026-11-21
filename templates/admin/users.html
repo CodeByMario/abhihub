@@ -160,17 +160,30 @@ async function loadUsers(page = 1) {
 }
 
 function renderPagination(total, page) {
-    const totalPages = Math.ceil(total / 12);
+    const totalPages = Math.max(1, Math.ceil(total / 12));
     const container = document.getElementById('usersPaginationBtns');
-    if (totalPages <= 1) { container.innerHTML = ''; return; }
-    let html = '';
-    if (page > 1) {
-        html += `<button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="loadUsers(${page - 1})"><i class="fas fa-chevron-left"></i> Prev</button>`;
-    }
-    html += `<span style="font-size:0.82rem; color:var(--text-secondary); padding:0.4rem 0.6rem;">Page ${page} of ${totalPages}</span>`;
-    if (page < totalPages) {
-        html += `<button type="button" class="btn-action" style="background:var(--border-subtle); color:var(--text-primary);" onclick="loadUsers(${page + 1})">Next <i class="fas fa-chevron-right"></i></button>`;
-    }
+    if (!container) return;
+
+    const isFirst = page <= 1;
+    const isLast = page >= totalPages;
+
+    let html = `
+        <button type="button" class="btn-action" id="btnUsersPrev"
+            style="background:var(--border-subtle); color:var(--text-primary); padding:0.4rem 0.85rem; font-size:0.82rem; font-weight:600; ${isFirst ? 'opacity:0.45; cursor:not-allowed;' : 'cursor:pointer;'}"
+            ${isFirst ? 'disabled' : ''}
+            onclick="if(${!isFirst}) loadUsers(${page - 1})">
+            <i class="fas fa-chevron-left"></i> Previous
+        </button>
+        <span style="font-size:0.82rem; font-weight:600; color:var(--text-secondary); padding:0.4rem 0.75rem; display:inline-flex; align-items:center;">
+            Page ${page} of ${totalPages}
+        </span>
+        <button type="button" class="btn-action" id="btnUsersNext"
+            style="background:var(--border-subtle); color:var(--text-primary); padding:0.4rem 0.85rem; font-size:0.82rem; font-weight:600; ${isLast ? 'opacity:0.45; cursor:not-allowed;' : 'cursor:pointer;'}"
+            ${isLast ? 'disabled' : ''}
+            onclick="if(${!isLast}) loadUsers(${page + 1})">
+            Next <i class="fas fa-chevron-right"></i>
+        </button>
+    `;
     container.innerHTML = html;
 }
 

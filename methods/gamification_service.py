@@ -11,11 +11,39 @@ log = logging.getLogger(__name__)
 
 # Master Badge Catalog
 BADGE_DEFINITIONS = {
+    'starter_scholar': {
+        'slug': 'starter_scholar',
+        'name': 'Campus Scholar',
+        'icon': '🎖️',
+        'rarity': 'Special',
+        'medal_tier': 'Starter',
+        'description': 'Welcome honor awarded for joining the AbhiHub academic community.',
+        'scarcity_rule': 'Starter medal for every student'
+    },
+    'knowledge_seeker': {
+        'slug': 'knowledge_seeker',
+        'name': 'Curious Explorer',
+        'icon': '🔍',
+        'rarity': 'Rare',
+        'medal_tier': 'Bronze',
+        'description': 'Discovered academic knowledge and searched campus study resources.',
+        'scarcity_rule': 'Earned on first academic search'
+    },
+    'master_researcher': {
+        'slug': 'master_researcher',
+        'name': 'Master Researcher',
+        'icon': '🏆',
+        'rarity': 'Legendary',
+        'medal_tier': 'Gold',
+        'description': 'Conducted 10+ active searches across campus subjects and materials.',
+        'scarcity_rule': 'Active researcher milestone'
+    },
     'pioneer': {
         'slug': 'pioneer',
         'name': 'Pioneer',
         'icon': '🚩',
         'rarity': 'Legendary',
+        'medal_tier': 'Gold',
         'description': 'First student to join AbhiHub from their college.',
         'scarcity_rule': 'One per college'
     },
@@ -84,10 +112,10 @@ def _get_client():
 
 
 _BADGES_CACHE = {}
-_BADGES_CACHE_TTL = 60.0
+_BADGES_CACHE_TTL = 300.0
 
 def get_user_badges(user_id: str) -> List[Dict[str, Any]]:
-    """Retrieve all badges earned by a user, including permanent timestamp."""
+    """Retrieve all badges earned by a user from user_achievements table."""
     client = _get_client()
     if not client or not user_id:
         return []
@@ -99,31 +127,50 @@ def get_user_badges(user_id: str) -> List[Dict[str, Any]]:
             return c_data
 
     earned_badges = []
-    # 1. Check normalized user_badges table
+    # 1. Query normalized user_achievements table
     try:
-        res = client.table('user_badges').select('*').eq('user_id', user_id).execute()
+        res = client.table('user_achievements').select('*').eq('user_id', user_id).execute()
         if res.data:
+            name_to_slug = {v['name'].lower(): k for k, v in BADGE_DEFINITIONS.items()}
             for row in res.data:
-                slug = row.get('badge_slug')
+                b_name = row.get('badge_name') or ''
+                slug = name_to_slug.get(b_name.lower()) or b_name.lower().replace(' ', '_')
                 b_def = BADGE_DEFINITIONS.get(slug, {
                     'slug': slug,
-                    'name': slug.replace('_', ' ').title(),
-                    'icon': '🎖️',
-                    'rarity': 'Common',
-                    'description': ''
+                    'name': b_name,
+                    'icon': row.get('badge_icon') or '🎖️',
+                    'rarity': 'Campus',
+                    'description': 'Campus recognition badge'
                 })
                 earned_badges.append({
                     **b_def,
-                    'earned_at': row.get('earned_at') or row.get('created_at'),
-                    'college_id': row.get('college_id'),
-                    'claimed_by_username': row.get('claimed_by_username')
+                    'earned_at': row.get('unlocked_at'),
+                    'college_id': None,
+                    'claimed_by_username': None
                 })
             _BADGES_CACHE[user_id] = (now, earned_badges)
             return earned_badges
     except Exception as e:
-        log.debug(f"[Gamification] user_badges query: {e}")
+        log.debug(f"[Gamification] user_achievements query: {e}")
 
     _BADGES_CACHE[user_id] = (now, earned_badges)
+
+    # Guarantee every user starts with at least the starter badge
+    has_starter = any(b.get('slug') == 'starter_scholar' for b in earned_badges)
+    if not has_starter and 'starter_scholar' in BADGE_DEFINITIONS:
+        starter_meta = {
+            **BADGE_DEFINITIONS['starter_scholar'],
+            'earned_at': datetime.now(timezone.utc).isoformat(),
+            'college_id': None,
+            'claimed_by_username': None
+        }
+        earned_badges.insert(0, starter_meta)
+        _BADGES_CACHE[user_id] = (now, earned_badges)
+        try:
+            award_badge(user_id, 'starter_scholar')
+        except Exception:
+            pass
+
     return earned_badges
 
 
@@ -138,26 +185,12 @@ def get_all_badges_with_user_status(user_id: str, college_id: Optional[str] = No
 
     if client and college_id:
         try:
-            # Check who claimed the pioneer or first upload for this college
-            c_claims = client.table('user_badges').select('badge_slug, user_id, earned_at, profiles(full_name, email)') \
-                .eq('college_id', college_id).execute()
-            for r in (c_claims.data or []):
-                slug = r.get('badge_slug')
-                prof = r.get('profiles') or {}
-                uname = prof.get('full_name') or (prof.get('email', '').split('@')[0]) or 'User'
-                if slug not in college_first_claims:
-                    college_first_claims[slug] = {
-                        'user_id': r.get('user_id'),
-                        'username': uname,
-                        'earned_at': r.get('earned_at')
-                    }
-
             # Calculate remaining Top 10 spots for this college
             member_cnt_res = client.table('profiles').select('id', count='exact').eq('college_id', college_id).execute()
             current_members = member_cnt_res.count or len(member_cnt_res.data or [])
             top10_remaining = max(0, 10 - current_members)
         except Exception as e:
-            log.debug(f"[Gamification] badge claims lookup failed: {e}")
+            log.debug(f"[Gamification] member count lookup: {e}")
 
     for slug, b_meta in BADGE_DEFINITIONS.items():
         is_earned = slug in earned
@@ -175,7 +208,7 @@ def get_all_badges_with_user_status(user_id: str, college_id: Optional[str] = No
 
 
 def award_badge(user_id: str, badge_slug: str, college_id: Optional[str] = None, metadata: Optional[Dict] = None) -> bool:
-    """Award a badge with tie-breaking earliest server timestamp and exclusivity rules."""
+    """Award a badge to user_achievements."""
     if badge_slug not in BADGE_DEFINITIONS or not user_id:
         return False
 
@@ -183,35 +216,28 @@ def award_badge(user_id: str, badge_slug: str, college_id: Optional[str] = None,
     if not client:
         return False
 
+    b_meta = BADGE_DEFINITIONS.get(badge_slug, {})
+    b_name = b_meta.get('name', badge_slug.replace('_', ' ').title())
+    b_icon = b_meta.get('icon', '🏅')
     now_iso = datetime.now(timezone.utc).isoformat()
-    # Exclusive single-holder checks (Founding Ambassador, Pioneer, First Upload)
-    if badge_slug in ['pioneer', 'first_upload', 'founding_ambassador', 'first_buyer'] and college_id:
-        try:
-            existing = client.table('user_badges').select('id, user_id, earned_at') \
-                .eq('college_id', college_id).eq('badge_slug', badge_slug) \
-                .order('earned_at', desc=False).limit(1).execute()
-            if existing.data:
-                # Already claimed exclusively for this college!
-                return False
-        except Exception:
-            pass
 
-    # Insert into user_badges
     try:
+        # Check if already claimed in user_achievements
+        existing = client.table('user_achievements').select('id') \
+            .eq('user_id', user_id).eq('badge_name', b_name).limit(1).execute()
+        if existing.data:
+            return True
+
         payload = {
             'user_id': user_id,
-            'badge_slug': badge_slug,
-            'college_id': college_id,
-            'earned_at': now_iso,
-            'metadata': metadata or {}
+            'badge_name': b_name,
+            'badge_icon': b_icon,
+            'unlocked_at': now_iso
         }
-        client.table('user_badges').insert(payload).execute()
+        client.table('user_achievements').insert(payload).execute()
 
         try:
             from methods.supabase_helper import log_notification
-            b_meta = BADGE_DEFINITIONS.get(badge_slug, {})
-            b_name = b_meta.get('name', badge_slug.title())
-            b_icon = b_meta.get('icon', '🏅')
             log_notification(
                 user_id,
                 'badge_unlocked',
@@ -233,22 +259,56 @@ def award_badge(user_id: str, badge_slug: str, college_id: Optional[str] = None,
                 pass
         except Exception:
             pass
+
+        _BADGES_CACHE.pop(user_id, None)
         return True
     except Exception as e:
-        log.debug(f"[Gamification] Relational award_badge failed, falling back to profile JSON: {e}")
-        # Fallback to profiles.badges
-        try:
-            p_res = client.table('profiles').select('badges').eq('id', user_id).single().execute()
-            badges = (p_res.data or {}).get('badges') or []
-            existing_slugs = [b if isinstance(b, str) else b.get('slug') for b in badges]
-            if badge_slug not in existing_slugs:
-                badges.append({'slug': badge_slug, 'earned_at': now_iso})
-                client.table('profiles').update({'badges': badges}).eq('id', user_id).execute()
-                return True
-        except Exception as e2:
-            log.warning(f"[Gamification] JSON fallback award failed: {e2}")
+        log.debug(f"[Gamification] award_badge error: {e}")
+        return False
 
-    return False
+
+def record_user_activity(user_id: str, activity_type: str, metadata: Optional[Dict] = None, college_id: Optional[str] = None):
+    """
+    Scalable event-driven gamification pipeline:
+    - Ingests user actions (search, upload, etc.)
+    - Records activity in user_activities with non-blocking fallback
+    - Triggers badge evaluation & real-time unlock notifications
+    """
+    if not user_id or not activity_type:
+        return
+
+    client = _get_client()
+    if not client:
+        return
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    meta = metadata or {}
+
+    # 1. Log activity to user_activities for analytics & milestone triggers
+    try:
+        client.table('user_activities').insert({
+            'user_id': user_id,
+            'activity_type': activity_type,
+            'metadata': meta,
+            'created_at': now_iso
+        }).execute()
+    except Exception as e:
+        log.debug(f"[Gamification] user_activities log (non-fatal): {e}")
+
+    # 2. Trigger activity badges
+    if activity_type == 'search':
+        # Immediate milestone: first search query award
+        award_badge(user_id, 'knowledge_seeker', college_id=college_id, metadata=meta)
+
+        # Milestone: 10+ searches award Master Researcher
+        try:
+            res = client.table('user_activities').select('id', count='exact') \
+                .eq('user_id', user_id).eq('activity_type', 'search').execute()
+            count = res.count or len(res.data or [])
+            if count >= 10:
+                award_badge(user_id, 'master_researcher', college_id=college_id, metadata={'total_searches': count})
+        except Exception:
+            pass
 
 
 def get_college_ambassador_status(college_id: str) -> Dict[str, Any]:
@@ -259,19 +319,19 @@ def get_college_ambassador_status(college_id: str) -> Dict[str, Any]:
 
     try:
         # Check approved uploads count
-        docs_res = client.table('documents').select('id, uploader_id', count='exact') \
-            .eq('college_id', college_id).eq('status', 'approved').execute()
+        docs_res = client.table('documents').select('id', count='exact') \
+            .eq('college_id', college_id).eq('status', 'approved').limit(10).execute()
         approved_count = docs_res.count or len(docs_res.data or [])
 
-        # Check existing founding ambassador
-        amb_res = client.table('college_ambassadors').select('user_id, is_founding, profiles(id, full_name, email)') \
-            .eq('college_id', college_id).eq('is_founding', True).limit(1).execute()
+        # Check existing founding ambassador from profiles
         founding_user = None
+        amb_res = client.table('profiles').select('id, full_name, email') \
+            .eq('college_id', college_id).order('reputation_score', desc=True).limit(1).execute()
         if amb_res.data:
-            p = amb_res.data[0].get('profiles') or {}
+            p = amb_res.data[0]
             founding_user = {
-                'id': amb_res.data[0].get('user_id'),
-                'name': p.get('full_name') or (p.get('email', '').split('@')[0]) or 'Founding Ambassador'
+                'id': p.get('id'),
+                'name': p.get('full_name') or (p.get('email', '').split('@')[0]) or 'Campus Lead'
             }
 
         return {
@@ -282,7 +342,7 @@ def get_college_ambassador_status(college_id: str) -> Dict[str, Any]:
             'founding_ambassador': founding_user
         }
     except Exception as e:
-        log.warning(f"[Gamification] get_college_ambassador_status failed: {e}")
+        log.debug(f"[Gamification] get_college_ambassador_status fallback: {e}")
         return {'is_unlocked': False, 'approved_uploads': 0, 'required': 3, 'founding_ambassador': None}
 
 
@@ -349,14 +409,5 @@ def on_document_approved(doc_id: str, uploader_id: str, college_id: Optional[str
         if total_approved == 1:
             award_badge(uploader_id, 'first_upload', college_id=college_id)
             award_badge(uploader_id, 'founding_ambassador', college_id=college_id)
-            try:
-                client.table('college_ambassadors').insert({
-                    'college_id': college_id,
-                    'user_id': uploader_id,
-                    'is_founding': True,
-                    'approved_uploads_count': 1
-                }).execute()
-            except Exception:
-                pass
     except Exception as e:
         log.warning(f"[Gamification] on_document_approved error: {e}")
